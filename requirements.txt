@@ -1,0 +1,24 @@
+# FastAPI & Server
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.6
+
+# Database (SQLite for local dev — no Postgres driver needed)
+sqlalchemy>=2.0.36
+
+# Authentication
+python-jose[cryptography]>=3.3.0
+bcrypt>=4.0.0
+python-multipart>=0.0.12
+
+# Configuration — use latest to get Python 3.14 wheels
+pydantic>=2.13.0
+pydantic-settings>=2.6.1
+
+# LLM
+google-genai>=1.16.0
+instructor>=1.7.0
+
+# Utilities
+python-dotenv>=1.0.1
+httpx
+httpx2

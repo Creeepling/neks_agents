@@ -1,0 +1,13 @@
+# Production requirements — extends requirements.txt with Postgres drivers.
+# Install with: pip install -r requirements.txt -r requirements.prod.txt
+#
+# Used in the Dockerfile for Cloud Run deployment.
+
+# PostgreSQL sync driver (used by SQLAlchemy for Cloud SQL / Neon / Supabase)
+psycopg2-binary==2.9.9
+
+# PostgreSQL async driver (optional — needed only if you add async SQLAlchemy)
+asyncpg==0.29.0
+
+# Alembic for database migrations
+alembic==1.13.3

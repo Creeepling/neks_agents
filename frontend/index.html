@@ -1,0 +1,1923 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Neks — Real Estate Agent</title>
+  <meta name="description" content="Internal real estate research and analysis agent dashboard." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+  <style>
+    /* -------------------------------------------------------------------------
+       DESIGN TOKENS
+    -------------------------------------------------------------------------- */
+    :root {
+      --bg-base:        #0d0f13;
+      --bg-surface:     #161b22;
+      --bg-elevated:    #1c2230;
+      --bg-hover:       #1f2937;
+      --border:         #2d3748;
+      --border-subtle:  #1e2735;
+
+      --text-primary:   #e2e8f0;
+      --text-secondary: #8892a4;
+      --text-muted:     #4a5568;
+      --text-inverse:   #0d0f13;
+
+      --accent:         #3b82f6;
+      --accent-hover:   #2563eb;
+      --accent-dim:     rgba(59,130,246,0.12);
+
+      --success:        #10b981;
+      --success-dim:    rgba(16,185,129,0.12);
+      --warning:        #f59e0b;
+      --warning-dim:    rgba(245,158,11,0.12);
+      --danger:         #ef4444;
+      --danger-dim:     rgba(239,68,68,0.12);
+
+      --radius-sm:  6px;
+      --radius-md:  10px;
+      --radius-lg:  16px;
+      --radius-xl:  24px;
+
+      --shadow-sm:  0 1px 3px rgba(0,0,0,0.4);
+      --shadow-md:  0 4px 16px rgba(0,0,0,0.5);
+      --shadow-lg:  0 16px 48px rgba(0,0,0,0.6);
+
+      --font-sans:  'Inter', system-ui, sans-serif;
+      --font-mono:  'JetBrains Mono', monospace;
+
+      --sidebar-w:  240px;
+      --topbar-h:   56px;
+    }
+
+    /* -------------------------------------------------------------------------
+       RESET & BASE
+    -------------------------------------------------------------------------- */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+      background: var(--bg-base);
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+      font-size: 14px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a { color: var(--accent); text-decoration: none; }
+    button { cursor: pointer; font-family: inherit; }
+    input, textarea {
+      font-family: inherit;
+      font-size: 14px;
+      outline: none;
+      border: none;
+    }
+    textarea { resize: vertical; }
+
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+    /* -------------------------------------------------------------------------
+       UTILITIES
+    -------------------------------------------------------------------------- */
+    .hidden { display: none !important; }
+    .flex    { display: flex; }
+    .flex-col { flex-direction: column; }
+    .items-center { align-items: center; }
+    .items-start  { align-items: flex-start; }
+    .justify-between { justify-content: space-between; }
+    .justify-center  { justify-content: center; }
+    .gap-2  { gap: 8px; }
+    .gap-3  { gap: 12px; }
+    .gap-4  { gap: 16px; }
+    .w-full { width: 100%; }
+    .grow   { flex: 1; }
+    .shrink-0 { flex-shrink: 0; }
+    .text-sm { font-size: 12px; }
+    .text-xs { font-size: 11px; }
+    .mono { font-family: var(--font-mono); }
+    .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    /* -------------------------------------------------------------------------
+       BADGE
+    -------------------------------------------------------------------------- */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.02em;
+    }
+    .badge-blue    { background: var(--accent-dim);   color: var(--accent); }
+    .badge-green   { background: var(--success-dim);  color: var(--success); }
+    .badge-amber   { background: var(--warning-dim);  color: var(--warning); }
+    .badge-red     { background: var(--danger-dim);   color: var(--danger); }
+    .badge-neutral { background: var(--bg-elevated);  color: var(--text-secondary); }
+
+    /* -------------------------------------------------------------------------
+       BUTTONS
+    -------------------------------------------------------------------------- */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 8px 16px;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-weight: 500;
+      border: 1px solid transparent;
+      transition: background 0.15s, color 0.15s, border-color 0.15s, opacity 0.15s;
+    }
+    .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+    .btn-primary  { background: var(--accent); color: #fff; }
+    .btn-primary:hover:not(:disabled) { background: var(--accent-hover); }
+    .btn-ghost    { background: transparent; color: var(--text-secondary); border-color: var(--border); }
+    .btn-ghost:hover:not(:disabled) { background: var(--bg-hover); color: var(--text-primary); }
+    .btn-danger   { background: var(--danger-dim); color: var(--danger); border-color: transparent; }
+    .btn-danger:hover:not(:disabled) { background: var(--danger); color: #fff; }
+    .btn-sm { padding: 5px 10px; font-size: 12px; }
+    .btn-lg { padding: 11px 24px; font-size: 14px; font-weight: 600; }
+
+    /* -------------------------------------------------------------------------
+       FORM CONTROLS
+    -------------------------------------------------------------------------- */
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-label { font-size: 12px; font-weight: 500; color: var(--text-secondary); letter-spacing: 0.03em; text-transform: uppercase; }
+    .form-input {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 9px 12px;
+      color: var(--text-primary);
+      transition: border-color 0.15s;
+      width: 100%;
+    }
+    .form-input:focus { border-color: var(--accent); }
+    .form-input::placeholder { color: var(--text-muted); }
+    .form-textarea {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 9px 12px;
+      color: var(--text-primary);
+      transition: border-color 0.15s;
+      width: 100%;
+      min-height: 80px;
+    }
+    .form-textarea:focus { border-color: var(--accent); }
+    .form-textarea::placeholder { color: var(--text-muted); }
+
+    /* -------------------------------------------------------------------------
+       CARD
+    -------------------------------------------------------------------------- */
+    .card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 20px;
+    }
+    .card-sm { padding: 14px 16px; }
+    .card-hover { transition: border-color 0.15s, background 0.15s; cursor: pointer; }
+    .card-hover:hover { border-color: var(--border); background: var(--bg-elevated); }
+
+    /* -------------------------------------------------------------------------
+       APP SHELL
+    -------------------------------------------------------------------------- */
+    #app { height: 100vh; display: flex; flex-direction: column; }
+
+    /* -------------------------------------------------------------------------
+       AUTH SCREEN
+    -------------------------------------------------------------------------- */
+    #view-auth {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(59,130,246,0.06) 0%, transparent 70%);
+    }
+    .auth-box {
+      width: 100%;
+      max-width: 400px;
+      padding: 40px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
+    }
+    .auth-logo {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+    }
+    .auth-logo span { color: var(--accent); }
+    .auth-subtitle { color: var(--text-secondary); font-size: 13px; margin-bottom: 28px; }
+    .auth-tabs { display: flex; gap: 0; margin-bottom: 24px; background: var(--bg-elevated); border-radius: var(--radius-sm); padding: 3px; }
+    .auth-tab {
+      flex: 1;
+      padding: 7px;
+      text-align: center;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      border-radius: 5px;
+      border: none;
+      background: transparent;
+      transition: background 0.15s, color 0.15s;
+    }
+    .auth-tab.active { background: var(--bg-surface); color: var(--text-primary); box-shadow: var(--shadow-sm); }
+    .auth-error {
+      background: var(--danger-dim);
+      border: 1px solid var(--danger);
+      border-radius: var(--radius-sm);
+      padding: 10px 12px;
+      color: var(--danger);
+      font-size: 13px;
+      margin-bottom: 16px;
+    }
+
+    /* -------------------------------------------------------------------------
+       MAIN SHELL (sidebar + content)
+    -------------------------------------------------------------------------- */
+    #view-app {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: var(--sidebar-w);
+      background: var(--bg-surface);
+      border-right: 1px solid var(--border-subtle);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      overflow-y: auto;
+    }
+    .sidebar-header {
+      padding: 18px 16px 14px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    .sidebar-logo {
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+      color: var(--text-primary);
+    }
+    .sidebar-logo span { color: var(--accent); }
+    .sidebar-user {
+      margin-top: 6px;
+      font-size: 11px;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+    }
+    .sidebar-section { padding: 16px 10px 8px; }
+    .sidebar-section-label {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      padding: 0 6px;
+      margin-bottom: 6px;
+    }
+    .sidebar-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 10px;
+      border-radius: var(--radius-sm);
+      color: var(--text-secondary);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      background: none;
+      width: 100%;
+      text-align: left;
+      transition: background 0.12s, color 0.12s;
+    }
+    .sidebar-item:hover { background: var(--bg-hover); color: var(--text-primary); }
+    .sidebar-item.active { background: var(--accent-dim); color: var(--accent); }
+    .sidebar-icon { font-size: 15px; flex-shrink: 0; }
+    .sidebar-footer {
+      margin-top: auto;
+      padding: 12px 10px;
+      border-top: 1px solid var(--border-subtle);
+    }
+
+    /* Main content area */
+    .main-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .topbar {
+      height: var(--topbar-h);
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border-subtle);
+      flex-shrink: 0;
+    }
+    .topbar-title { font-size: 15px; font-weight: 600; }
+    .topbar-breadcrumb {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text-secondary);
+      font-size: 13px;
+    }
+    .topbar-breadcrumb .crumb-sep { color: var(--text-muted); }
+    .topbar-breadcrumb .crumb-active { color: var(--text-primary); font-weight: 500; }
+    .topbar-actions { display: flex; align-items: center; gap: 8px; }
+
+    .page-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px;
+    }
+
+    /* -------------------------------------------------------------------------
+       DASHBOARD
+    -------------------------------------------------------------------------- */
+    .dashboard-header { margin-bottom: 20px; }
+    .dashboard-header h1 { font-size: 20px; font-weight: 600; margin-bottom: 4px; }
+    .dashboard-header p { color: var(--text-secondary); font-size: 13px; }
+
+    .property-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 14px;
+    }
+    .property-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 18px;
+      cursor: pointer;
+      transition: border-color 0.15s, transform 0.12s;
+      position: relative;
+      overflow: hidden;
+    }
+    .property-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0;
+      width: 3px; height: 100%;
+      background: var(--accent);
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
+    .property-card:hover { border-color: var(--border); transform: translateY(-1px); }
+    .property-card:hover::before { opacity: 1; }
+    .property-card-name { font-size: 14px; font-weight: 600; margin-bottom: 3px; }
+    .property-card-address { font-size: 12px; color: var(--text-secondary); margin-bottom: 14px; min-height: 18px; }
+    .property-card-steps { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 14px; }
+    .property-card-footer { display: flex; justify-content: space-between; align-items: center; }
+    .property-card-updated { font-size: 11px; color: var(--text-muted); font-family: var(--font-mono); }
+
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 64px 24px;
+      text-align: center;
+      gap: 12px;
+    }
+    .empty-icon { font-size: 40px; opacity: 0.3; }
+    .empty-title { font-size: 15px; font-weight: 600; color: var(--text-secondary); }
+    .empty-sub { font-size: 13px; color: var(--text-muted); max-width: 300px; }
+
+    /* -------------------------------------------------------------------------
+       PROPERTY DETAIL
+    -------------------------------------------------------------------------- */
+    .detail-layout {
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      gap: 20px;
+      align-items: start;
+    }
+    @media (max-width: 900px) {
+      .detail-layout { grid-template-columns: 1fr; }
+    }
+
+    .section-title {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+    }
+
+    /* JSON data viewer */
+    .data-viewer {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+    }
+    .data-viewer-header {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .data-viewer-title { font-size: 12px; font-weight: 600; color: var(--text-secondary); }
+    .data-viewer-body { padding: 16px; }
+    .data-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    .data-row:last-child { border-bottom: none; }
+    .data-key {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--accent);
+      flex-shrink: 0;
+      width: 170px;
+      padding-top: 1px;
+    }
+    .data-value {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text-primary);
+      word-break: break-all;
+      flex: 1;
+    }
+    .data-empty {
+      padding: 24px;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 13px;
+      font-style: italic;
+    }
+
+    /* Conversation list in detail */
+    .conv-list { display: flex; flex-direction: column; gap: 8px; }
+    .conv-item {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 12px 14px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: border-color 0.12s, background 0.12s;
+    }
+    .conv-item:hover { border-color: var(--border); background: var(--bg-elevated); }
+    .conv-item-left { display: flex; flex-direction: column; gap: 3px; }
+    .conv-step { font-size: 12px; font-weight: 600; color: var(--text-primary); }
+    .conv-date { font-size: 11px; color: var(--text-muted); font-family: var(--font-mono); }
+    .conv-arrow { color: var(--text-muted); font-size: 14px; }
+
+    /* -------------------------------------------------------------------------
+       CHAT SCREEN
+    -------------------------------------------------------------------------- */
+    #view-chat .main-content { overflow: hidden; }
+
+    .chat-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .msg {
+      display: flex;
+      flex-direction: column;
+      max-width: 72%;
+      gap: 3px;
+    }
+    .msg.user { align-self: flex-end; align-items: flex-end; }
+    .msg.assistant { align-self: flex-start; align-items: flex-start; }
+
+    .msg-bubble {
+      padding: 10px 14px;
+      border-radius: 16px;
+      font-size: 13px;
+      line-height: 1.55;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .msg.user .msg-bubble {
+      background: var(--accent);
+      color: #fff;
+      border-bottom-right-radius: 4px;
+    }
+    .msg.assistant .msg-bubble {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-primary);
+      border-bottom-left-radius: 4px;
+    }
+    .msg-time {
+      font-size: 10px;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      padding: 0 4px;
+    }
+    .msg-role {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      padding: 0 4px;
+    }
+
+    .typing-indicator {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 10px 14px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 16px;
+      border-bottom-left-radius: 4px;
+      width: fit-content;
+    }
+    .typing-dot {
+      width: 6px; height: 6px;
+      background: var(--text-muted);
+      border-radius: 50%;
+      animation: typing-bounce 1.2s infinite;
+    }
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes typing-bounce {
+      0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
+      40% { transform: translateY(-6px); opacity: 1; }
+    }
+
+    .chat-input-area {
+      padding: 12px 24px 20px;
+      border-top: 1px solid var(--border-subtle);
+      background: var(--bg-base);
+      flex-shrink: 0;
+    }
+    .chat-input-row {
+      display: flex;
+      gap: 8px;
+      align-items: flex-end;
+    }
+    .chat-textarea {
+      flex: 1;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 10px 14px;
+      color: var(--text-primary);
+      font-size: 13px;
+      resize: none;
+      min-height: 44px;
+      max-height: 160px;
+      line-height: 1.5;
+      font-family: inherit;
+      transition: border-color 0.15s;
+    }
+    .chat-textarea:focus { outline: none; border-color: var(--accent); }
+    .chat-textarea::placeholder { color: var(--text-muted); }
+    .chat-actions { display: flex; gap: 8px; margin-top: 10px; }
+
+    /* Commit panel */
+    .commit-panel {
+      margin: 0 24px 12px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      animation: slide-down 0.2s ease-out;
+    }
+    @keyframes slide-down {
+      from { transform: translateY(-8px); opacity: 0; }
+      to   { transform: translateY(0);    opacity: 1; }
+    }
+    .commit-panel-header {
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--bg-elevated);
+    }
+    .commit-panel-title { font-size: 12px; font-weight: 600; color: var(--text-primary); }
+    .commit-panel-close { background: none; border: none; color: var(--text-muted); font-size: 16px; cursor: pointer; }
+    .commit-panel-close:hover { color: var(--text-primary); }
+    .commit-panel-body { padding: 14px 16px; }
+    .commit-field { display: flex; gap: 10px; align-items: flex-start; padding: 5px 0; }
+    .commit-field-key { font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); width: 160px; flex-shrink: 0; }
+    .commit-field-val { font-family: var(--font-mono); font-size: 11px; }
+    .commit-field-val.found { color: var(--success); }
+    .commit-field-val.missing { color: var(--warning); }
+
+    /* -------------------------------------------------------------------------
+       MODAL
+    -------------------------------------------------------------------------- */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      animation: fade-in 0.15s ease-out;
+    }
+    @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+    .modal {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      width: 90%;
+      max-width: 460px;
+      box-shadow: var(--shadow-lg);
+      animation: modal-pop 0.2s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    @keyframes modal-pop {
+      from { transform: scale(0.92); opacity: 0; }
+      to   { transform: scale(1);    opacity: 1; }
+    }
+    .modal-header {
+      padding: 20px 24px 16px;
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .modal-header-text { flex: 1; }
+    .modal-title { font-size: 15px; font-weight: 600; margin-bottom: 3px; }
+    .modal-subtitle { font-size: 12px; color: var(--text-secondary); }
+    .modal-close {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 20px;
+      cursor: pointer;
+      line-height: 1;
+      padding: 2px;
+    }
+    .modal-close:hover { color: var(--text-primary); }
+    .modal-body { padding: 20px 24px; }
+    .modal-footer {
+      padding: 16px 24px 20px;
+      border-top: 1px solid var(--border-subtle);
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+
+    /* -------------------------------------------------------------------------
+       MISSING FIELDS LIST (validation modal)
+    -------------------------------------------------------------------------- */
+    .missing-field-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 12px;
+    }
+    .missing-field-pill {
+      padding: 3px 10px;
+      background: var(--warning-dim);
+      color: var(--warning);
+      border-radius: 20px;
+      font-size: 11px;
+      font-family: var(--font-mono);
+    }
+    .all-good-msg {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--success);
+      font-size: 13px;
+      margin-top: 8px;
+    }
+
+    /* -------------------------------------------------------------------------
+       TOAST
+    -------------------------------------------------------------------------- */
+    #toast-container {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 2000;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .toast {
+      padding: 11px 16px;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-weight: 500;
+      max-width: 320px;
+      box-shadow: var(--shadow-md);
+      animation: toast-in 0.2s ease-out;
+    }
+    @keyframes toast-in { from { transform: translateX(20px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    .toast-success { background: var(--success); color: #fff; }
+    .toast-error   { background: var(--danger);  color: #fff; }
+    .toast-info    { background: var(--bg-elevated); color: var(--text-primary); border: 1px solid var(--border); }
+
+    /* -------------------------------------------------------------------------
+       LOADING
+    -------------------------------------------------------------------------- */
+    .spinner {
+      width: 18px; height: 18px;
+      border: 2px solid rgba(255,255,255,0.2);
+      border-top-color: currentColor;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      flex-shrink: 0;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .page-loader {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      color: var(--text-secondary);
+      font-size: 13px;
+    }
+
+    /* Step selector in modal */
+    .step-option {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 12px;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: border-color 0.12s, background 0.12s;
+      margin-bottom: 8px;
+    }
+    .step-option:hover { border-color: var(--accent); background: var(--accent-dim); }
+    .step-option.selected { border-color: var(--accent); background: var(--accent-dim); }
+    .step-option-radio {
+      width: 16px; height: 16px;
+      border-radius: 50%;
+      border: 2px solid var(--border);
+      flex-shrink: 0;
+      margin-top: 2px;
+      transition: border-color 0.12s, background 0.12s;
+    }
+    .step-option.selected .step-option-radio { border-color: var(--accent); background: var(--accent); }
+    .step-option-title { font-size: 13px; font-weight: 600; }
+    .step-option-desc  { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+
+    /* Divider */
+    .divider { height: 1px; background: var(--border-subtle); margin: 16px 0; }
+
+    /* Data field count chip */
+    .field-count {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 20px; height: 20px;
+      background: var(--accent-dim);
+      color: var(--accent);
+      border-radius: 50%;
+      font-size: 10px;
+      font-weight: 700;
+    }
+  </style>
+</head>
+
+<body>
+<div id="app">
+  <!-- VIEWS ARE RENDERED HERE BY JS -->
+</div>
+<div id="toast-container"></div>
+
+<script>
+/* =============================================================================
+   CONFIGURATION
+============================================================================= */
+const API_BASE = ''; // Uses current host (works locally and on Cloud Run seamlessly)
+
+const STEPS = [
+  {
+    id: 'step_1_lookup',
+    label: 'Step 1: Research & Lookup',
+    desc: 'Gather basic property details — location, type, size, price, rooms, features.',
+  },
+  {
+    id: 'step_2_analysis',
+    label: 'Step 2: Investment Analysis',
+    desc: 'Evaluate investment potential — comparables, rental yield, renovation costs, recommendation.',
+  },
+];
+
+/* =============================================================================
+   STATE
+============================================================================= */
+const State = {
+  token: localStorage.getItem('neks_token') || null,
+  username: localStorage.getItem('neks_username') || null,
+  view: 'dashboard',       // auth | dashboard | detail | chat
+  properties: [],
+  currentProperty: null,
+  currentConversation: null,
+  conversations: [],
+  messages: [],
+};
+
+function setToken(token, username) {
+  State.token = token;
+  State.username = username;
+  localStorage.setItem('neks_token', token);
+  localStorage.setItem('neks_username', username);
+}
+
+function clearToken() {
+  State.token = null;
+  State.username = null;
+  localStorage.removeItem('neks_token');
+  localStorage.removeItem('neks_username');
+}
+
+/* =============================================================================
+   API LAYER
+============================================================================= */
+const API = {
+  async request(method, path, body = null) {
+    const headers = { 'Content-Type': 'application/json' };
+    if (State.token) headers['Authorization'] = `Bearer ${State.token}`;
+    const opts = { method, headers };
+    if (body) opts.body = JSON.stringify(body);
+    const res = await fetch(API_BASE + path, opts);
+    if (res.status === 401) { logout(); return null; }
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: 'Unknown error' }));
+      throw new Error(err.detail || `HTTP ${res.status}`);
+    }
+    if (res.status === 204) return null;
+    return res.json();
+  },
+
+  async formPost(path, data) {
+    const body = new URLSearchParams(data);
+    const res = await fetch(API_BASE + path, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body,
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: 'Unknown error' }));
+      throw new Error(err.detail || `HTTP ${res.status}`);
+    }
+    return res.json();
+  },
+
+  get:    (path)        => API.request('GET', path),
+  post:   (path, body)  => API.request('POST', path, body),
+  put:    (path, body)  => API.request('PUT', path, body),
+  delete: (path)        => API.request('DELETE', path),
+};
+
+/* =============================================================================
+   TOAST
+============================================================================= */
+function toast(msg, type = 'info') {
+  const el = document.createElement('div');
+  el.className = `toast toast-${type}`;
+  el.textContent = msg;
+  document.getElementById('toast-container').appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
+
+/* =============================================================================
+   ROUTER / RENDER
+============================================================================= */
+function navigate(view, params = {}) {
+  State.view = view;
+  Object.assign(State, params);
+  render();
+}
+
+function render() {
+  const app = document.getElementById('app');
+  if (!State.token) {
+    app.innerHTML = renderAuth();
+    bindAuth();
+    return;
+  }
+  // Determine which view to render
+  switch (State.view) {
+    case 'dashboard': renderDashboard(); break;
+    case 'detail':    renderDetail();    break;
+    case 'chat':      renderChat();      break;
+    default:          renderDashboard(); break;
+  }
+}
+
+/* =============================================================================
+   AUTH VIEW
+============================================================================= */
+function renderAuth() {
+  return `
+  <div id="view-auth">
+    <div class="auth-box">
+      <div class="auth-logo">Neks<span>.</span></div>
+      <p class="auth-subtitle">Real estate research &amp; analysis agent</p>
+      <div class="auth-tabs">
+        <button class="auth-tab active" id="tab-login" onclick="switchAuthTab('login')">Sign In</button>
+        <button class="auth-tab" id="tab-register" onclick="switchAuthTab('register')">Register</button>
+      </div>
+      <div id="auth-error" class="auth-error hidden"></div>
+      <form id="auth-form" class="flex flex-col gap-3">
+        <div class="form-group">
+          <label class="form-label">Username</label>
+          <input id="auth-username" class="form-input" type="text" placeholder="your_username" autocomplete="username" required />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <input id="auth-password" class="form-input" type="password" placeholder="••••••••" autocomplete="current-password" required />
+        </div>
+        <button type="submit" class="btn btn-primary btn-lg w-full" id="auth-submit" style="margin-top:8px">
+          Sign In
+        </button>
+      </form>
+    </div>
+  </div>`;
+}
+
+let _authMode = 'login';
+
+function switchAuthTab(mode) {
+  _authMode = mode;
+  document.getElementById('tab-login').classList.toggle('active', mode === 'login');
+  document.getElementById('tab-register').classList.toggle('active', mode === 'register');
+  document.getElementById('auth-submit').textContent = mode === 'login' ? 'Sign In' : 'Create Account';
+  document.getElementById('auth-error').classList.add('hidden');
+  document.getElementById('auth-password').autocomplete = mode === 'login' ? 'current-password' : 'new-password';
+}
+
+function bindAuth() {
+  document.getElementById('auth-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const username = document.getElementById('auth-username').value.trim();
+    const password = document.getElementById('auth-password').value;
+    const errEl = document.getElementById('auth-error');
+    const btn = document.getElementById('auth-submit');
+    errEl.classList.add('hidden');
+    btn.disabled = true;
+    btn.innerHTML = '<div class="spinner"></div>';
+
+    try {
+      if (_authMode === 'register') {
+        await API.post('/auth/register', { username, password });
+      }
+      // Always login after register
+      const data = await API.formPost('/auth/token', { username, password });
+      setToken(data.access_token, username);
+      navigate('dashboard');
+    } catch (err) {
+      errEl.textContent = err.message;
+      errEl.classList.remove('hidden');
+      btn.disabled = false;
+      btn.textContent = _authMode === 'login' ? 'Sign In' : 'Create Account';
+    }
+  });
+}
+
+function logout() {
+  clearToken();
+  _authMode = 'login';
+  render();
+}
+
+/* =============================================================================
+   APP SHELL (sidebar + main area)
+============================================================================= */
+function shellHtml(breadcrumbs, topbarActions, bodyHtml, activeNav = 'dashboard') {
+  const navItems = [
+    { id: 'dashboard', icon: '⊞', label: 'Properties' },
+  ];
+
+  return `
+  <div id="view-app" class="flex" style="height:100vh;">
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">Neks<span>.</span></div>
+        <div class="sidebar-user">${escHtml(State.username || '')}</div>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-section-label">Navigation</div>
+        ${navItems.map(n => `
+          <button class="sidebar-item ${activeNav === n.id ? 'active' : ''}" onclick="navigate('${n.id}')">
+            <span class="sidebar-icon">${n.icon}</span>
+            ${n.label}
+          </button>`).join('')}
+      </div>
+      <div class="sidebar-footer">
+        <button class="sidebar-item" onclick="logout()">
+          <span class="sidebar-icon">↩</span>
+          Sign Out
+        </button>
+      </div>
+    </aside>
+
+    <div class="main-content">
+      <div class="topbar">
+        <div class="topbar-breadcrumb">${breadcrumbs}</div>
+        <div class="topbar-actions">${topbarActions}</div>
+      </div>
+      <div class="page-body">
+        ${bodyHtml}
+      </div>
+    </div>
+  </div>`;
+}
+
+/* =============================================================================
+   DASHBOARD VIEW
+============================================================================= */
+async function renderDashboard() {
+  const app = document.getElementById('app');
+  // Show skeleton while loading
+  app.innerHTML = shellHtml(
+    `<span class="crumb-active">Properties</span>`,
+    `<button class="btn btn-primary btn-sm" onclick="openNewPropertyModal()">+ New Property</button>`,
+    `<div class="page-loader"><div class="spinner"></div> Loading…</div>`,
+    'dashboard'
+  );
+
+  try {
+    State.properties = await API.get('/properties') || [];
+    renderDashboardContent();
+  } catch (err) {
+    toast('Failed to load properties: ' + err.message, 'error');
+    renderDashboardContent();
+  }
+}
+
+function renderDashboardContent() {
+  const body = document.querySelector('.page-body');
+  if (!body) return;
+
+  const props = State.properties;
+  const cards = props.length === 0
+    ? `<div class="empty-state">
+        <div class="empty-icon">🏠</div>
+        <div class="empty-title">No properties yet</div>
+        <div class="empty-sub">Create your first property to start researching.</div>
+        <button class="btn btn-primary" style="margin-top:8px" onclick="openNewPropertyModal()">+ New Property</button>
+       </div>`
+    : `<div class="property-grid">${props.map(propertyCard).join('')}</div>`;
+
+  body.innerHTML = `
+    <div class="dashboard-header">
+      <h1>Properties</h1>
+      <p>${props.length} propert${props.length === 1 ? 'y' : 'ies'} tracked</p>
+    </div>
+    ${cards}`;
+}
+
+function propertyCard(p) {
+  const data = p.data || {};
+  const keys = Object.keys(data);
+  const stepBadges = STEPS.map(s => {
+    const hasData = keys.some(k => Object.keys(getStepFields(s.id)).includes(k));
+    return hasData
+      ? `<span class="badge badge-green">${s.label.split(':')[0]}</span>`
+      : `<span class="badge badge-neutral">${s.label.split(':')[0]}</span>`;
+  }).join('');
+
+  const fieldCount = keys.length;
+  const updated = p.updated_at ? relTime(p.updated_at) : 'never';
+
+  return `
+  <div class="property-card" onclick="openProperty(${p.id})">
+    <div class="property-card-name">${escHtml(p.name)}</div>
+    <div class="property-card-address">${escHtml(p.address || 'No address set')}</div>
+    <div class="property-card-steps">${stepBadges}</div>
+    <div class="property-card-footer">
+      <span class="badge badge-neutral"><span class="field-count">${fieldCount}</span> fields</span>
+      <span class="property-card-updated">${updated}</span>
+    </div>
+  </div>`;
+}
+
+function getStepFields(stepId) {
+  const map = {
+    step_1_lookup:   { property_type:1, location:1, size_sqm:1, price:1, num_rooms:1, features:1, defects:1, notes:1 },
+    step_2_analysis: { market_comparables:1, estimated_rental_yield_pct:1, renovation_cost_estimate:1, recommendation:1, risk_notes:1 },
+  };
+  return map[stepId] || {};
+}
+
+/* =============================================================================
+   NEW PROPERTY MODAL
+============================================================================= */
+function openNewPropertyModal() {
+  const html = `
+  <div class="modal-backdrop" id="modal-backdrop" onclick="closeModalOnBackdrop(event)">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-header-text">
+          <div class="modal-title">New Property</div>
+          <div class="modal-subtitle">Add a real estate object to start researching</div>
+        </div>
+        <button class="modal-close" onclick="closeModal()">×</button>
+      </div>
+      <form id="new-prop-form">
+        <div class="modal-body flex flex-col gap-3">
+          <div class="form-group">
+            <label class="form-label">Property Name</label>
+            <input id="prop-name" class="form-input" type="text" placeholder="e.g. Sunset Apartment" required />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Address (optional)</label>
+            <input id="prop-address" class="form-input" type="text" placeholder="e.g. Calle del Sol 1, Madrid" />
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="create-prop-btn">Create Property</button>
+        </div>
+      </form>
+    </div>
+  </div>`;
+  document.body.insertAdjacentHTML('beforeend', html);
+  document.getElementById('prop-name').focus();
+
+  document.getElementById('new-prop-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const name = document.getElementById('prop-name').value.trim();
+    const address = document.getElementById('prop-address').value.trim();
+    const btn = document.getElementById('create-prop-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<div class="spinner"></div>';
+    try {
+      const prop = await API.post('/properties', { name, address: address || null });
+      if (prop) {
+        toast('Property created', 'success');
+        closeModal();
+        openProperty(prop.id);
+      } else {
+        toast('Failed to create property', 'error');
+      }
+    } catch (err) {
+      toast(err.message, 'error');
+      btn.disabled = false;
+      btn.textContent = 'Create Property';
+    }
+  });
+}
+
+/* =============================================================================
+   PROPERTY DETAIL VIEW
+============================================================================= */
+async function openProperty(id) {
+  const app = document.getElementById('app');
+  app.innerHTML = shellHtml(
+    `<span onclick="navigate('dashboard')" style="cursor:pointer;color:var(--text-secondary)">Properties</span>
+     <span class="crumb-sep">›</span>
+     <span class="crumb-active">Loading…</span>`,
+    '', `<div class="page-loader"><div class="spinner"></div> Loading…</div>`, 'dashboard'
+  );
+
+  try {
+    const [prop, convs] = await Promise.all([
+      API.get(`/properties/${id}`),
+      API.get(`/properties`).then(ps => { return Promise.all([]); }), // placeholder
+    ]);
+    if (!prop) { navigate('dashboard'); return; }
+    State.currentProperty = prop;
+    renderDetailContent();
+  } catch (err) {
+    toast('Failed to load property: ' + err.message, 'error');
+    navigate('dashboard');
+  }
+}
+
+async function renderDetail() {
+  const app = document.getElementById('app');
+  if (!State.currentProperty) { navigate('dashboard'); return; }
+  app.innerHTML = shellHtml(
+    `<span onclick="navigate('dashboard')" style="cursor:pointer;color:var(--text-secondary)">Properties</span>
+     <span class="crumb-sep">›</span>
+     <span class="crumb-active">${escHtml(State.currentProperty.name)}</span>`,
+    `<button class="btn btn-ghost btn-sm" onclick="openNewPropertyModal()">+ New Property</button>`,
+    `<div class="page-loader"><div class="spinner"></div> Loading…</div>`,
+    'dashboard'
+  );
+  await refreshDetail();
+}
+
+async function refreshDetail() {
+  const prop = State.currentProperty;
+  if (!prop) return;
+  try {
+    const [freshProp] = await Promise.all([
+      API.get(`/properties/${prop.id}`),
+    ]);
+    if (freshProp) State.currentProperty = freshProp;
+    renderDetailContent();
+  } catch (err) {
+    toast(err.message, 'error');
+  }
+}
+
+function renderDetailContent() {
+  const prop = State.currentProperty;
+  const body = document.querySelector('.page-body');
+  if (!body) return;
+
+  // Update breadcrumb
+  const crumbActive = document.querySelector('.crumb-active');
+  if (crumbActive) crumbActive.textContent = prop.name;
+
+  const data = prop.data || {};
+  const dataKeys = Object.keys(data);
+
+  const dataViewerRows = dataKeys.length === 0
+    ? `<div class="data-empty">No data committed yet. Start a conversation to begin researching.</div>`
+    : dataKeys.map(k => {
+        let val = data[k];
+        if (Array.isArray(val)) val = val.join(', ');
+        else if (typeof val === 'object' && val !== null) val = JSON.stringify(val);
+        return `<div class="data-row">
+          <div class="data-key">${escHtml(String(k))}</div>
+          <div class="data-value">${escHtml(String(val))}</div>
+        </div>`;
+      }).join('');
+
+  body.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;gap:12px">
+      <div>
+        <h1 style="font-size:20px;font-weight:700;margin-bottom:2px;">${escHtml(prop.name)}</h1>
+        <p style="color:var(--text-secondary);font-size:13px">${escHtml(prop.address || 'No address set')}</p>
+      </div>
+      <div style="display:flex;gap:8px;flex-shrink:0">
+        <button class="btn btn-ghost btn-sm" onclick="openEditPropertyModal()">Edit</button>
+        <button class="btn btn-primary btn-sm" onclick="openStepModal()">+ Start Step</button>
+      </div>
+    </div>
+
+    <div class="detail-layout">
+      <!-- Data viewer -->
+      <div>
+        <div class="section-title">Committed Data</div>
+        <div class="data-viewer">
+          <div class="data-viewer-header">
+            <span class="data-viewer-title">Property Data</span>
+            <span class="badge badge-neutral">${dataKeys.length} fields</span>
+          </div>
+          <div class="data-viewer-body">
+            ${dataViewerRows}
+          </div>
+        </div>
+      </div>
+
+      <!-- Right column: conversations -->
+      <div id="conv-panel">
+        <div class="section-title" style="display:flex;justify-content:space-between">
+          <span>Conversations</span>
+          <button class="btn btn-ghost btn-sm" onclick="openStepModal()">+ New</button>
+        </div>
+        <div id="conv-list-container">
+          <div class="page-loader" style="padding:24px"><div class="spinner"></div></div>
+        </div>
+      </div>
+    </div>`;
+
+  loadConversations(prop.id);
+}
+
+async function loadConversations(propId) {
+  // The API doesn't have a list-by-property endpoint; we'll keep a lightweight
+  // local cache based on conversations we've started this session.
+  // For a full solution, add GET /properties/{id}/conversations to the backend.
+  const container = document.getElementById('conv-list-container');
+  if (!container) return;
+
+  if (State.conversations.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state" style="padding:32px 16px">
+        <div class="empty-icon" style="font-size:28px">💬</div>
+        <div class="empty-title">No conversations yet</div>
+        <div class="empty-sub">Start a step to begin the research process.</div>
+      </div>`;
+    return;
+  }
+
+  // Filter conversations for this property
+  const propConvs = State.conversations.filter(c => c.property_id === propId);
+  if (propConvs.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state" style="padding:32px 16px">
+        <div class="empty-icon" style="font-size:28px">💬</div>
+        <div class="empty-title">No conversations yet</div>
+        <div class="empty-sub">Start a step to begin the research process.</div>
+      </div>`;
+    return;
+  }
+
+  container.innerHTML = `<div class="conv-list">
+    ${propConvs.map(c => {
+      const stepDef = STEPS.find(s => s.id === c.current_step);
+      const label = stepDef ? stepDef.label : c.current_step;
+      const statusClass = c.status === 'completed' ? 'badge-green' : 'badge-blue';
+      return `
+      <div class="conv-item" onclick="openConversation('${c.id}')">
+        <div class="conv-item-left">
+          <div class="conv-step">${escHtml(label)}</div>
+          <div class="conv-date">${relTime(c.created_at)}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="badge ${statusClass}">${c.status}</span>
+          <span class="conv-arrow">›</span>
+        </div>
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+
+/* =============================================================================
+   EDIT PROPERTY MODAL
+============================================================================= */
+function openEditPropertyModal() {
+  const prop = State.currentProperty;
+  if (!prop) return;
+  const html = `
+  <div class="modal-backdrop" id="modal-backdrop" onclick="closeModalOnBackdrop(event)">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-header-text">
+          <div class="modal-title">Edit Property</div>
+        </div>
+        <button class="modal-close" onclick="closeModal()">×</button>
+      </div>
+      <form id="edit-prop-form">
+        <div class="modal-body flex flex-col gap-3">
+          <div class="form-group">
+            <label class="form-label">Property Name</label>
+            <input id="edit-prop-name" class="form-input" type="text" value="${escAttr(prop.name)}" required />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Address</label>
+            <input id="edit-prop-address" class="form-input" type="text" value="${escAttr(prop.address || '')}" />
+          </div>
+          <div class="divider"></div>
+          <button type="button" class="btn btn-danger btn-sm" onclick="deleteProperty(${prop.id})">Delete Property</button>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="edit-prop-btn">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>`;
+  document.body.insertAdjacentHTML('beforeend', html);
+
+  document.getElementById('edit-prop-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const name = document.getElementById('edit-prop-name').value.trim();
+    const address = document.getElementById('edit-prop-address').value.trim();
+    const btn = document.getElementById('edit-prop-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<div class="spinner"></div>';
+    try {
+      const updated = await API.put(`/properties/${prop.id}`, { name, address: address || null });
+      if (updated) {
+        State.currentProperty = updated;
+        toast('Property updated', 'success');
+        closeModal();
+        renderDetailContent();
+      } else {
+        toast('Update failed', 'error');
+      }
+    } catch (err) {
+      toast(err.message, 'error');
+      btn.disabled = false;
+      btn.textContent = 'Save Changes';
+    }
+  });
+}
+
+async function deleteProperty(id) {
+  if (!confirm('Delete this property and all its conversations? This cannot be undone.')) return;
+  try {
+    await API.delete(`/properties/${id}`);
+    toast('Property deleted', 'success');
+    closeModal();
+    State.currentProperty = null;
+    navigate('dashboard');
+    await renderDashboard();
+  } catch (err) {
+    toast(err.message, 'error');
+  }
+}
+
+/* =============================================================================
+   STEP SELECTION + VALIDATION MODAL
+============================================================================= */
+let _selectedStep = null;
+
+function openStepModal() {
+  _selectedStep = STEPS[0].id;
+  const stepOptions = STEPS.map((s, i) => `
+    <div class="step-option ${i === 0 ? 'selected' : ''}" id="step-opt-${s.id}" onclick="selectStep('${s.id}')">
+      <div class="step-option-radio"></div>
+      <div>
+        <div class="step-option-title">${s.label}</div>
+        <div class="step-option-desc">${s.desc}</div>
+      </div>
+    </div>`).join('');
+
+  const html = `
+  <div class="modal-backdrop" id="modal-backdrop" onclick="closeModalOnBackdrop(event)">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-header-text">
+          <div class="modal-title">Start a New Step</div>
+          <div class="modal-subtitle">Choose which analysis step to run for this property</div>
+        </div>
+        <button class="modal-close" onclick="closeModal()">×</button>
+      </div>
+      <div class="modal-body">
+        ${stepOptions}
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+        <button type="button" class="btn btn-primary" id="start-step-btn" onclick="validateAndStartStep()">Continue →</button>
+      </div>
+    </div>
+  </div>`;
+  document.body.insertAdjacentHTML('beforeend', html);
+}
+
+function selectStep(stepId) {
+  _selectedStep = stepId;
+  STEPS.forEach(s => {
+    const el = document.getElementById(`step-opt-${s.id}`);
+    if (el) el.classList.toggle('selected', s.id === stepId);
+  });
+}
+
+async function validateAndStartStep() {
+  const prop = State.currentProperty;
+  if (!prop || !_selectedStep) return;
+
+  const btn = document.getElementById('start-step-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner"></div>';
+
+  try {
+    const validation = await API.get(
+      `/conversations/validate?property_id=${prop.id}&step=${_selectedStep}`
+    );
+
+    if (validation && validation.missing_fields && validation.missing_fields.length > 0) {
+      closeModal();
+      openValidationWarningModal(validation.missing_fields, _selectedStep, prop.id);
+    } else {
+      await startConversation(prop.id, _selectedStep);
+    }
+  } catch (err) {
+    toast(err.message, 'error');
+    btn.disabled = false;
+    btn.textContent = 'Continue →';
+  }
+}
+
+function openValidationWarningModal(missingFields, stepId, propId) {
+  const stepDef = STEPS.find(s => s.id === stepId);
+  const stepLabel = stepDef ? stepDef.label : stepId;
+  const pills = missingFields.map(f => `<span class="missing-field-pill">${escHtml(f)}</span>`).join('');
+
+  const html = `
+  <div class="modal-backdrop" id="modal-backdrop" onclick="closeModalOnBackdrop(event)">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-header-text">
+          <div class="modal-title">⚠ Missing Data</div>
+          <div class="modal-subtitle">${escHtml(stepLabel)} may produce incomplete results</div>
+        </div>
+        <button class="modal-close" onclick="closeModal()">×</button>
+      </div>
+      <div class="modal-body">
+        <p style="color:var(--text-secondary);font-size:13px;margin-bottom:8px">
+          The following fields from a previous step are missing from this property's data.
+          You can still proceed — the agent will make assumptions for any missing context.
+        </p>
+        <div class="missing-field-list">${pills}</div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+        <button type="button" class="btn btn-primary" id="bypass-btn" onclick="bypassAndStart('${propId}', '${stepId}')">
+          Proceed Anyway
+        </button>
+      </div>
+    </div>
+  </div>`;
+  document.body.insertAdjacentHTML('beforeend', html);
+}
+
+async function bypassAndStart(propId, stepId) {
+  const btn = document.getElementById('bypass-btn');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<div class="spinner"></div>'; }
+  await startConversation(propId, stepId);
+}
+
+async function startConversation(propId, stepId) {
+  try {
+    const conv = await API.post('/conversations', {
+      property_id: Number(propId),
+      current_step: stepId,
+    });
+    if (!conv) { toast('Failed to start conversation', 'error'); return; }
+    State.conversations.push(conv);
+    State.currentConversation = conv;
+    closeModal();
+    toast('Conversation started', 'success');
+    openConversation(conv.id);
+  } catch (err) {
+    toast(err.message, 'error');
+  }
+}
+
+/* =============================================================================
+   CONVERSATION OPEN
+============================================================================= */
+async function openConversation(convId) {
+  // Find or fetch the conversation
+  let conv = State.conversations.find(c => c.id === convId);
+  if (!conv) {
+    try {
+      const data = await API.get(`/conversations/${convId}`);
+      if (!data) { navigate('detail'); return; }
+      conv = data;
+      // Update current property if needed
+      if (!State.currentProperty || State.currentProperty.id !== data.property_id) {
+        const prop = await API.get(`/properties/${data.property_id}`);
+        if (prop) State.currentProperty = prop;
+      }
+    } catch (err) {
+      toast(err.message, 'error');
+      return;
+    }
+  }
+  State.currentConversation = conv;
+  navigate('chat');
+}
+
+/* =============================================================================
+   CHAT VIEW
+============================================================================= */
+async function renderChat() {
+  const app = document.getElementById('app');
+  const conv = State.currentConversation;
+  const prop = State.currentProperty;
+  if (!conv) { navigate('dashboard'); return; }
+
+  const stepDef = STEPS.find(s => s.id === conv.current_step);
+  const stepLabel = stepDef ? stepDef.label : conv.current_step;
+  const statusClass = conv.status === 'completed' ? 'badge-green' : 'badge-blue';
+
+  app.innerHTML = `
+  <div id="view-app" class="flex" style="height:100vh;">
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">Neks<span>.</span></div>
+        <div class="sidebar-user">${escHtml(State.username || '')}</div>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-section-label">Navigation</div>
+        <button class="sidebar-item" onclick="navigate('dashboard')">
+          <span class="sidebar-icon">⊞</span> Properties
+        </button>
+        ${prop ? `<button class="sidebar-item active" onclick="navigate('detail')">
+          <span class="sidebar-icon">🏠</span>
+          <span class="truncate">${escHtml(prop.name)}</span>
+        </button>` : ''}
+      </div>
+      <div class="sidebar-footer">
+        <button class="sidebar-item" onclick="logout()">
+          <span class="sidebar-icon">↩</span> Sign Out
+        </button>
+      </div>
+    </aside>
+
+    <div class="main-content" style="display:flex;flex-direction:column;overflow:hidden;">
+      <div class="topbar">
+        <div class="topbar-breadcrumb">
+          <span onclick="navigate('dashboard')" style="cursor:pointer">Properties</span>
+          ${prop ? `<span class="crumb-sep">›</span>
+            <span onclick="navigate('detail')" style="cursor:pointer">${escHtml(prop.name)}</span>` : ''}
+          <span class="crumb-sep">›</span>
+          <span class="crumb-active">${escHtml(stepLabel)}</span>
+          <span class="badge ${statusClass}" style="margin-left:4px">${conv.status}</span>
+        </div>
+        <div class="topbar-actions">
+          ${conv.status === 'active'
+            ? `<button class="btn btn-ghost btn-sm" onclick="commitConversation()">📋 Commit Results</button>
+               <button class="btn btn-ghost btn-sm" onclick="completeConversation()">✓ Mark Complete</button>`
+            : `<span style="color:var(--success);font-size:12px;font-weight:500">✓ Completed</span>`}
+        </div>
+      </div>
+
+      <div id="commit-panel-area"></div>
+
+      <div class="chat-body" id="chat-body">
+        <div class="page-loader"><div class="spinner"></div></div>
+      </div>
+
+      <div class="chat-input-area">
+        <div class="chat-input-row">
+          <textarea
+            id="chat-input"
+            class="chat-textarea"
+            placeholder="${conv.status === 'completed' ? 'This conversation is completed.' : 'Type your message…'}"
+            ${conv.status === 'completed' ? 'disabled' : ''}
+            rows="1"
+            onkeydown="handleChatKey(event)"
+            oninput="autoResize(this)"
+          ></textarea>
+          <button class="btn btn-primary" id="send-btn" onclick="sendMessage()"
+            ${conv.status === 'completed' ? 'disabled' : ''}>
+            Send
+          </button>
+        </div>
+        ${conv.status === 'active' ? `
+        <div class="chat-actions">
+          <button class="btn btn-ghost btn-sm" onclick="commitConversation()">📋 Commit Results</button>
+          <button class="btn btn-ghost btn-sm" onclick="completeConversation()">✓ Mark Complete</button>
+          <button class="btn btn-ghost btn-sm" onclick="navigate('detail')">← Back to Property</button>
+        </div>` : `
+        <div class="chat-actions">
+          <button class="btn btn-ghost btn-sm" onclick="navigate('detail')">← Back to Property</button>
+        </div>`}
+      </div>
+    </div>
+  </div>`;
+
+  await loadMessages();
+}
+
+async function loadMessages() {
+  const chatBody = document.getElementById('chat-body');
+  if (!chatBody) return;
+  const conv = State.currentConversation;
+  try {
+    const data = await API.get(`/conversations/${conv.id}`);
+    if (!data) { chatBody.innerHTML = '<div class="data-empty">Could not load messages.</div>'; return; }
+    State.messages = data.messages || [];
+    renderMessages();
+  } catch (err) {
+    chatBody.innerHTML = `<div class="data-empty">${escHtml(err.message)}</div>`;
+  }
+}
+
+function renderMessages() {
+  const chatBody = document.getElementById('chat-body');
+  if (!chatBody) return;
+  const msgs = State.messages;
+  if (msgs.length === 0) {
+    const stepDef = STEPS.find(s => s.id === State.currentConversation?.current_step);
+    chatBody.innerHTML = `
+      <div class="empty-state" style="padding:48px 24px">
+        <div class="empty-icon">🤖</div>
+        <div class="empty-title">Start the conversation</div>
+        <div class="empty-sub">${stepDef ? stepDef.desc : 'Send a message to begin.'}</div>
+      </div>`;
+    return;
+  }
+  chatBody.innerHTML = msgs
+    .filter(m => m.role !== 'system')
+    .map(m => {
+      const timeStr = m.created_at ? new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+      return `
+      <div class="msg ${m.role}">
+        <div class="msg-role">${m.role === 'user' ? 'You' : 'Agent'}</div>
+        <div class="msg-bubble">${escHtml(m.content)}</div>
+        <div class="msg-time">${timeStr}</div>
+      </div>`;
+    }).join('');
+  chatBody.scrollTop = chatBody.scrollHeight;
+}
+
+function showTyping() {
+  const chatBody = document.getElementById('chat-body');
+  if (!chatBody) return;
+  const el = document.createElement('div');
+  el.className = 'msg assistant';
+  el.id = 'typing-indicator';
+  el.innerHTML = `
+    <div class="msg-role">Agent</div>
+    <div class="typing-indicator">
+      <div class="typing-dot"></div>
+      <div class="typing-dot"></div>
+      <div class="typing-dot"></div>
+    </div>`;
+  chatBody.appendChild(el);
+  chatBody.scrollTop = chatBody.scrollHeight;
+}
+
+function hideTyping() {
+  const el = document.getElementById('typing-indicator');
+  if (el) el.remove();
+}
+
+async function sendMessage() {
+  const input = document.getElementById('chat-input');
+  const sendBtn = document.getElementById('send-btn');
+  if (!input || !sendBtn) return;
+  const content = input.value.trim();
+  if (!content) return;
+  const conv = State.currentConversation;
+  if (!conv || conv.status === 'completed') return;
+
+  input.value = '';
+  input.style.height = '';
+  input.disabled = true;
+  sendBtn.disabled = true;
+
+  // Optimistically render user message
+  const optimistic = { role: 'user', content, created_at: new Date().toISOString() };
+  State.messages.push(optimistic);
+  renderMessages();
+  showTyping();
+
+  try {
+    const data = await API.post(`/conversations/${conv.id}/message`, { content });
+    if (data && data.agent_message) {
+      State.messages.push(data.agent_message);
+    } else {
+      toast('No response from agent', 'error');
+    }
+  } catch (err) {
+    toast('Send failed: ' + err.message, 'error');
+    State.messages.pop(); // Remove optimistic message on error
+  } finally {
+    hideTyping();
+    renderMessages();
+    input.disabled = false;
+    sendBtn.disabled = false;
+    input.focus();
+  }
+}
+
+function handleChatKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+}
+
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 160) + 'px';
+}
+
+/* =============================================================================
+   COMMIT
+============================================================================= */
+async function commitConversation() {
+  const conv = State.currentConversation;
+  if (!conv) return;
+  const btn = document.querySelector('[onclick="commitConversation()"]');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<div class="spinner"></div> Extracting…'; }
+
+  try {
+    const result = await API.post(`/conversations/${conv.id}/commit`);
+    if (!result) { toast('Commit returned no data', 'error'); return; }
+    showCommitPanel(result);
+    toast('Results committed to property', 'success');
+    // Refresh property data silently
+    const prop = await API.get(`/properties/${conv.property_id}`);
+    if (prop) State.currentProperty = prop;
+  } catch (err) {
+    toast('Commit failed: ' + err.message, 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '📋 Commit Results'; }
+  }
+}
+
+function showCommitPanel(result) {
+  const area = document.getElementById('commit-panel-area');
+  if (!area) return;
+
+  const extracted = result.extracted_fields || {};
+  const missing = result.missing_fields || [];
+
+  const rows = [
+    ...Object.entries(extracted).map(([k, v]) => {
+      let display = Array.isArray(v) ? v.join(', ') : String(v);
+      return `<div class="commit-field">
+        <div class="commit-field-key">${escHtml(k)}</div>
+        <div class="commit-field-val found">✓ ${escHtml(display)}</div>
+      </div>`;
+    }),
+    ...missing.map(k => `<div class="commit-field">
+      <div class="commit-field-key">${escHtml(k)}</div>
+      <div class="commit-field-val missing">⚠ not found</div>
+    </div>`),
+  ].join('');
+
+  area.innerHTML = `
+    <div class="commit-panel">
+      <div class="commit-panel-header">
+        <div class="commit-panel-title">📋 Extraction Results — ${Object.keys(extracted).length} fields saved</div>
+        <button class="commit-panel-close" onclick="document.getElementById('commit-panel-area').innerHTML=''">×</button>
+      </div>
+      <div class="commit-panel-body">${rows}</div>
+    </div>`;
+}
+
+async function completeConversation() {
+  const conv = State.currentConversation;
+  if (!conv) return;
+  if (!confirm('Mark this conversation as completed? You will no longer be able to send messages.')) return;
+  try {
+    const updated = await API.post(`/conversations/${conv.id}/complete`);
+    if (updated) {
+      State.currentConversation = updated;
+      // Update in cache
+      const idx = State.conversations.findIndex(c => c.id === updated.id);
+      if (idx !== -1) State.conversations[idx] = updated;
+      toast('Conversation completed', 'success');
+      renderChat();
+    } else {
+      toast('Could not complete conversation', 'error');
+    }
+  } catch (err) {
+    toast(err.message, 'error');
+  }
+}
+
+/* =============================================================================
+   MODAL HELPERS
+============================================================================= */
+function closeModal() {
+  const el = document.getElementById('modal-backdrop');
+  if (el) el.remove();
+}
+
+function closeModalOnBackdrop(e) {
+  if (e.target.id === 'modal-backdrop') closeModal();
+}
+
+/* =============================================================================
+   HELPERS
+============================================================================= */
+function escHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function escAttr(str) {
+  return escHtml(str);
+}
+
+function relTime(isoStr) {
+  if (!isoStr) return '';
+  const date = new Date(isoStr);
+  const diff = Date.now() - date.getTime();
+  const secs = Math.floor(diff / 1000);
+  if (secs < 60)   return 'just now';
+  if (secs < 3600) return `${Math.floor(secs/60)}m ago`;
+  if (secs < 86400)return `${Math.floor(secs/3600)}h ago`;
+  return `${Math.floor(secs/86400)}d ago`;
+}
+
+/* =============================================================================
+   BOOT
+============================================================================= */
+render();
+</script>
+</body>
+</html>
