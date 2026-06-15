@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Neks — Real Estate Agent</title>
-  <meta name="description" content="Internal real estate research and analysis agent dashboard." />
+  <title>Neks — Агент по недвижимости</title>
+  <meta name="description" content="Внутренняя панель агента по исследованию и анализу недвижимости." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
@@ -825,13 +825,13 @@ const API_BASE = ''; // Uses current host (works locally and on Cloud Run seamle
 const STEPS = [
   {
     id: 'step_1_lookup',
-    label: 'Step 1: Research & Lookup',
-    desc: 'Gather basic property details — location, type, size, price, rooms, features.',
+    label: 'Этап 1: Поиск и исследование',
+    desc: 'Сбор основных данных об объекте — расположение, тип, площадь, цена, комнаты, особенности.',
   },
   {
     id: 'step_2_analysis',
-    label: 'Step 2: Investment Analysis',
-    desc: 'Evaluate investment potential — comparables, rental yield, renovation costs, recommendation.',
+    label: 'Этап 2: Инвестиционный анализ',
+    desc: 'Оценка инвестиционного потенциала — аналоги, доходность аренды, стоимость ремонта, рекомендации.',
   },
 ];
 
@@ -954,23 +954,23 @@ function renderAuth() {
   <div id="view-auth">
     <div class="auth-box">
       <div class="auth-logo">Neks<span>.</span></div>
-      <p class="auth-subtitle">Real estate research &amp; analysis agent</p>
+      <p class="auth-subtitle">Агент по исследованию и анализу недвижимости</p>
       <div class="auth-tabs">
-        <button class="auth-tab active" id="tab-login" onclick="switchAuthTab('login')">Sign In</button>
-        <button class="auth-tab" id="tab-register" onclick="switchAuthTab('register')">Register</button>
+        <button class="auth-tab active" id="tab-login" onclick="switchAuthTab('login')">Войти</button>
+        <button class="auth-tab" id="tab-register" onclick="switchAuthTab('register')">Регистрация</button>
       </div>
       <div id="auth-error" class="auth-error hidden"></div>
       <form id="auth-form" class="flex flex-col gap-3">
         <div class="form-group">
-          <label class="form-label">Username</label>
-          <input id="auth-username" class="form-input" type="text" placeholder="your_username" autocomplete="username" required />
+          <label class="form-label">Имя пользователя</label>
+          <input id="auth-username" class="form-input" type="text" placeholder="ваше_имя" autocomplete="username" required />
         </div>
         <div class="form-group">
-          <label class="form-label">Password</label>
+          <label class="form-label">Пароль</label>
           <input id="auth-password" class="form-input" type="password" placeholder="••••••••" autocomplete="current-password" required />
         </div>
         <button type="submit" class="btn btn-primary btn-lg w-full" id="auth-submit" style="margin-top:8px">
-          Sign In
+          Войти
         </button>
       </form>
     </div>
@@ -983,7 +983,7 @@ function switchAuthTab(mode) {
   _authMode = mode;
   document.getElementById('tab-login').classList.toggle('active', mode === 'login');
   document.getElementById('tab-register').classList.toggle('active', mode === 'register');
-  document.getElementById('auth-submit').textContent = mode === 'login' ? 'Sign In' : 'Create Account';
+  document.getElementById('auth-submit').textContent = mode === 'login' ? 'Войти' : 'Создать аккаунт';
   document.getElementById('auth-error').classList.add('hidden');
   document.getElementById('auth-password').autocomplete = mode === 'login' ? 'current-password' : 'new-password';
 }
@@ -1011,7 +1011,7 @@ function bindAuth() {
       errEl.textContent = err.message;
       errEl.classList.remove('hidden');
       btn.disabled = false;
-      btn.textContent = _authMode === 'login' ? 'Sign In' : 'Create Account';
+      btn.textContent = _authMode === 'login' ? 'Войти' : 'Создать аккаунт';
     }
   });
 }
@@ -1027,7 +1027,7 @@ function logout() {
 ============================================================================= */
 function shellHtml(breadcrumbs, topbarActions, bodyHtml, activeNav = 'dashboard') {
   const navItems = [
-    { id: 'dashboard', icon: '⊞', label: 'Properties' },
+    { id: 'dashboard', icon: '⊞', label: 'Объекты' },
   ];
 
   return `
@@ -1038,7 +1038,7 @@ function shellHtml(breadcrumbs, topbarActions, bodyHtml, activeNav = 'dashboard'
         <div class="sidebar-user">${escHtml(State.username || '')}</div>
       </div>
       <div class="sidebar-section">
-        <div class="sidebar-section-label">Navigation</div>
+        <div class="sidebar-section-label">Навигация</div>
         ${navItems.map(n => `
           <button class="sidebar-item ${activeNav === n.id ? 'active' : ''}" onclick="navigate('${n.id}')">
             <span class="sidebar-icon">${n.icon}</span>
@@ -1048,7 +1048,7 @@ function shellHtml(breadcrumbs, topbarActions, bodyHtml, activeNav = 'dashboard'
       <div class="sidebar-footer">
         <button class="sidebar-item" onclick="logout()">
           <span class="sidebar-icon">↩</span>
-          Sign Out
+          Выйти
         </button>
       </div>
     </aside>
@@ -1072,9 +1072,9 @@ async function renderDashboard() {
   const app = document.getElementById('app');
   // Show skeleton while loading
   app.innerHTML = shellHtml(
-    `<span class="crumb-active">Properties</span>`,
-    `<button class="btn btn-primary btn-sm" onclick="openNewPropertyModal()">+ New Property</button>`,
-    `<div class="page-loader"><div class="spinner"></div> Loading…</div>`,
+    `<span class="crumb-active">Объекты</span>`,
+    `<button class="btn btn-primary btn-sm" onclick="openNewPropertyModal()">+ Новый объект</button>`,
+    `<div class="page-loader"><div class="spinner"></div> Загрузка…</div>`,
     'dashboard'
   );
 
@@ -1082,7 +1082,7 @@ async function renderDashboard() {
     State.properties = await API.get('/properties') || [];
     renderDashboardContent();
   } catch (err) {
-    toast('Failed to load properties: ' + err.message, 'error');
+    toast('Не удалось загрузить объекты: ' + err.message, 'error');
     renderDashboardContent();
   }
 }
@@ -1095,16 +1095,16 @@ function renderDashboardContent() {
   const cards = props.length === 0
     ? `<div class="empty-state">
         <div class="empty-icon">🏠</div>
-        <div class="empty-title">No properties yet</div>
-        <div class="empty-sub">Create your first property to start researching.</div>
-        <button class="btn btn-primary" style="margin-top:8px" onclick="openNewPropertyModal()">+ New Property</button>
+        <div class="empty-title">Пока нет объектов</div>
+        <div class="empty-sub">Создайте первый объект для начала исследования.</div>
+        <button class="btn btn-primary" style="margin-top:8px" onclick="openNewPropertyModal()">+ Новый объект</button>
        </div>`
     : `<div class="property-grid">${props.map(propertyCard).join('')}</div>`;
 
   body.innerHTML = `
     <div class="dashboard-header">
-      <h1>Properties</h1>
-      <p>${props.length} propert${props.length === 1 ? 'y' : 'ies'} tracked</p>
+      <h1>Объекты</h1>
+      <p>${props.length} ${props.length === 1 ? 'объект отслеживается' : 'объектов отслеживается'}</p>
     </div>
     ${cards}`;
 }
@@ -1120,15 +1120,15 @@ function propertyCard(p) {
   }).join('');
 
   const fieldCount = keys.length;
-  const updated = p.updated_at ? relTime(p.updated_at) : 'never';
+  const updated = p.updated_at ? relTime(p.updated_at) : 'никогда';
 
   return `
   <div class="property-card" onclick="openProperty(${p.id})">
     <div class="property-card-name">${escHtml(p.name)}</div>
-    <div class="property-card-address">${escHtml(p.address || 'No address set')}</div>
+    <div class="property-card-address">${escHtml(p.address || 'Адрес не указан')}</div>
     <div class="property-card-steps">${stepBadges}</div>
     <div class="property-card-footer">
-      <span class="badge badge-neutral"><span class="field-count">${fieldCount}</span> fields</span>
+      <span class="badge badge-neutral"><span class="field-count">${fieldCount}</span> полей</span>
       <span class="property-card-updated">${updated}</span>
     </div>
   </div>`;
@@ -1152,24 +1152,24 @@ function openNewPropertyModal() {
       <div class="modal-header">
         <div class="modal-header-text">
           <div class="modal-title">New Property</div>
-          <div class="modal-subtitle">Add a real estate object to start researching</div>
+          <div class="modal-subtitle">Добавьте объект недвижимости для начала исследования</div>
         </div>
         <button class="modal-close" onclick="closeModal()">×</button>
       </div>
       <form id="new-prop-form">
         <div class="modal-body flex flex-col gap-3">
           <div class="form-group">
-            <label class="form-label">Property Name</label>
-            <input id="prop-name" class="form-input" type="text" placeholder="e.g. Sunset Apartment" required />
+            <label class="form-label">Название объекта</label>
+            <input id="prop-name" class="form-input" type="text" placeholder="напр., Квартира на закате" required />
           </div>
           <div class="form-group">
-            <label class="form-label">Address (optional)</label>
-            <input id="prop-address" class="form-input" type="text" placeholder="e.g. Calle del Sol 1, Madrid" />
+            <label class="form-label">Адрес (необязательно)</label>
+            <input id="prop-address" class="form-input" type="text" placeholder="напр., Тверская 1, Москва" />
           </div>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-ghost" onclick="closeModal()">Cancel</button>
-          <button type="submit" class="btn btn-primary" id="create-prop-btn">Create Property</button>
+          <button type="button" class="btn btn-ghost" onclick="closeModal()">Отмена</button>
+          <button type="submit" class="btn btn-primary" id="create-prop-btn">Создать объект</button>
         </div>
       </form>
     </div>
@@ -1187,16 +1187,16 @@ function openNewPropertyModal() {
     try {
       const prop = await API.post('/properties', { name, address: address || null });
       if (prop) {
-        toast('Property created', 'success');
+        toast('Объект создан', 'success');
         closeModal();
         openProperty(prop.id);
       } else {
-        toast('Failed to create property', 'error');
+        toast('Не удалось создать объект', 'error');
       }
     } catch (err) {
       toast(err.message, 'error');
       btn.disabled = false;
-      btn.textContent = 'Create Property';
+      btn.textContent = 'Создать объект';
     }
   });
 }
@@ -1207,10 +1207,10 @@ function openNewPropertyModal() {
 async function openProperty(id) {
   const app = document.getElementById('app');
   app.innerHTML = shellHtml(
-    `<span onclick="navigate('dashboard')" style="cursor:pointer;color:var(--text-secondary)">Properties</span>
+    `<span onclick="navigate('dashboard')" style="cursor:pointer;color:var(--text-secondary)">Объекты</span>
      <span class="crumb-sep">›</span>
-     <span class="crumb-active">Loading…</span>`,
-    '', `<div class="page-loader"><div class="spinner"></div> Loading…</div>`, 'dashboard'
+     <span class="crumb-active">Загрузка…</span>`,
+    '', `<div class="page-loader"><div class="spinner"></div> Загрузка…</div>`, 'dashboard'
   );
 
   try {
@@ -1222,7 +1222,7 @@ async function openProperty(id) {
     State.currentProperty = prop;
     renderDetailContent();
   } catch (err) {
-    toast('Failed to load property: ' + err.message, 'error');
+    toast('Не удалось загрузить объект: ' + err.message, 'error');
     navigate('dashboard');
   }
 }
@@ -1231,11 +1231,11 @@ async function renderDetail() {
   const app = document.getElementById('app');
   if (!State.currentProperty) { navigate('dashboard'); return; }
   app.innerHTML = shellHtml(
-    `<span onclick="navigate('dashboard')" style="cursor:pointer;color:var(--text-secondary)">Properties</span>
+    `<span onclick="navigate('dashboard')" style="cursor:pointer;color:var(--text-secondary)">Объекты</span>
      <span class="crumb-sep">›</span>
      <span class="crumb-active">${escHtml(State.currentProperty.name)}</span>`,
-    `<button class="btn btn-ghost btn-sm" onclick="openNewPropertyModal()">+ New Property</button>`,
-    `<div class="page-loader"><div class="spinner"></div> Loading…</div>`,
+    `<button class="btn btn-ghost btn-sm" onclick="openNewPropertyModal()">+ Новый объект</button>`,
+    `<div class="page-loader"><div class="spinner"></div> Загрузка…</div>`,
     'dashboard'
   );
   await refreshDetail();
@@ -1268,7 +1268,7 @@ function renderDetailContent() {
   const dataKeys = Object.keys(data);
 
   const dataViewerRows = dataKeys.length === 0
-    ? `<div class="data-empty">No data committed yet. Start a conversation to begin researching.</div>`
+    ? `<div class="data-empty">Данные еще не сохранены. Начните диалог, чтобы начать исследование.</div>`
     : dataKeys.map(k => {
         let val = data[k];
         if (Array.isArray(val)) val = val.join(', ');
@@ -1283,22 +1283,22 @@ function renderDetailContent() {
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;gap:12px">
       <div>
         <h1 style="font-size:20px;font-weight:700;margin-bottom:2px;">${escHtml(prop.name)}</h1>
-        <p style="color:var(--text-secondary);font-size:13px">${escHtml(prop.address || 'No address set')}</p>
+        <p style="color:var(--text-secondary);font-size:13px">${escHtml(prop.address || 'Адрес не указан')}</p>
       </div>
       <div style="display:flex;gap:8px;flex-shrink:0">
-        <button class="btn btn-ghost btn-sm" onclick="openEditPropertyModal()">Edit</button>
-        <button class="btn btn-primary btn-sm" onclick="openStepModal()">+ Start Step</button>
+        <button class="btn btn-ghost btn-sm" onclick="openEditPropertyModal()">Изменить</button>
+        <button class="btn btn-primary btn-sm" onclick="openStepModal()">+ Начать этап</button>
       </div>
     </div>
 
     <div class="detail-layout">
       <!-- Data viewer -->
       <div>
-        <div class="section-title">Committed Data</div>
+        <div class="section-title">Сохраненные данные</div>
         <div class="data-viewer">
           <div class="data-viewer-header">
-            <span class="data-viewer-title">Property Data</span>
-            <span class="badge badge-neutral">${dataKeys.length} fields</span>
+            <span class="data-viewer-title">Данные объекта</span>
+            <span class="badge badge-neutral">${dataKeys.length} полей</span>
           </div>
           <div class="data-viewer-body">
             ${dataViewerRows}
@@ -1309,8 +1309,8 @@ function renderDetailContent() {
       <!-- Right column: conversations -->
       <div id="conv-panel">
         <div class="section-title" style="display:flex;justify-content:space-between">
-          <span>Conversations</span>
-          <button class="btn btn-ghost btn-sm" onclick="openStepModal()">+ New</button>
+          <span>Диалоги</span>
+          <button class="btn btn-ghost btn-sm" onclick="openStepModal()">+ Новый</button>
         </div>
         <div id="conv-list-container">
           <div class="page-loader" style="padding:24px"><div class="spinner"></div></div>
@@ -1318,10 +1318,10 @@ function renderDetailContent() {
       </div>
     </div>`;
 
-  loadConversations(prop.id);
+  loadДиалоги(prop.id);
 }
 
-async function loadConversations(propId) {
+async function loadДиалоги(propId) {
   // The API doesn't have a list-by-property endpoint; we'll keep a lightweight
   // local cache based on conversations we've started this session.
   // For a full solution, add GET /properties/{id}/conversations to the backend.
@@ -1332,8 +1332,8 @@ async function loadConversations(propId) {
     container.innerHTML = `
       <div class="empty-state" style="padding:32px 16px">
         <div class="empty-icon" style="font-size:28px">💬</div>
-        <div class="empty-title">No conversations yet</div>
-        <div class="empty-sub">Start a step to begin the research process.</div>
+        <div class="empty-title">Пока нет диалогов</div>
+        <div class="empty-sub">Начните этап, чтобы запустить процесс исследования.</div>
       </div>`;
     return;
   }
@@ -1344,8 +1344,8 @@ async function loadConversations(propId) {
     container.innerHTML = `
       <div class="empty-state" style="padding:32px 16px">
         <div class="empty-icon" style="font-size:28px">💬</div>
-        <div class="empty-title">No conversations yet</div>
-        <div class="empty-sub">Start a step to begin the research process.</div>
+        <div class="empty-title">Пока нет диалогов</div>
+        <div class="empty-sub">Начните этап, чтобы запустить процесс исследования.</div>
       </div>`;
     return;
   }
@@ -1381,26 +1381,26 @@ function openEditPropertyModal() {
     <div class="modal">
       <div class="modal-header">
         <div class="modal-header-text">
-          <div class="modal-title">Edit Property</div>
+          <div class="modal-title">Редактировать объект</div>
         </div>
         <button class="modal-close" onclick="closeModal()">×</button>
       </div>
       <form id="edit-prop-form">
         <div class="modal-body flex flex-col gap-3">
           <div class="form-group">
-            <label class="form-label">Property Name</label>
+            <label class="form-label">Название объекта</label>
             <input id="edit-prop-name" class="form-input" type="text" value="${escAttr(prop.name)}" required />
           </div>
           <div class="form-group">
-            <label class="form-label">Address</label>
+            <label class="form-label">Адрес</label>
             <input id="edit-prop-address" class="form-input" type="text" value="${escAttr(prop.address || '')}" />
           </div>
           <div class="divider"></div>
-          <button type="button" class="btn btn-danger btn-sm" onclick="deleteProperty(${prop.id})">Delete Property</button>
+          <button type="button" class="btn btn-danger btn-sm" onclick="deleteProperty(${prop.id})">Удалить объект</button>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-ghost" onclick="closeModal()">Cancel</button>
-          <button type="submit" class="btn btn-primary" id="edit-prop-btn">Save Changes</button>
+          <button type="button" class="btn btn-ghost" onclick="closeModal()">Отмена</button>
+          <button type="submit" class="btn btn-primary" id="edit-prop-btn">Сохранить изменения</button>
         </div>
       </form>
     </div>
@@ -1418,25 +1418,25 @@ function openEditPropertyModal() {
       const updated = await API.put(`/properties/${prop.id}`, { name, address: address || null });
       if (updated) {
         State.currentProperty = updated;
-        toast('Property updated', 'success');
+        toast('Объект обновлен', 'success');
         closeModal();
         renderDetailContent();
       } else {
-        toast('Update failed', 'error');
+        toast('Не удалось обновить', 'error');
       }
     } catch (err) {
       toast(err.message, 'error');
       btn.disabled = false;
-      btn.textContent = 'Save Changes';
+      btn.textContent = 'Сохранить изменения';
     }
   });
 }
 
 async function deleteProperty(id) {
-  if (!confirm('Delete this property and all its conversations? This cannot be undone.')) return;
+  if (!confirm('Удалить этот объект и все его диалоги? Это действие нельзя отменить.')) return;
   try {
     await API.delete(`/properties/${id}`);
-    toast('Property deleted', 'success');
+    toast('Объект удален', 'success');
     closeModal();
     State.currentProperty = null;
     navigate('dashboard');
@@ -1467,8 +1467,8 @@ function openStepModal() {
     <div class="modal">
       <div class="modal-header">
         <div class="modal-header-text">
-          <div class="modal-title">Start a New Step</div>
-          <div class="modal-subtitle">Choose which analysis step to run for this property</div>
+          <div class="modal-title">Начать новый этап</div>
+          <div class="modal-subtitle">Выберите этап анализа для этого объекта</div>
         </div>
         <button class="modal-close" onclick="closeModal()">×</button>
       </div>
@@ -1476,8 +1476,8 @@ function openStepModal() {
         ${stepOptions}
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-ghost" onclick="closeModal()">Cancel</button>
-        <button type="button" class="btn btn-primary" id="start-step-btn" onclick="validateAndStartStep()">Continue →</button>
+        <button type="button" class="btn btn-ghost" onclick="closeModal()">Отмена</button>
+        <button type="button" class="btn btn-primary" id="start-step-btn" onclick="validateAndStartStep()">Продолжить →</button>
       </div>
     </div>
   </div>`;
@@ -1514,7 +1514,7 @@ async function validateAndStartStep() {
   } catch (err) {
     toast(err.message, 'error');
     btn.disabled = false;
-    btn.textContent = 'Continue →';
+    btn.textContent = 'Продолжить →';
   }
 }
 
@@ -1528,22 +1528,22 @@ function openValidationWarningModal(missingFields, stepId, propId) {
     <div class="modal">
       <div class="modal-header">
         <div class="modal-header-text">
-          <div class="modal-title">⚠ Missing Data</div>
-          <div class="modal-subtitle">${escHtml(stepLabel)} may produce incomplete results</div>
+          <div class="modal-title">⚠ Отсутствуют данные</div>
+          <div class="modal-subtitle">${escHtml(stepLabel)} может дать неполные результаты</div>
         </div>
         <button class="modal-close" onclick="closeModal()">×</button>
       </div>
       <div class="modal-body">
         <p style="color:var(--text-secondary);font-size:13px;margin-bottom:8px">
-          The following fields from a previous step are missing from this property's data.
-          You can still proceed — the agent will make assumptions for any missing context.
+          Следующие поля из предыдущего этапа отсутствуют в данных этого объекта.
+          Вы можете продолжить — агент сделает предположения для недостающего контекста.
         </p>
         <div class="missing-field-list">${pills}</div>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+        <button type="button" class="btn btn-ghost" onclick="closeModal()">Отмена</button>
         <button type="button" class="btn btn-primary" id="bypass-btn" onclick="bypassAndStart('${propId}', '${stepId}')">
-          Proceed Anyway
+          Все равно продолжить
         </button>
       </div>
     </div>
@@ -1563,11 +1563,11 @@ async function startConversation(propId, stepId) {
       property_id: Number(propId),
       current_step: stepId,
     });
-    if (!conv) { toast('Failed to start conversation', 'error'); return; }
+    if (!conv) { toast('Не удалось начать диалог', 'error'); return; }
     State.conversations.push(conv);
     State.currentConversation = conv;
     closeModal();
-    toast('Conversation started', 'success');
+    toast('Диалог начат', 'success');
     openConversation(conv.id);
   } catch (err) {
     toast(err.message, 'error');
@@ -1620,7 +1620,7 @@ async function renderChat() {
         <div class="sidebar-user">${escHtml(State.username || '')}</div>
       </div>
       <div class="sidebar-section">
-        <div class="sidebar-section-label">Navigation</div>
+        <div class="sidebar-section-label">Навигация</div>
         <button class="sidebar-item" onclick="navigate('dashboard')">
           <span class="sidebar-icon">⊞</span> Properties
         </button>
@@ -1631,7 +1631,7 @@ async function renderChat() {
       </div>
       <div class="sidebar-footer">
         <button class="sidebar-item" onclick="logout()">
-          <span class="sidebar-icon">↩</span> Sign Out
+          <span class="sidebar-icon">↩</span> Выйти
         </button>
       </div>
     </aside>
@@ -1639,7 +1639,7 @@ async function renderChat() {
     <div class="main-content" style="display:flex;flex-direction:column;overflow:hidden;">
       <div class="topbar">
         <div class="topbar-breadcrumb">
-          <span onclick="navigate('dashboard')" style="cursor:pointer">Properties</span>
+          <span onclick="navigate('dashboard')" style="cursor:pointer">Объекты</span>
           ${prop ? `<span class="crumb-sep">›</span>
             <span onclick="navigate('detail')" style="cursor:pointer">${escHtml(prop.name)}</span>` : ''}
           <span class="crumb-sep">›</span>
@@ -1648,9 +1648,9 @@ async function renderChat() {
         </div>
         <div class="topbar-actions">
           ${conv.status === 'active'
-            ? `<button class="btn btn-ghost btn-sm" onclick="commitConversation()">📋 Commit Results</button>
-               <button class="btn btn-ghost btn-sm" onclick="completeConversation()">✓ Mark Complete</button>`
-            : `<span style="color:var(--success);font-size:12px;font-weight:500">✓ Completed</span>`}
+            ? `<button class="btn btn-ghost btn-sm" onclick="commitConversation()">📋 Сохранить результаты</button>
+               <button class="btn btn-ghost btn-sm" onclick="completeConversation()">✓ Завершить</button>`
+            : `<span style="color:var(--success);font-size:12px;font-weight:500">✓ Завершено</span>`}
         </div>
       </div>
 
@@ -1665,7 +1665,7 @@ async function renderChat() {
           <textarea
             id="chat-input"
             class="chat-textarea"
-            placeholder="${conv.status === 'completed' ? 'This conversation is completed.' : 'Type your message…'}"
+            placeholder="${conv.status === 'completed' ? 'Этот диалог завершен.' : 'Введите ваше сообщение…'}"
             ${conv.status === 'completed' ? 'disabled' : ''}
             rows="1"
             onkeydown="handleChatKey(event)"
@@ -1678,12 +1678,12 @@ async function renderChat() {
         </div>
         ${conv.status === 'active' ? `
         <div class="chat-actions">
-          <button class="btn btn-ghost btn-sm" onclick="commitConversation()">📋 Commit Results</button>
-          <button class="btn btn-ghost btn-sm" onclick="completeConversation()">✓ Mark Complete</button>
-          <button class="btn btn-ghost btn-sm" onclick="navigate('detail')">← Back to Property</button>
+          <button class="btn btn-ghost btn-sm" onclick="commitConversation()">📋 Сохранить результаты</button>
+          <button class="btn btn-ghost btn-sm" onclick="completeConversation()">✓ Завершить</button>
+          <button class="btn btn-ghost btn-sm" onclick="navigate('detail')">← Назад к объекту</button>
         </div>` : `
         <div class="chat-actions">
-          <button class="btn btn-ghost btn-sm" onclick="navigate('detail')">← Back to Property</button>
+          <button class="btn btn-ghost btn-sm" onclick="navigate('detail')">← Назад к объекту</button>
         </div>`}
       </div>
     </div>
@@ -1698,7 +1698,7 @@ async function loadMessages() {
   const conv = State.currentConversation;
   try {
     const data = await API.get(`/conversations/${conv.id}`);
-    if (!data) { chatBody.innerHTML = '<div class="data-empty">Could not load messages.</div>'; return; }
+    if (!data) { chatBody.innerHTML = '<div class="data-empty">Не удалось загрузить сообщения.</div>'; return; }
     State.messages = data.messages || [];
     renderMessages();
   } catch (err) {
@@ -1715,8 +1715,8 @@ function renderMessages() {
     chatBody.innerHTML = `
       <div class="empty-state" style="padding:48px 24px">
         <div class="empty-icon">🤖</div>
-        <div class="empty-title">Start the conversation</div>
-        <div class="empty-sub">${stepDef ? stepDef.desc : 'Send a message to begin.'}</div>
+        <div class="empty-title">Начните диалог</div>
+        <div class="empty-sub">${stepDef ? stepDef.desc : 'Отправьте сообщение, чтобы начать.'}</div>
       </div>`;
     return;
   }
@@ -1741,7 +1741,7 @@ function showTyping() {
   el.className = 'msg assistant';
   el.id = 'typing-indicator';
   el.innerHTML = `
-    <div class="msg-role">Agent</div>
+    <div class="msg-role">Агент</div>
     <div class="typing-indicator">
       <div class="typing-dot"></div>
       <div class="typing-dot"></div>
@@ -1781,10 +1781,10 @@ async function sendMessage() {
     if (data && data.agent_message) {
       State.messages.push(data.agent_message);
     } else {
-      toast('No response from agent', 'error');
+      toast('Нет ответа от агента', 'error');
     }
   } catch (err) {
-    toast('Send failed: ' + err.message, 'error');
+    toast('Ошибка отправки: ' + err.message, 'error');
     State.messages.pop(); // Remove optimistic message on error
   } finally {
     hideTyping();
@@ -1818,16 +1818,16 @@ async function commitConversation() {
 
   try {
     const result = await API.post(`/conversations/${conv.id}/commit`);
-    if (!result) { toast('Commit returned no data', 'error'); return; }
+    if (!result) { toast('Сохранение не вернуло данных', 'error'); return; }
     showCommitPanel(result);
-    toast('Results committed to property', 'success');
+    toast('Результаты сохранены в объекте', 'success');
     // Refresh property data silently
     const prop = await API.get(`/properties/${conv.property_id}`);
     if (prop) State.currentProperty = prop;
   } catch (err) {
-    toast('Commit failed: ' + err.message, 'error');
+    toast('Ошибка сохранения: ' + err.message, 'error');
   } finally {
-    if (btn) { btn.disabled = false; btn.textContent = '📋 Commit Results'; }
+    if (btn) { btn.disabled = false; btn.textContent = '📋 Сохранить результаты'; }
   }
 }
 
@@ -1848,14 +1848,14 @@ function showCommitPanel(result) {
     }),
     ...missing.map(k => `<div class="commit-field">
       <div class="commit-field-key">${escHtml(k)}</div>
-      <div class="commit-field-val missing">⚠ not found</div>
+      <div class="commit-field-val missing">⚠ не найдено</div>
     </div>`),
   ].join('');
 
   area.innerHTML = `
     <div class="commit-panel">
       <div class="commit-panel-header">
-        <div class="commit-panel-title">📋 Extraction Results — ${Object.keys(extracted).length} fields saved</div>
+        <div class="commit-panel-title">📋 Результаты извлечения — ${Object.keys(extracted).length} полей сохранено</div>
         <button class="commit-panel-close" onclick="document.getElementById('commit-panel-area').innerHTML=''">×</button>
       </div>
       <div class="commit-panel-body">${rows}</div>
@@ -1865,7 +1865,7 @@ function showCommitPanel(result) {
 async function completeConversation() {
   const conv = State.currentConversation;
   if (!conv) return;
-  if (!confirm('Mark this conversation as completed? You will no longer be able to send messages.')) return;
+  if (!confirm('Пометить диалог как завершенный? Вы больше не сможете отправлять сообщения.')) return;
   try {
     const updated = await API.post(`/conversations/${conv.id}/complete`);
     if (updated) {
@@ -1873,10 +1873,10 @@ async function completeConversation() {
       // Update in cache
       const idx = State.conversations.findIndex(c => c.id === updated.id);
       if (idx !== -1) State.conversations[idx] = updated;
-      toast('Conversation completed', 'success');
+      toast('Диалог завершен', 'success');
       renderChat();
     } else {
-      toast('Could not complete conversation', 'error');
+      toast('Не удалось завершить диалог', 'error');
     }
   } catch (err) {
     toast(err.message, 'error');
@@ -1916,10 +1916,10 @@ function relTime(isoStr) {
   const date = new Date(isoStr);
   const diff = Date.now() - date.getTime();
   const secs = Math.floor(diff / 1000);
-  if (secs < 60)   return 'just now';
-  if (secs < 3600) return `${Math.floor(secs/60)}m ago`;
-  if (secs < 86400)return `${Math.floor(secs/3600)}h ago`;
-  return `${Math.floor(secs/86400)}d ago`;
+  if (secs < 60)   return 'только что';
+  if (secs < 3600) return `${Math.floor(secs/60)}м назад`;
+  if (secs < 86400)return `${Math.floor(secs/3600)}ч назад`;
+  return `${Math.floor(secs/86400)}д назад`;
 }
 
 /* =============================================================================
