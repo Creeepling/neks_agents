@@ -12,11 +12,14 @@ Each step can define its own extraction schema; they are collected in
 STEP_EXTRACTION_SCHEMAS at the bottom of this file.
 """
 
+import os
+import yaml
 from typing import Any, Dict, List, Optional, Tuple
 
 import instructor
 from google import genai
-from pydantic import BaseModel, Field
+from google.genai import types
+from pydantic import BaseModel, Field, create_model
 
 from app.config import settings
 from app.database import Conversation, Message
@@ -25,69 +28,59 @@ from app.database import Conversation, Message
 # Client Setup
 # ---------------------------------------------------------------------------
 
-_raw_client = genai.Client(api_key=settings.GEMINI_API_KEY)
+_raw_client = genai.Client(api_key=settings.GEMINI_API_KEY or "DUMMY_KEY_FOR_IMPORT")
 
 # Instructor-patched client for structured extraction calls
 _instructor_client = instructor.from_genai(client=_raw_client, use_async=False)
 
 
 # ---------------------------------------------------------------------------
-# Step System Prompts
-# These prompts set the agent's role and behaviour for each conversation step.
-# Add or modify steps here to extend the pipeline.
+# Dynamic Agent Configuration (Loaded from agents.yaml)
 # ---------------------------------------------------------------------------
 
-STEP_SYSTEM_PROMPTS: Dict[str, str] = {
-    "step_1_lookup": (
-        "You are a real estate research assistant. Your task is to help the user gather "
-        "key information about a property: its location, type (apartment / house / commercial), "
-        "size in square metres, asking price, number of rooms, and any notable features or defects. "
-        "Ask targeted questions to fill any gaps. When the user is satisfied, tell them they can "
-        "commit the results using the Commit button."
-    ),
-    "step_2_analysis": (
-        "You are a real estate investment analyst. The user has already gathered basic property data "
-        "in a previous step. Your task is to help them evaluate the investment potential: market "
-        "comparables, estimated rental yield, renovation costs, and a buy / hold / pass recommendation. "
-        "Reference the property data that will be provided in the conversation context. "
-        "Ask targeted questions to fill any gaps before giving a final assessment."
-    ),
-}
+def _load_agents_config() -> dict:
+    config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "agents.yaml")
+    try:
+        with open(config_path, "r", encoding="utf-8") as f:
+            return yaml.safe_load(f) or {}
+    except Exception as e:
+        print(f"Warning: Could not load agents.yaml: {e}")
+        return {}
+
+AGENTS_CONFIG = _load_agents_config()
+
+STEP_SYSTEM_PROMPTS: Dict[str, str] = {}
+STEP_EXTRACTION_SCHEMAS: Dict[str, type[BaseModel]] = {}
+
+for step_id, config in AGENTS_CONFIG.items():
+    STEP_SYSTEM_PROMPTS[step_id] = config.get("system_prompt", "")
+    
+    fields = {}
+    schema_def = config.get("extraction_schema", {})
+    for field_name, field_info in schema_def.items():
+        field_type_str = field_info.get("type", "string")
+        
+        if field_type_str == "string":
+            py_type = Optional[str]
+        elif field_type_str == "integer":
+            py_type = Optional[int]
+        elif field_type_str == "float":
+            py_type = Optional[float]
+        elif field_type_str == "list":
+            item_type = field_info.get("items", "string")
+            py_type = Optional[List[str]] if item_type == "string" else Optional[List[Any]]
+        else:
+            py_type = Optional[str]
+            
+        description = field_info.get("description", "")
+        fields[field_name] = (py_type, Field(None, description=description))
+    
+    model_name = "".join(word.capitalize() for word in step_id.split("_")) + "Schema"
+    STEP_EXTRACTION_SCHEMAS[step_id] = create_model(model_name, **fields)
 
 DEFAULT_SYSTEM_PROMPT = (
     "You are a helpful real estate assistant. Answer the user's questions clearly and concisely."
 )
-
-
-# ---------------------------------------------------------------------------
-# Extraction Schemas
-# Define one Pydantic model per step. The LLM will fill these during the
-# commit call. Mark optional fields with Optional so partial data is valid.
-# ---------------------------------------------------------------------------
-
-class Step1ExtractionSchema(BaseModel):
-    property_type: Optional[str] = Field(None, description="Type of property: apartment, house, commercial, land, etc.")
-    location: Optional[str] = Field(None, description="City, neighbourhood, or full address of the property.")
-    size_sqm: Optional[float] = Field(None, description="Total size in square metres.")
-    price: Optional[float] = Field(None, description="Asking price in the local currency.")
-    num_rooms: Optional[int] = Field(None, description="Total number of rooms (bedrooms + living rooms).")
-    features: Optional[List[str]] = Field(None, description="Notable positive features (e.g. balcony, parking, new roof).")
-    defects: Optional[List[str]] = Field(None, description="Known issues or defects mentioned by the user.")
-    notes: Optional[str] = Field(None, description="Any other relevant information from the conversation.")
-
-
-class Step2ExtractionSchema(BaseModel):
-    market_comparables: Optional[str] = Field(None, description="Summary of comparable properties and their prices.")
-    estimated_rental_yield_pct: Optional[float] = Field(None, description="Estimated annual rental yield as a percentage.")
-    renovation_cost_estimate: Optional[float] = Field(None, description="Estimated renovation costs in the local currency.")
-    recommendation: Optional[str] = Field(None, description="Agent recommendation: Buy, Hold, or Pass, with reasoning.")
-    risk_notes: Optional[str] = Field(None, description="Key risks or caveats highlighted during analysis.")
-
-
-STEP_EXTRACTION_SCHEMAS: Dict[str, type[BaseModel]] = {
-    "step_1_lookup": Step1ExtractionSchema,
-    "step_2_analysis": Step2ExtractionSchema,
-}
 
 
 # ---------------------------------------------------------------------------
@@ -159,10 +152,28 @@ def get_agent_reply(
     response = _raw_client.models.generate_content(
         model=settings.GEMINI_MODEL,
         contents=messages,
+        config=types.GenerateContentConfig(
+            tools=[{"google_search": {}}],
+        )
     )
 
     if response and response.text:
-        return response.text
+        text = response.text
+        # Extract grounding sources if available
+        sources = []
+        if response.candidates and response.candidates[0].grounding_metadata:
+            metadata = response.candidates[0].grounding_metadata
+            if hasattr(metadata, 'grounding_chunks') and metadata.grounding_chunks:
+                for chunk in metadata.grounding_chunks:
+                    if hasattr(chunk, 'web') and chunk.web and chunk.web.uri:
+                        sources.append(chunk.web.uri)
+        
+        if sources:
+            unique_sources = list(dict.fromkeys(sources))
+            sources_list = "\n".join([f"- {url}" for url in unique_sources])
+            text += f"\n\n**Источники:**\n{sources_list}"
+
+        return text
     else:
         raise RuntimeError("The LLM returned an empty response. Please try again.")
 
