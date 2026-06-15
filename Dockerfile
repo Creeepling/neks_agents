@@ -22,6 +22,7 @@ COPY --from=builder /install /usr/local
 # Copy application source
 COPY app/ ./app/
 COPY frontend/ ./frontend/
+COPY agents.yaml ./
 
 # Google Cloud Run injects the PORT environment variable automatically.
 # Default to 8080 for local Docker testing.
