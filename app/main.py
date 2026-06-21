@@ -189,7 +189,10 @@ def create_property(
         user_id=current_user.id,
         name=payload.name,
         address=payload.address,
-        data={},
+        data={
+            "city_name": payload.city,
+            "exact_location": payload.address
+        },
     )
     db.add(prop)
     db.commit()

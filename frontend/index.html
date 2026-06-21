@@ -1152,8 +1152,12 @@ function openNewPropertyModal() {
             <input id="prop-name" class="form-input" type="text" placeholder="напр., Квартира на закате" required />
           </div>
           <div class="form-group">
-            <label class="form-label">Адрес (необязательно)</label>
-            <input id="prop-address" class="form-input" type="text" placeholder="напр., Тверская 1, Москва" />
+            <label class="form-label">Город</label>
+            <input id="prop-city" class="form-input" type="text" placeholder="напр., Москва" required />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Точный адрес</label>
+            <input id="prop-address" class="form-input" type="text" placeholder="напр., Тверская 1" required />
           </div>
         </div>
         <div class="modal-footer">
@@ -1169,12 +1173,13 @@ function openNewPropertyModal() {
   document.getElementById('new-prop-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const name = document.getElementById('prop-name').value.trim();
+    const city = document.getElementById('prop-city').value.trim();
     const address = document.getElementById('prop-address').value.trim();
     const btn = document.getElementById('create-prop-btn');
     btn.disabled = true;
     btn.innerHTML = '<div class="spinner"></div>';
     try {
-      const prop = await API.post('/properties', { name, address: address || null });
+      const prop = await API.post('/properties', { name, city, address });
       if (prop) {
         toast('Объект создан', 'success');
         closeModal();

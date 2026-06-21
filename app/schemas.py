@@ -37,7 +37,8 @@ class TokenData(BaseModel):
 
 class PropertyCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=256)
-    address: Optional[str] = Field(None, max_length=512)
+    city: str = Field(..., min_length=1, max_length=256)
+    address: str = Field(..., min_length=1, max_length=512)
 
 
 class PropertyUpdate(BaseModel):
