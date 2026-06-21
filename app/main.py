@@ -287,16 +287,16 @@ def validate_step(
     if prop is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Property not found.")
 
-    schema_class = STEP_EXTRACTION_SCHEMAS.get(step)
-    if schema_class is None:
+    step_config = AGENTS_CONFIG.get(step)
+    if step_config is None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Unknown step '{step}'. Known steps: {list(STEP_EXTRACTION_SCHEMAS.keys())}",
+            detail=f"Unknown step '{step}'. Known steps: {list(AGENTS_CONFIG.keys())}",
         )
 
     existing_data = prop.data or {}
-    all_fields = list(schema_class.model_fields.keys())
-    missing = [f for f in all_fields if not existing_data.get(f)]
+    required_fields = step_config.get("required_fields", [])
+    missing = [f for f in required_fields if not existing_data.get(f)]
 
     if missing:
         return StepValidationResponse(

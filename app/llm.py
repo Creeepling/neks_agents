@@ -103,15 +103,22 @@ def _build_messages(
     """
     system_prompt = STEP_SYSTEM_PROMPTS.get(conversation.current_step, DEFAULT_SYSTEM_PROMPT)
 
+    # Determine which fields this step is responsible for
+    schema_class = STEP_EXTRACTION_SCHEMAS.get(conversation.current_step)
+    if schema_class:
+        target_fields = ", ".join(schema_class.model_fields.keys())
+        system_prompt += (
+            f"\n\nТвоя цель в этом диалоге — собрать информацию для следующих полей: {target_fields}. "
+            "Задавай вопросы по одному, чтобы собрать недостающие данные."
+        )
+
     # Inject existing structured property data so the agent knows the context
     if property_data:
         system_prompt += (
-            "\n\n--- Current Property Data ---\n"
+            "\n\n--- Текущие данные об объекте ---\n"
             f"{property_data}\n"
-            "Use this information when answering. Point out missing fields so the user can supply them."
+            "Используй эти данные для контекста."
         )
-    else:
-        system_prompt += "\n\nNo property data has been committed yet for this property."
 
     messages: List[Dict[str, str]] = [{"role": "user", "parts": [{"text": f"[SYSTEM]\n{system_prompt}"}]}]
 
