@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Neks — Агент по недвижимости</title>
+  <title>ROITeam — Агент по недвижимости</title>
   <meta name="description" content="Внутренняя панель агента по исследованию и анализу недвижимости." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -845,10 +845,9 @@ function setToken(token, username) {
   localStorage.setItem('neks_username', username);
 }
 
-function clearToken() {
-  State.token = null;
-  State.username = null;
+function clearAuth() {
   localStorage.removeItem('neks_token');
+  localStorage.removeItem('neks_username');
   localStorage.removeItem('neks_username');
 }
 
@@ -942,7 +941,7 @@ function renderAuth() {
   return `
   <div id="view-auth">
     <div class="auth-box">
-      <div class="auth-logo">Neks<span>.</span></div>
+      <div class="auth-logo">ROITeam<span>.</span></div>
       <p class="auth-subtitle">Агент по исследованию и анализу недвижимости</p>
       <div class="auth-tabs">
         <button class="auth-tab active" id="tab-login" onclick="switchAuthTab('login')">Войти</button>
@@ -1023,7 +1022,7 @@ function shellHtml(breadcrumbs, topbarActions, bodyHtml, activeNav = 'dashboard'
   <div id="view-app" class="flex" style="height:100vh;">
     <aside class="sidebar">
       <div class="sidebar-header">
-        <div class="sidebar-logo">Neks<span>.</span></div>
+        <div class="sidebar-logo">ROITeam<span>.</span></div>
         <div class="sidebar-user">${escHtml(State.username || '')}</div>
       </div>
       <div class="sidebar-section">
@@ -1159,6 +1158,16 @@ function openNewPropertyModal() {
             <label class="form-label">Точный адрес</label>
             <input id="prop-address" class="form-input" type="text" placeholder="напр., Тверская 1" required />
           </div>
+          <div style="display:flex; gap: 12px;">
+            <div class="form-group" style="flex:1;">
+              <label class="form-label">Площадь (м²)</label>
+              <input id="prop-sqm" class="form-input" type="number" step="0.1" placeholder="напр., 500" />
+            </div>
+            <div class="form-group" style="flex:1;">
+              <label class="form-label">Количество этажей</label>
+              <input id="prop-floors" class="form-input" type="number" placeholder="напр., 2" />
+            </div>
+          </div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-ghost" onclick="closeModal()">Отмена</button>
@@ -1175,11 +1184,18 @@ function openNewPropertyModal() {
     const name = document.getElementById('prop-name').value.trim();
     const city = document.getElementById('prop-city').value.trim();
     const address = document.getElementById('prop-address').value.trim();
+    const sqmStr = document.getElementById('prop-sqm').value.trim();
+    const floorsStr = document.getElementById('prop-floors').value.trim();
+    
+    const payload = { name, city, address };
+    if (sqmStr) payload.square_meters = parseFloat(sqmStr);
+    if (floorsStr) payload.floors = parseInt(floorsStr, 10);
+    
     const btn = document.getElementById('create-prop-btn');
     btn.disabled = true;
     btn.innerHTML = '<div class="spinner"></div>';
     try {
-      const prop = await API.post('/properties', { name, city, address });
+      const prop = await API.post('/properties', payload);
       if (prop) {
         toast('Объект создан', 'success');
         closeModal();
@@ -1357,11 +1373,26 @@ async function loadДиалоги(propId) {
         </div>
         <div style="display:flex;align-items:center;gap:8px">
           <span class="badge ${statusClass}">${c.status}</span>
+          <button class="btn btn-ghost btn-sm" style="padding:4px" onclick="event.stopPropagation(); deleteConversation('${c.id}')" title="Удалить диалог">🗑️</button>
           <span class="conv-arrow">›</span>
         </div>
       </div>`;
     }).join('')}
   </div>`;
+}
+
+async function deleteConversation(id) {
+  if (!confirm('Вы уверены, что хотите удалить этот диалог?')) return;
+  try {
+    await API.delete(`/conversations/${id}`);
+    toast('Диалог удален', 'success');
+    State.conversations = State.conversations.filter(c => c.id !== id);
+    if (State.currentProperty) {
+      loadДиалоги(State.currentProperty.id);
+    }
+  } catch (err) {
+    toast('Ошибка удаления: ' + err.message, 'error');
+  }
 }
 
 /* =============================================================================
@@ -1389,6 +1420,16 @@ function openEditPropertyModal() {
             <label class="form-label">Адрес</label>
             <input id="edit-prop-address" class="form-input" type="text" value="${escAttr(prop.address || '')}" />
           </div>
+          <div style="display:flex; gap: 12px;">
+            <div class="form-group" style="flex:1;">
+              <label class="form-label">Площадь (м²)</label>
+              <input id="edit-prop-sqm" class="form-input" type="number" step="0.1" value="${prop.data?.square_meters !== undefined ? prop.data.square_meters : ''}" />
+            </div>
+            <div class="form-group" style="flex:1;">
+              <label class="form-label">Количество этажей</label>
+              <input id="edit-prop-floors" class="form-input" type="number" value="${prop.data?.floors !== undefined ? prop.data.floors : ''}" />
+            </div>
+          </div>
           <div class="divider"></div>
           <button type="button" class="btn btn-danger btn-sm" onclick="deleteProperty(${prop.id})">Удалить объект</button>
         </div>
@@ -1405,11 +1446,18 @@ function openEditPropertyModal() {
     e.preventDefault();
     const name = document.getElementById('edit-prop-name').value.trim();
     const address = document.getElementById('edit-prop-address').value.trim();
+    const sqmStr = document.getElementById('edit-prop-sqm').value.trim();
+    const floorsStr = document.getElementById('edit-prop-floors').value.trim();
+    
+    const payload = { name, address: address || null };
+    if (sqmStr) payload.square_meters = parseFloat(sqmStr);
+    if (floorsStr) payload.floors = parseInt(floorsStr, 10);
+
     const btn = document.getElementById('edit-prop-btn');
     btn.disabled = true;
     btn.innerHTML = '<div class="spinner"></div>';
     try {
-      const updated = await API.put(`/properties/${prop.id}`, { name, address: address || null });
+      const updated = await API.put(`/properties/${prop.id}`, payload);
       if (updated) {
         State.currentProperty = updated;
         toast('Объект обновлен', 'success');
@@ -1610,7 +1658,7 @@ async function renderChat() {
   <div id="view-app" class="flex" style="height:100vh;">
     <aside class="sidebar">
       <div class="sidebar-header">
-        <div class="sidebar-logo">Neks<span>.</span></div>
+        <div class="sidebar-logo">ROITeam<span>.</span></div>
         <div class="sidebar-user">${escHtml(State.username || '')}</div>
       </div>
       <div class="sidebar-section">

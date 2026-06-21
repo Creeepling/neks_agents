@@ -191,9 +191,13 @@ def create_property(
         address=payload.address,
         data={
             "city_name": payload.city,
-            "exact_location": payload.address
+            "exact_location": payload.address,
         },
     )
+    if payload.square_meters is not None:
+        prop.data["square_meters"] = payload.square_meters
+    if payload.floors is not None:
+        prop.data["floors"] = payload.floors
     db.add(prop)
     db.commit()
     db.refresh(prop)
@@ -238,8 +242,15 @@ def update_property(
         prop.name = payload.name
     if payload.address is not None:
         prop.address = payload.address
+        
+    prop.data = prop.data or {}
+    if payload.square_meters is not None:
+        prop.data["square_meters"] = payload.square_meters
+    if payload.floors is not None:
+        prop.data["floors"] = payload.floors
+        
     if payload.data is not None:
-        prop.data = {**(prop.data or {}), **payload.data}
+        prop.data = {**prop.data, **payload.data}
 
     prop.updated_at = datetime.now(timezone.utc)
     db.commit()
@@ -506,7 +517,7 @@ def complete_conversation(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Mark a conversation as completed. No further messages can be sent after this."""
+    """Mark a conversation as completed."""
     conv = db.query(Conversation).filter(
         Conversation.id == conversation_id,
         Conversation.user_id == current_user.id,
@@ -519,6 +530,26 @@ def complete_conversation(
     db.commit()
     db.refresh(conv)
     return conv
+
+
+@app.delete("/conversations/{conversation_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["Conversations"])
+def delete_conversation(
+    conversation_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Delete a conversation and its messages."""
+    conv = db.query(Conversation).filter(
+        Conversation.id == conversation_id,
+        Conversation.user_id == current_user.id,
+    ).first()
+
+    if conv is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found.")
+
+    db.delete(conv)
+    db.commit()
+    return None
 
 
 # ---------------------------------------------------------------------------
