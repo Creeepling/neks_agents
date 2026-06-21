@@ -17,6 +17,7 @@ pydantic-settings>=2.6.1
 # LLM
 google-genai>=1.16.0
 instructor>=1.7.0
+jsonref
 
 # Utilities
 python-dotenv>=1.0.1

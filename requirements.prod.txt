@@ -6,6 +6,11 @@
 # PostgreSQL sync driver (used by SQLAlchemy for Cloud SQL / Neon / Supabase)
 psycopg2-binary==2.9.9
 
+# LLM
+google-genai>=1.16.0
+instructor>=1.7.0
+jsonref
+
 # PostgreSQL async driver (optional — needed only if you add async SQLAlchemy)
 asyncpg==0.29.0
 
