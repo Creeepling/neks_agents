@@ -44,7 +44,7 @@ from app.database import (
     get_db,
     init_db,
 )
-from app.llm import STEP_EXTRACTION_SCHEMAS, STEP_SYSTEM_PROMPTS, extract_structured_data, get_agent_reply
+from app.llm import AGENTS_CONFIG, STEP_EXTRACTION_SCHEMAS, STEP_SYSTEM_PROMPTS, extract_structured_data, get_agent_reply
 from app.schemas import (
     ChatResponse,
     CommitResponse,
@@ -497,6 +497,23 @@ def complete_conversation(
     db.commit()
     db.refresh(conv)
     return conv
+
+
+# ---------------------------------------------------------------------------
+# System Endpoints
+# ---------------------------------------------------------------------------
+
+@app.get("/steps", tags=["System"])
+def get_available_steps():
+    """Return the list of available agent steps from agents.yaml."""
+    steps = []
+    for step_id, config in AGENTS_CONFIG.items():
+        steps.append({
+            "id": step_id,
+            "label": config.get("title", step_id),
+            "desc": config.get("description", "")
+        })
+    return steps
 
 
 # ---------------------------------------------------------------------------

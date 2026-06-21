@@ -822,28 +822,7 @@
 ============================================================================= */
 const API_BASE = ''; // Uses current host (works locally and on Cloud Run seamlessly)
 
-const STEPS = [
-  {
-    id: 'step_1_city_analyst',
-    label: 'Агент 1: Аналитик города',
-    desc: 'Оценка макроэкономических и демографических трендов города.',
-  },
-  {
-    id: 'step_2_object_location',
-    label: 'Агент 2: Аналитик объекта и локации',
-    desc: 'Оценка конкретного объекта и его микролокации.',
-  },
-  {
-    id: 'step_3_concept_developer',
-    label: 'Агент 3: Разработчик концепций объекта',
-    desc: 'Разработка концепции наилучшего использования объекта (Best and Highest Use).',
-  },
-  {
-    id: 'step_4_tenant_mix',
-    label: 'Агент 4: Tenant mix builder',
-    desc: 'Подбор оптимального состава арендаторов для утвержденной концепции.',
-  },
-];
+let STEPS = []; // Loaded dynamically from backend
 
 /* =============================================================================
    STATE
@@ -1935,7 +1914,22 @@ function relTime(isoStr) {
 /* =============================================================================
    BOOT
 ============================================================================= */
-render();
+async function boot() {
+  try {
+    const res = await fetch(`${API_BASE}/steps`);
+    if (res.ok) {
+      STEPS = await res.json();
+    } else {
+      console.error('Failed to load steps');
+      toast('Не удалось загрузить агентов', 'error');
+    }
+  } catch (err) {
+    console.error('Network error loading steps', err);
+    toast('Ошибка сети при загрузке агентов', 'error');
+  }
+  render();
+}
+boot();
 </script>
 </body>
 </html>
