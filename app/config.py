@@ -21,7 +21,7 @@ class Settings(BaseSettings):
 
     # --- LLM ---
     GEMINI_API_KEY: str = ""
-    GEMINI_MODEL: str = "gemini-3.0-flash"
+    GEMINI_MODEL: str = "gemini-2.5-flash"
 
     # --- Environment ---
     ENVIRONMENT: str = "local"  # "local" | "production"
