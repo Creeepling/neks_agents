@@ -1868,7 +1868,7 @@ async function completeConversation() {
       const idx = State.conversations.findIndex(c => c.id === updated.id);
       if (idx !== -1) State.conversations[idx] = updated;
       toast('Диалог завершен', 'success');
-      renderChat();
+      openProperty(conv.property_id);
     } else {
       toast('Не удалось завершить диалог', 'error');
     }

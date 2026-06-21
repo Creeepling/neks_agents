@@ -348,6 +348,23 @@ def start_conversation(
     db.add(conversation)
     db.commit()
     db.refresh(conversation)
+
+    # Automatically generate the first message from the agent
+    try:
+        reply_text = get_agent_reply(
+            conversation,
+            prop.data,
+            "Начни работу над этим этапом. Задай первый вопрос или предложи варианты действий."
+        )
+        agent_msg = Message(conversation_id=conversation.id, role="assistant", content=reply_text)
+        db.add(agent_msg)
+        db.commit()
+        db.refresh(conversation)
+    except Exception as exc:
+        # If generation fails, we still return the conversation, just without an initial message
+        import traceback
+        traceback.print_exc()
+
     return conversation
 
 
