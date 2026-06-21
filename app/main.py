@@ -462,8 +462,10 @@ def commit_conversation(
         extracted, missing = extract_structured_data(conv)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
-    except RuntimeError as exc:
-        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc))
+    except Exception as exc:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Extraction failed: {type(exc).__name__}: {str(exc)}")
 
     # Merge extracted fields into the property's existing data blob
     prop.data = {**(prop.data or {}), **extracted}
