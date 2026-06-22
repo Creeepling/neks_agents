@@ -199,11 +199,15 @@ def get_agent_reply(
             if hasattr(metadata, 'grounding_chunks') and metadata.grounding_chunks:
                 for chunk in metadata.grounding_chunks:
                     if hasattr(chunk, 'web') and chunk.web and chunk.web.uri:
-                        sources.append(chunk.web.uri)
+                        title = chunk.web.title if hasattr(chunk.web, 'title') and chunk.web.title else chunk.web.uri
+                        sources.append((title, chunk.web.uri))
         
         if sources:
-            unique_sources = list(dict.fromkeys(sources))
-            sources_list = "\n".join([f"- {url}" for url in unique_sources])
+            unique_sources = {}
+            for title, url in sources:
+                if url not in unique_sources:
+                    unique_sources[url] = title
+            sources_list = "\n".join([f"- [{title}]({url})" for url, title in unique_sources.items()])
             text += f"\n\n**Источники:**\n{sources_list}"
 
         return text

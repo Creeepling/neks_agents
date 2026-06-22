@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
   <style>
     /* -------------------------------------------------------------------------
@@ -1836,7 +1837,7 @@ function renderMessages() {
       return `
       <div class="msg ${m.role}">
         <div class="msg-role">${m.role === 'user' ? 'You' : 'Agent'}</div>
-        <div class="msg-bubble">${escHtml(m.content)}</div>
+        <div class="msg-bubble markdown-body">${marked.parse(m.content)}</div>
         <div class="msg-time">${timeStr}</div>
       </div>`;
     }).join('');
