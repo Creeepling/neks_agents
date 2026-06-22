@@ -171,14 +171,25 @@ def get_agent_reply(
     
     config_kwargs = {"tools": [{"google_search": {}}]}
     if use_thinking:
-        # Pass thinking_config to enable reasoning on the Flash model
         config_kwargs["thinking_config"] = types.ThinkingConfig(thinking_budget_tokens=4096)
 
-    response = _raw_client.models.generate_content(
-        model=settings.GEMINI_MODEL,
-        contents=messages,
-        config=types.GenerateContentConfig(**config_kwargs)
-    )
+    try:
+        response = _raw_client.models.generate_content(
+            model=settings.GEMINI_MODEL,
+            contents=messages,
+            config=types.GenerateContentConfig(**config_kwargs)
+        )
+    except Exception as e:
+        # If the current model rejects the thinking_config, fallback without it
+        if use_thinking and "thinking_config" in config_kwargs:
+            del config_kwargs["thinking_config"]
+            response = _raw_client.models.generate_content(
+                model=settings.GEMINI_MODEL,
+                contents=messages,
+                config=types.GenerateContentConfig(**config_kwargs)
+            )
+        else:
+            raise e
 
     if response and response.text:
         text = response.text
