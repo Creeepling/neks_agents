@@ -116,10 +116,8 @@ def _build_messages(
     # Determine which fields this step is responsible for
     schema_class = STEP_EXTRACTION_SCHEMAS.get(conversation.current_step)
     if schema_class:
-        target_fields = ", ".join(schema_class.model_fields.keys())
         system_prompt += (
-            f"\n\nТвоя цель в этом диалоге — собрать информацию для следующих полей: {target_fields}. "
-            "Твой ответ должен быть написан удобно читаемым текстом. "
+            "\n\nТвой ответ должен быть написан удобно читаемым текстом. "
             "Отвечай на русском, не пиши названия системных полей или переменных."
         )
 
