@@ -166,12 +166,18 @@ def get_agent_reply(
 
     messages = _build_messages(conversation, property_data, new_user_message)
 
+    agent_config = AGENTS_CONFIG.get(conversation.current_step, {})
+    use_thinking = agent_config.get("use_thinking", False)
+    
+    config_kwargs = {"tools": [{"google_search": {}}]}
+    if use_thinking:
+        # Pass thinking_config to enable reasoning on the Flash model
+        config_kwargs["thinking_config"] = {"thinking_budget_tokens": 4096}
+
     response = _raw_client.models.generate_content(
         model=settings.GEMINI_MODEL,
         contents=messages,
-        config=types.GenerateContentConfig(
-            tools=[{"google_search": {}}],
-        )
+        config=types.GenerateContentConfig(**config_kwargs)
     )
 
     if response and response.text:

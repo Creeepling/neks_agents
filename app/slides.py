@@ -48,7 +48,7 @@ def extract_presentation_data(prop_data: Dict[str, Any]) -> PresentationData:
     """
     
     return client.chat.completions.create(
-        model="gemini-2.5-flash",
+        model=settings.GEMINI_MODEL,
         response_model=PresentationData,
         messages=[{"role": "user", "content": prompt}]
     )
