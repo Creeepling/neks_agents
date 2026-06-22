@@ -33,17 +33,18 @@ def extract_presentation_data(prop_data: Dict[str, Any]) -> PresentationData:
     )
     
     prompt = f"""
-    You are an expert commercial real estate analyst.
-    Your task is to convert the following raw JSON data into a clean, professional slide deck structure.
-    Keep bullet points concise (max 10-15 words each).
+    Ты — эксперт по коммерческой недвижимости.
+    Твоя задача — преобразовать следующие сырые данные в структуру профессиональной презентации.
+    ВСЕ ТЕКСТЫ (ЗАГОЛОВКИ И БУЛЛИТЫ) ДОЛЖНЫ БЫТЬ СТРОГО НА РУССКОМ ЯЗЫКЕ.
+    Формулируй буллиты кратко (не более 10-15 слов каждый).
     
-    Rules for extraction:
-    - If there is not enough data for a slide, leave it null.
-    - 'competitors' should list the direct competitors.
-    - 'generated_concepts' should list the initial concepts brainstormed.
-    - 'finalized_concepts' MUST have one slide for EVERY finalized concept in the data. Make sure to include the proposed tenants in the bullets!
+    Правила:
+    - Если данных для слайда недостаточно, верни null.
+    - 'competitors' должен содержать список прямых конкурентов.
+    - 'generated_concepts' должен содержать сгенерированные концепции.
+    - 'finalized_concepts' ОБЯЗАТЕЛЬНО должен содержать по одному слайду на КАЖДУЮ финальную концепцию, включая предлагаемых арендаторов.
     
-    Property Data:
+    Данные объекта:
     {prop_data}
     """
     
