@@ -1929,7 +1929,11 @@ async function commitConversation() {
     if (!result) { toast('Сохранение не вернуло данных', 'error'); return; }
     toast('Результаты сохранены', 'success');
 
-    await API.post(`/conversations/${conv.id}/complete`);
+    const updatedConv = await API.post(`/conversations/${conv.id}/complete`);
+    if (updatedConv) {
+      const idx = State.conversations.findIndex(c => c.id === updatedConv.id);
+      if (idx !== -1) State.conversations[idx] = updatedConv;
+    }
     
     // Refresh property data to fetch newly extracted info
     const prop = await API.get(`/properties/${conv.property_id}`);
@@ -1948,7 +1952,11 @@ async function commitConversation() {
         renderChat();
       }
     } else {
-      toast('Все этапы завершены', 'success');
+      if (currentIndex === -1) {
+        toast('Устаревшая сессия завершена. Начните следующий этап вручную.', 'info');
+      } else {
+        toast('Все этапы завершены', 'success');
+      }
       openProperty(conv.property_id);
     }
   } catch (err) {
