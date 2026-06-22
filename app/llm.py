@@ -171,7 +171,7 @@ def get_agent_reply(
     
     config_kwargs = {"tools": [{"google_search": {}}]}
     if use_thinking:
-        config_kwargs["thinking_config"] = types.ThinkingConfig(thinking_budget_tokens=4096)
+        config_kwargs["thinking_config"] = types.ThinkingConfig(thinking_budget=4096)
 
     try:
         response = _raw_client.models.generate_content(
