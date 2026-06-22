@@ -1758,8 +1758,7 @@ async function renderChat() {
         </div>
         <div class="topbar-actions">
           ${conv.status === 'active'
-            ? `<button class="btn btn-ghost btn-sm" onclick="commitConversation()">📋 Сохранить результаты</button>
-               <button class="btn btn-ghost btn-sm" onclick="completeConversation()">✓ Завершить</button>`
+            ? `<button class="btn btn-ghost btn-sm" onclick="commitConversation()">📋 Сохранить результаты</button>`
             : `<span style="color:var(--success);font-size:12px;font-weight:500">✓ Завершено</span>`}
         </div>
       </div>
@@ -1789,7 +1788,6 @@ async function renderChat() {
         ${conv.status === 'active' ? `
         <div class="chat-actions">
           <button class="btn btn-ghost btn-sm" onclick="commitConversation()">📋 Сохранить результаты</button>
-          <button class="btn btn-ghost btn-sm" onclick="completeConversation()">✓ Завершить</button>
           <button class="btn btn-ghost btn-sm" onclick="navigate('detail')">← Назад к объекту</button>
         </div>` : `
         <div class="chat-actions">
@@ -1924,16 +1922,35 @@ async function commitConversation() {
   const conv = State.currentConversation;
   if (!conv) return;
   const btn = document.querySelector('[onclick="commitConversation()"]');
-  if (btn) { btn.disabled = true; btn.innerHTML = '<div class="spinner"></div> Extracting…'; }
+  if (btn) { btn.disabled = true; btn.innerHTML = '<div class="spinner"></div> Сохранение...'; }
 
   try {
     const result = await API.post(`/conversations/${conv.id}/commit`);
     if (!result) { toast('Сохранение не вернуло данных', 'error'); return; }
-    showCommitPanel(result);
-    toast('Результаты сохранены в объекте', 'success');
-    // Refresh property data silently
+    toast('Результаты сохранены', 'success');
+
+    await API.post(`/conversations/${conv.id}/complete`);
+    
+    // Refresh property data to fetch newly extracted info
     const prop = await API.get(`/properties/${conv.property_id}`);
     if (prop) State.currentProperty = prop;
+
+    // Determine next step
+    const currentIndex = STEPS.findIndex(s => s.id === conv.step_id);
+    if (currentIndex !== -1 && currentIndex + 1 < STEPS.length) {
+      const nextStep = STEPS[currentIndex + 1];
+      toast(`Переход к этапу: ${nextStep.label.split(':')[0]}`, 'info');
+      
+      const newConv = await API.post('/conversations', { property_id: conv.property_id, step_id: nextStep.id });
+      if (newConv) {
+        State.currentConversation = newConv;
+        State.conversations.push(newConv);
+        renderChat();
+      }
+    } else {
+      toast('Все этапы завершены', 'success');
+      openProperty(conv.property_id);
+    }
   } catch (err) {
     toast('Ошибка сохранения: ' + err.message, 'error');
   } finally {
@@ -1941,57 +1958,8 @@ async function commitConversation() {
   }
 }
 
-function showCommitPanel(result) {
-  const area = document.getElementById('commit-panel-area');
-  if (!area) return;
 
-  const extracted = result.extracted_fields || {};
-  const missing = result.missing_fields || [];
 
-  const rows = [
-    ...Object.entries(extracted).map(([k, v]) => {
-      let display = Array.isArray(v) ? v.join(', ') : String(v);
-      return `<div class="commit-field">
-        <div class="commit-field-key">${escHtml(k)}</div>
-        <div class="commit-field-val found">✓ ${escHtml(display)}</div>
-      </div>`;
-    }),
-    ...missing.map(k => `<div class="commit-field">
-      <div class="commit-field-key">${escHtml(k)}</div>
-      <div class="commit-field-val missing">⚠ не найдено</div>
-    </div>`),
-  ].join('');
-
-  area.innerHTML = `
-    <div class="commit-panel">
-      <div class="commit-panel-header">
-        <div class="commit-panel-title">📋 Результаты извлечения — ${Object.keys(extracted).length} полей сохранено</div>
-        <button class="commit-panel-close" onclick="document.getElementById('commit-panel-area').innerHTML=''">×</button>
-      </div>
-      <div class="commit-panel-body">${rows}</div>
-    </div>`;
-}
-
-async function completeConversation() {
-  const conv = State.currentConversation;
-  if (!conv) return;
-  if (!confirm('Пометить диалог как завершенный? Вы больше не сможете отправлять сообщения.')) return;
-  try {
-    const updated = await API.post(`/conversations/${conv.id}/complete`);
-    if (updated) {
-      State.currentConversation = updated;
-      // Update in cache
-      const idx = State.conversations.findIndex(c => c.id === updated.id);
-      if (idx !== -1) State.conversations[idx] = updated;
-      toast('Диалог завершен', 'success');
-      openProperty(conv.property_id);
-    } else {
-      toast('Не удалось завершить диалог', 'error');
-    }
-  } catch (err) {
-    toast(err.message, 'error');
-  }
-}
 
 /* =============================================================================
    MODAL HELPERS
