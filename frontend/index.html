@@ -1168,6 +1168,10 @@ function openNewPropertyModal() {
               <input id="prop-floors" class="form-input" type="number" placeholder="напр., 2" />
             </div>
           </div>
+          <div class="form-group">
+            <label class="form-label">Текущие арендаторы (необязательно)</label>
+            <textarea id="prop-tenants" class="form-input" placeholder="Перечислите текущих арендаторов..."></textarea>
+          </div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-ghost" onclick="closeModal()">Отмена</button>
@@ -1186,10 +1190,12 @@ function openNewPropertyModal() {
     const address = document.getElementById('prop-address').value.trim();
     const sqmStr = document.getElementById('prop-sqm').value.trim();
     const floorsStr = document.getElementById('prop-floors').value.trim();
+    const tenants = document.getElementById('prop-tenants').value.trim();
     
     const payload = { name, city, address };
     if (sqmStr) payload.square_meters = parseFloat(sqmStr);
     if (floorsStr) payload.floors = parseInt(floorsStr, 10);
+    if (tenants) payload.current_tenants = tenants;
     
     const btn = document.getElementById('create-prop-btn');
     btn.disabled = true;
@@ -1298,6 +1304,7 @@ function renderDetailContent() {
       <div style="display:flex;gap:8px;flex-shrink:0">
         <button class="btn btn-ghost btn-sm" onclick="openEditPropertyModal()">Изменить</button>
         <button class="btn btn-primary btn-sm" onclick="openStepModal()">+ Начать этап</button>
+        <button class="btn btn-outline btn-sm" onclick="downloadPresentation(${prop.id})">📊 Сгенерировать презентацию</button>
       </div>
     </div>
 
@@ -1430,6 +1437,10 @@ function openEditPropertyModal() {
               <input id="edit-prop-floors" class="form-input" type="number" value="${prop.data?.floors !== undefined ? prop.data.floors : ''}" />
             </div>
           </div>
+          <div class="form-group">
+            <label class="form-label">Текущие арендаторы (необязательно)</label>
+            <textarea id="edit-prop-tenants" class="form-input" placeholder="Перечислите текущих арендаторов...">${escHtml(prop.data?.current_tenants || '')}</textarea>
+          </div>
           <div class="divider"></div>
           <button type="button" class="btn btn-danger btn-sm" onclick="deleteProperty(${prop.id})">Удалить объект</button>
         </div>
@@ -1448,10 +1459,12 @@ function openEditPropertyModal() {
     const address = document.getElementById('edit-prop-address').value.trim();
     const sqmStr = document.getElementById('edit-prop-sqm').value.trim();
     const floorsStr = document.getElementById('edit-prop-floors').value.trim();
+    const tenants = document.getElementById('edit-prop-tenants').value.trim();
     
     const payload = { name, address: address || null };
     if (sqmStr) payload.square_meters = parseFloat(sqmStr);
     if (floorsStr) payload.floors = parseInt(floorsStr, 10);
+    if (tenants) payload.current_tenants = tenants;
 
     const btn = document.getElementById('edit-prop-btn');
     btn.disabled = true;
@@ -1483,6 +1496,32 @@ async function deleteProperty(id) {
     State.currentProperty = null;
     navigate('dashboard');
     await renderDashboard();
+  } catch (err) {
+    toast(err.message, 'error');
+  }
+}
+
+async function downloadPresentation(id) {
+  toast('Генерируем презентацию... Пожалуйста, подождите.', 'info');
+  try {
+    const res = await fetch(API_BASE + `/properties/${id}/slides`, {
+      method: 'GET',
+      headers: {
+        'Authorization': 'Bearer ' + localStorage.getItem('neks_token')
+      }
+    });
+    if (!res.ok) throw new Error('Не удалось сгенерировать презентацию');
+    
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Presentation_Property_${id}.pptx`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
+    toast('Презентация готова!', 'success');
   } catch (err) {
     toast(err.message, 'error');
   }

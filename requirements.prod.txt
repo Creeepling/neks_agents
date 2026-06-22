@@ -3,6 +3,11 @@
 #
 # Used in the Dockerfile for Cloud Run deployment.
 
+# File processing and PDF generation
+python-pptx
+svglib
+reportlab
+
 # PostgreSQL sync driver (used by SQLAlchemy for Cloud SQL / Neon / Supabase)
 psycopg2-binary==2.9.9
 

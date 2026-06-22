@@ -198,6 +198,8 @@ def create_property(
         prop.data["square_meters"] = payload.square_meters
     if payload.floors is not None:
         prop.data["floors"] = payload.floors
+    if payload.current_tenants is not None:
+        prop.data["current_tenants"] = payload.current_tenants
     db.add(prop)
     db.commit()
     db.refresh(prop)
@@ -248,6 +250,8 @@ def update_property(
         prop.data["square_meters"] = payload.square_meters
     if payload.floors is not None:
         prop.data["floors"] = payload.floors
+    if payload.current_tenants is not None:
+        prop.data["current_tenants"] = payload.current_tenants
         
     if payload.data is not None:
         prop.data = {**prop.data, **payload.data}
@@ -256,6 +260,40 @@ def update_property(
     db.commit()
     db.refresh(prop)
     return prop
+
+
+@app.get("/properties/{property_id}/slides", tags=["Properties"])
+def download_presentation(
+    property_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Generate and download a PPTX presentation for the property."""
+    from fastapi.responses import StreamingResponse
+    from app.slides import extract_presentation_data, generate_pptx
+
+    prop = db.query(RealEstateObject).filter(
+        RealEstateObject.id == property_id,
+        RealEstateObject.user_id == current_user.id,
+    ).first()
+
+    if prop is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Property not found.")
+
+    # 1. Use LLM to structure presentation data
+    presentation_data = extract_presentation_data(prop.data or {})
+
+    # 2. Build PPTX
+    pptx_io = generate_pptx(prop.name, prop.address or "", presentation_data)
+
+    # 3. Return as downloadable file
+    return StreamingResponse(
+        pptx_io,
+        media_type="application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        headers={
+            "Content-Disposition": f'attachment; filename="Presentation_Property_{prop.id}.pptx"'
+        }
+    )
 
 
 @app.delete("/properties/{property_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["Properties"])

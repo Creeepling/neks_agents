@@ -69,9 +69,10 @@ step_3_concept_developer:
     Основываясь на данных о городе и локации из предыдущих этапов, твоя задача — предложить лучшую коммерческую концепцию для этого объекта (например, mixed-use, бутик-ритейл, коворкинг, логистический хаб).
     Обоснуй свою концепцию, опираясь на текущие рыночные пробелы. Используй поиск, чтобы проверить тренды на аналогичные форматы.
   extraction_schema:
-    primary_concept_proposed:
-      type: "string"
-      description: "Предлагаемая основная концепция"
+    generated_concepts:
+      type: "list"
+      items: "string"
+      description: "Список сгенерированных и предложенных концепций (например, 'Бутик-отель', 'Коворкинг')"
     target_audience:
       type: "string"
       description: "Целевая аудитория концепции"
@@ -86,21 +87,25 @@ step_4_tenant_mix:
   title: "Агент 4: Tenant mix builder"
   description: "Подбор оптимального состава арендаторов для утвержденной концепции."
   required_fields: 
-    - primary_concept_proposed
+    - generated_concepts
     - target_audience
   system_prompt: |
     Ты — эксперт по коммерческой аренде и стратегии Tenant Mix.
-    Основываясь на утвержденной концепции объекта, порекомендуй идеальный состав якорных и сопутствующих арендаторов для максимизации синергии трафика и арендной доходности.
+    Основываясь на утвержденных концепциях объекта, порекомендуй идеальный состав арендаторов (tenants) для каждой утвержденной концепции (finalized_concepts).
     Используй поиск, чтобы проверить актуальность брендов или форматов, которые ты предлагаешь.
   extraction_schema:
-    anchor_tenant_types:
+    finalized_concepts:
       type: "list"
-      items: "string"
-      description: "Типы или названия якорных арендаторов"
-    secondary_tenant_types:
-      type: "list"
-      items: "string"
-      description: "Типы сопутствующих арендаторов"
-    tenant_synergy_strategy:
-      type: "string"
-      description: "Стратегия синергии между арендаторами"
+      items: "object"
+      description: "Список финализированных концепций"
+      properties:
+        name:
+          type: "string"
+          description: "Название концепции"
+        description:
+          type: "string"
+          description: "Описание концепции"
+        proposed_tenants:
+          type: "list"
+          items: "string"
+          description: "Список предлагаемых арендаторов (названия брендов или форматы) для этой концепции"

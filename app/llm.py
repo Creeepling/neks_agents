@@ -52,13 +52,11 @@ AGENTS_CONFIG = _load_agents_config()
 STEP_SYSTEM_PROMPTS: Dict[str, str] = {}
 STEP_EXTRACTION_SCHEMAS: Dict[str, type[BaseModel]] = {}
 
-for step_id, config in AGENTS_CONFIG.items():
-    STEP_SYSTEM_PROMPTS[step_id] = config.get("system_prompt", "")
-    
+def _build_model(name: str, schema_def: dict) -> type[BaseModel]:
     fields = {}
-    schema_def = config.get("extraction_schema", {})
     for field_name, field_info in schema_def.items():
         field_type_str = field_info.get("type", "string")
+        description = field_info.get("description", "")
         
         if field_type_str == "string":
             py_type = Optional[str]
@@ -66,17 +64,29 @@ for step_id, config in AGENTS_CONFIG.items():
             py_type = Optional[int]
         elif field_type_str == "float":
             py_type = Optional[float]
+        elif field_type_str == "object":
+            sub_schema = field_info.get("properties", {})
+            sub_model = _build_model(f"{name}_{field_name}", sub_schema)
+            py_type = Optional[sub_model]
         elif field_type_str == "list":
             item_type = field_info.get("items", "string")
-            py_type = Optional[List[str]] if item_type == "string" else Optional[List[Any]]
+            if item_type == "object":
+                sub_schema = field_info.get("properties", {})
+                sub_model = _build_model(f"{name}_{field_name}_item", sub_schema)
+                py_type = Optional[List[sub_model]]
+            else:
+                py_type = Optional[List[str]] if item_type == "string" else Optional[List[Any]]
         else:
             py_type = Optional[str]
             
-        description = field_info.get("description", "")
         fields[field_name] = (py_type, Field(None, description=description))
-    
+    return create_model(name, **fields)
+
+for step_id, config in AGENTS_CONFIG.items():
+    STEP_SYSTEM_PROMPTS[step_id] = config.get("system_prompt", "")
+    schema_def = config.get("extraction_schema", {})
     model_name = "".join(word.capitalize() for word in step_id.split("_")) + "Schema"
-    STEP_EXTRACTION_SCHEMAS[step_id] = create_model(model_name, **fields)
+    STEP_EXTRACTION_SCHEMAS[step_id] = _build_model(model_name, schema_def)
 
 DEFAULT_SYSTEM_PROMPT = (
     "You are a helpful real estate assistant. Answer the user's questions clearly and concisely."

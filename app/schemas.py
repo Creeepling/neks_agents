@@ -41,6 +41,7 @@ class PropertyCreate(BaseModel):
     address: str = Field(..., min_length=1, max_length=512)
     square_meters: Optional[float] = None
     floors: Optional[int] = None
+    current_tenants: Optional[str] = None
 
 
 class PropertyUpdate(BaseModel):
@@ -48,6 +49,7 @@ class PropertyUpdate(BaseModel):
     address: Optional[str] = Field(None, max_length=512)
     square_meters: Optional[float] = None
     floors: Optional[int] = None
+    current_tenants: Optional[str] = None
     data: Optional[Dict[str, Any]] = None
 
 
