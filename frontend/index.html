@@ -1271,6 +1271,44 @@ async function refreshDetail() {
   }
 }
 
+const DISPLAY_LABELS = {
+  city_name: 'Город',
+  exact_location: 'Точный адрес',
+  micro_location_rating: 'Рейтинг микролокации',
+  generated_concepts: 'Сгенерированные концепции',
+  target_audience: 'Целевая аудитория',
+  unique_selling_proposition: 'УТП (Уникальное торговое предложение)',
+  feasibility_score: 'Оценка реализуемости',
+  finalized_concepts: 'Утвержденные концепции',
+  concept_name: 'Название концепции',
+  concept_description: 'Описание концепции',
+  proposed_tenants: 'Предлагаемые арендаторы',
+  name: 'Название',
+  description: 'Описание'
+};
+
+function formatDataValue(val) {
+  if (Array.isArray(val)) {
+    if (val.length > 0 && typeof val[0] === 'object' && val[0] !== null) {
+      return `<div style="display:flex;flex-direction:column;gap:8px;margin-top:6px;">` + 
+        val.map(item => `
+          <div style="background:var(--bg-secondary);padding:12px;border-radius:var(--radius-sm);border:1px solid var(--border-color);">
+            ${Object.entries(item).map(([k, v]) => `
+              <div style="margin-bottom:6px;font-size:13px;line-height:1.4;">
+                <span style="color:var(--text-secondary);font-weight:500;margin-right:4px;">${escHtml(DISPLAY_LABELS[k] || k)}:</span>
+                <span style="color:var(--text-primary);">${formatDataValue(v)}</span>
+              </div>
+            `).join('')}
+          </div>
+        `).join('') + `</div>`;
+    }
+    return escHtml(val.join(', '));
+  } else if (typeof val === 'object' && val !== null) {
+    return escHtml(JSON.stringify(val));
+  }
+  return escHtml(String(val));
+}
+
 function renderDetailContent() {
   const prop = State.currentProperty;
   const body = document.querySelector('.page-body');
@@ -1286,12 +1324,9 @@ function renderDetailContent() {
   const dataViewerRows = dataKeys.length === 0
     ? `<div class="data-empty">Данные еще не сохранены. Начните диалог, чтобы начать исследование.</div>`
     : dataKeys.map(k => {
-        let val = data[k];
-        if (Array.isArray(val)) val = val.join(', ');
-        else if (typeof val === 'object' && val !== null) val = JSON.stringify(val);
         return `<div class="data-row">
-          <div class="data-key">${escHtml(String(k))}</div>
-          <div class="data-value">${escHtml(String(val))}</div>
+          <div class="data-key" style="font-weight:600;">${escHtml(DISPLAY_LABELS[k] || String(k))}</div>
+          <div class="data-value">${formatDataValue(data[k])}</div>
         </div>`;
       }).join('');
 

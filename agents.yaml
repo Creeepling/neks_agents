@@ -75,17 +75,24 @@ step_3_concept_developer:
   extraction_schema:
     generated_concepts:
       type: "list"
-      items: "string"
-      description: "Список сгенерированных и предложенных концепций (например, 'Бутик-отель', 'Коворкинг')"
-    target_audience:
-      type: "string"
-      description: "Целевая аудитория концепции"
-    unique_selling_proposition:
-      type: "string"
-      description: "Уникальное торговое предложение (УТП) концепции"
-    feasibility_score:
-      type: "integer"
-      description: "Оценка реализуемости концепции от 1 до 10"
+      items:
+        type: "object"
+        properties:
+          concept_name:
+            type: "string"
+            description: "Название концепции (например, 'Бутик-отель')"
+          concept_description:
+            type: "string"
+            description: "Подробное описание концепции"
+          target_audience:
+            type: "string"
+            description: "Целевая аудитория этой концепции"
+          unique_selling_proposition:
+            type: "string"
+            description: "Уникальное торговое предложение (УТП) концепции"
+          feasibility_score:
+            type: "integer"
+            description: "Оценка реализуемости концепции от 1 до 10"
 
 step_4_tenant_mix:
   title: "Агент 4: Tenant mix builder"
