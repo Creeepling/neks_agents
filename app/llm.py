@@ -172,7 +172,7 @@ def get_agent_reply(
     config_kwargs = {"tools": [{"google_search": {}}]}
     if use_thinking:
         # Pass thinking_config to enable reasoning on the Flash model
-        config_kwargs["thinking_config"] = {"thinking_budget_tokens": 4096}
+        config_kwargs["thinking_config"] = types.ThinkingConfig(thinking_budget_tokens=4096)
 
     response = _raw_client.models.generate_content(
         model=settings.GEMINI_MODEL,
