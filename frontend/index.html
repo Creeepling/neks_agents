@@ -1227,10 +1227,11 @@ async function openProperty(id) {
   try {
     const [prop, convs] = await Promise.all([
       API.get(`/properties/${id}`),
-      API.get(`/properties`).then(ps => { return Promise.all([]); }), // placeholder
+      API.get(`/properties/${id}/conversations`)
     ]);
     if (!prop) { navigate('dashboard'); return; }
     State.currentProperty = prop;
+    State.conversations = convs || [];
     renderDetailContent();
   } catch (err) {
     toast('Не удалось загрузить объект: ' + err.message, 'error');

@@ -264,6 +264,23 @@ def update_property(
     return prop
 
 
+@app.get("/properties/{property_id}/conversations", response_model=list[ConversationResponse], tags=["Properties"])
+def get_property_conversations(
+    property_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Retrieve all conversations belonging to a property."""
+    prop = db.query(RealEstateObject).filter(
+        RealEstateObject.id == property_id,
+        RealEstateObject.user_id == current_user.id,
+    ).first()
+    if prop is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Property not found.")
+        
+    return db.query(Conversation).filter(Conversation.property_id == property_id).order_by(Conversation.created_at).all()
+
+
 @app.get("/properties/{property_id}/slides", tags=["Properties"])
 def download_presentation(
     property_id: int,
