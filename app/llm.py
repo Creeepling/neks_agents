@@ -69,13 +69,24 @@ def _build_model(name: str, schema_def: dict) -> type[BaseModel]:
             sub_model = _build_model(f"{name}_{field_name}", sub_schema)
             py_type = Optional[sub_model]
         elif field_type_str == "list":
-            item_type = field_info.get("items", "string")
-            if item_type == "object":
-                sub_schema = field_info.get("properties", {})
-                sub_model = _build_model(f"{name}_{field_name}_item", sub_schema)
-                py_type = Optional[List[sub_model]]
+            items_def = field_info.get("items", "string")
+            
+            if isinstance(items_def, dict):
+                item_type_str = items_def.get("type", "string")
+                if item_type_str == "object":
+                    sub_schema = items_def.get("properties", {})
+                    sub_model = _build_model(f"{name}_{field_name}_item", sub_schema)
+                    py_type = Optional[List[sub_model]]
+                else:
+                    py_type = Optional[List[str]]
             else:
-                py_type = Optional[List[str]] if item_type == "string" else Optional[List[Any]]
+                item_type = items_def
+                if item_type == "object":
+                    sub_schema = field_info.get("properties", {})
+                    sub_model = _build_model(f"{name}_{field_name}_item", sub_schema)
+                    py_type = Optional[List[sub_model]]
+                else:
+                    py_type = Optional[List[str]] if item_type == "string" else Optional[List[Any]]
         else:
             py_type = Optional[str]
             
