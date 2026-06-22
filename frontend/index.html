@@ -387,7 +387,7 @@
     .property-card:hover::before { opacity: 1; }
     .property-card-name { font-size: 14px; font-weight: 600; margin-bottom: 3px; }
     .property-card-address { font-size: 12px; color: var(--text-secondary); margin-bottom: 14px; min-height: 18px; }
-    .property-card-steps { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 14px; }
+
     .property-card-footer { display: flex; justify-content: space-between; align-items: center; }
     .property-card-updated { font-size: 11px; color: var(--text-muted); font-family: var(--font-mono); }
 
@@ -1100,13 +1100,6 @@ function renderDashboardContent() {
 function propertyCard(p) {
   const data = p.data || {};
   const keys = Object.keys(data);
-  const stepBadges = STEPS.map(s => {
-    const hasData = keys.some(k => Object.keys(getStepFields(s.id)).includes(k));
-    return hasData
-      ? `<span class="badge badge-green">${s.label.split(':')[0]}</span>`
-      : `<span class="badge badge-neutral">${s.label.split(':')[0]}</span>`;
-  }).join('');
-
   const fieldCount = keys.length;
   const updated = p.updated_at ? relTime(p.updated_at) : 'никогда';
 
@@ -1114,8 +1107,7 @@ function propertyCard(p) {
   <div class="property-card" onclick="openProperty(${p.id})">
     <div class="property-card-name">${escHtml(p.name)}</div>
     <div class="property-card-address">${escHtml(p.address || 'Адрес не указан')}</div>
-    <div class="property-card-steps">${stepBadges}</div>
-    <div class="property-card-footer">
+    <div class="property-card-footer" style="margin-top: 12px;">
       <span class="badge badge-neutral"><span class="field-count">${fieldCount}</span> полей</span>
       <span class="property-card-updated">${updated}</span>
     </div>
