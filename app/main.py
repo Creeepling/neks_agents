@@ -245,16 +245,18 @@ def update_property(
     if payload.address is not None:
         prop.address = payload.address
         
-    prop.data = prop.data or {}
+    new_data = dict(prop.data or {})
     if payload.square_meters is not None:
-        prop.data["square_meters"] = payload.square_meters
+        new_data["square_meters"] = payload.square_meters
     if payload.floors is not None:
-        prop.data["floors"] = payload.floors
+        new_data["floors"] = payload.floors
     if payload.current_tenants is not None:
-        prop.data["current_tenants"] = payload.current_tenants
+        new_data["current_tenants"] = payload.current_tenants
         
     if payload.data is not None:
-        prop.data = {**prop.data, **payload.data}
+        new_data = {**new_data, **payload.data}
+
+    prop.data = new_data
 
     prop.updated_at = datetime.now(timezone.utc)
     db.commit()
