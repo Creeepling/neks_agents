@@ -119,7 +119,6 @@ def _build_messages(
         target_fields = ", ".join(schema_class.model_fields.keys())
         system_prompt += (
             f"\n\nТвоя цель в этом диалоге — собрать информацию для следующих полей: {target_fields}. "
-            "Задавай вопросы по одному, чтобы собрать недостающие данные."
         )
 
     # Inject existing structured property data so the agent knows the context
