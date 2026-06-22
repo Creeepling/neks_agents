@@ -1124,8 +1124,10 @@ function propertyCard(p) {
 
 function getStepFields(stepId) {
   const map = {
-    step_1_lookup:   { property_type:1, location:1, size_sqm:1, price:1, num_rooms:1, features:1, defects:1, notes:1 },
-    step_2_analysis: { market_comparables:1, estimated_rental_yield_pct:1, renovation_cost_estimate:1, recommendation:1, risk_notes:1 },
+    step_1_city_analyst: { city_name:1, macro_economic_trend:1, demographic_trend:1, general_market_health:1 },
+    step_2_object_location: { exact_location:1, micro_location_rating:1, infrastructure_quality:1, direct_competitors:1, square_meters:1, floors:1 },
+    step_3_concept_developer: { generated_concepts:1 },
+    step_4_tenant_mix: { finalized_concepts:1 }
   };
   return map[stepId] || {};
 }
