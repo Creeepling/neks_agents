@@ -45,16 +45,27 @@ step_1_city_analyst:
     city_name:
       type: "string"
       description: "Название города"
-    macro_economic_trend:
+    demographics_summary:
       type: "string"
-      description: "Текущий экономический тренд (например, 'растет IT сектор', 'спад производства')"
-    demographic_trend:
+      description: "Численность населения, динамика и возрастная структура"
+    economy_summary:
       type: "string"
-      description: "Демографический тренд (например, 'население растет на 2% в год')"
-    general_market_health:
+      description: "Основные работодатели, уровень доходов, покупательская способность"
+    transport_logistics:
       type: "string"
-      description: "Общее состояние рынка недвижимости (например, 'высокий спрос, дефицит предложения')"
-    
+      description: "Транзитные потоки, сезонность, туристический поток"
+    retail_market:
+      type: "string"
+      description: "Основные торговые центры, федеральные сети, уровень насыщенности рынка"
+    services_market:
+      type: "string"
+      description: "Спрос на бытовые услуги, дефицитные категории"
+    city_strengths_weaknesses:
+      type: "string"
+      description: "Сильные и слабые стороны города"
+    development_prospects:
+      type: "string"
+      description: "Перспективы развития города"
 
 step_2_object_location:
   title: "Агент 2: Аналитик объекта и локации"
@@ -78,6 +89,7 @@ step_2_object_location:
     5. Недостающие функции
     6. Потенциал роста дохода
     7. Потенциал капитализации
+    8. Рейтинг микролокации (например, 'Премиум', 'Развивающаяся', 'Слабая')
 
     Подготовь SWOT-анализ.
     Любую отсутствующую информацию ищи в поиске. Не задавай вопросы. Приоритет данных - 2026 год.
@@ -103,6 +115,30 @@ step_2_object_location:
     floors:
       type: "integer"
       description: "Количество этажей"
+    best_use_recommendation:
+      type: "string"
+      description: "Best Use объекта"
+    main_problems:
+      type: "string"
+      description: "Основные проблемы объекта"
+    noi_loss_factors:
+      type: "string"
+      description: "Потери NOI"
+    concept_errors:
+      type: "string"
+      description: "Ошибки концепции"
+    missing_functions:
+      type: "string"
+      description: "Недостающие функции"
+    income_growth_potential:
+      type: "string"
+      description: "Потенциал роста дохода"
+    capitalization_potential:
+      type: "string"
+      description: "Потенциал капитализации"
+    swot_analysis:
+      type: "string"
+      description: "Детальный SWOT-анализ локации и объекта"
 
 step_3_concept_developer:
   title: "Агент 3: Разработчик концепций объекта"
@@ -148,12 +184,24 @@ step_3_concept_developer:
           target_audience:
             type: "string"
             description: "Целевая аудитория этой концепции"
-          unique_selling_proposition:
+          anchor_tenants:
             type: "string"
-            description: "Уникальное торговое предложение (УТП) концепции"
-          feasibility_score:
-            type: "integer"
-            description: "Оценка реализуемости концепции от 1 до 10"
+            description: "Якорные арендаторы"
+          service_functions:
+            type: "string"
+            description: "Сервисные функции"
+          public_spaces:
+            type: "string"
+            description: "Общественные пространства"
+          expected_noi_growth:
+            type: "string"
+            description: "Ожидаемый рост NOI"
+          required_investments:
+            type: "string"
+            description: "Необходимые инвестиции"
+          implementation_timeline:
+            type: "string"
+            description: "Сроки реализации"
 
 step_4_tenant_mix:
   title: "Агент 4: Tenant mix builder"
