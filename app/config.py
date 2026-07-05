@@ -9,8 +9,7 @@ class Settings(BaseSettings):
     """
 
     # --- Database ---
-    # Local default: SQLite file. Production: set to a postgres:// URL.
-    DATABASE_URL: str = "sqlite:///./app.db"
+    FIRESTORE_PROJECT_ID: str = "chatbot-414822"
 
     # --- JWT Authentication ---
     # IMPORTANT: Override this with a long random string in production.

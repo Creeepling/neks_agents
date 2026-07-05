@@ -22,7 +22,7 @@ from google.genai import types
 from pydantic import BaseModel, Field, create_model
 
 from app.config import settings
-from app.database import Conversation, Message
+from app.models import ConversationModel as Conversation, MessageModel as Message
 
 # ---------------------------------------------------------------------------
 # Client Setup

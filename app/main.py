@@ -32,18 +32,12 @@ from fastapi import Depends, FastAPI, HTTPException, Query, status
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from sqlalchemy.orm import Session
 
 from app import auth as auth_utils
 from app.config import settings
-from app.database import (
-    Conversation,
-    Message,
-    RealEstateObject,
-    User,
-    get_db,
-    init_db,
-)
+from app.database import get_repository, init_db
+from app.repository import DataRepository
+from app.models import ConversationModel, MessageModel, RealEstateObjectModel, UserModel
 from app.llm import AGENTS_CONFIG, STEP_EXTRACTION_SCHEMAS, STEP_SYSTEM_PROMPTS, extract_structured_data, get_agent_reply
 from app.schemas import (
     ChatResponse,
@@ -100,7 +94,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")
 
 def get_current_user(
     token: str = Depends(oauth2_scheme),
-    db: Session = Depends(get_db),
+    repo: DataRepository = Depends(get_repository),
 ) -> User:
     """FastAPI dependency: decode the JWT and return the authenticated User row."""
     credentials_exception = HTTPException(
@@ -112,7 +106,7 @@ def get_current_user(
     if username is None:
         raise credentials_exception
 
-    user = db.query(User).filter(User.username == username).first()
+    user = repo.get_user_by_username(username)
     if user is None:
         raise credentials_exception
 
@@ -127,29 +121,27 @@ def get_current_user(
 # ---------------------------------------------------------------------------
 
 @app.post("/auth/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED, tags=["Auth"])
-def register(payload: UserCreate, db: Session = Depends(get_db)):
+def register(payload: UserCreate, repo: DataRepository = Depends(get_repository)):
     """Register a new user account."""
-    existing = db.query(User).filter(User.username == payload.username).first()
+    existing = repo.get_user_by_username(payload.username)
     if existing is not None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=f"Username '{payload.username}' is already taken.",
         )
 
-    user = User(
+    user = UserModel(
         username=payload.username,
         hashed_password=auth_utils.hash_password(payload.password),
     )
-    db.add(user)
-    db.commit()
-    db.refresh(user)
+    user = repo.create_user(user)
     return user
 
 
 @app.post("/auth/token", response_model=Token, tags=["Auth"])
-def login(form: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+def login(form: OAuth2PasswordRequestForm = Depends(), repo: DataRepository = Depends(get_repository)):
     """Authenticate with username + password and receive a JWT access token."""
-    user = db.query(User).filter(User.username == form.username).first()
+    user = repo.get_user_by_username(form.username)
 
     if user is None or not auth_utils.verify_password(form.password, user.hashed_password):
         raise HTTPException(
@@ -172,20 +164,20 @@ def login(form: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get
 @app.get("/properties", response_model=list[PropertyResponse], tags=["Properties"])
 def list_properties(
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
+    repo: DataRepository = Depends(get_repository),
 ):
     """Return all properties belonging to the authenticated user."""
-    return db.query(RealEstateObject).filter(RealEstateObject.user_id == current_user.id).all()
+    return repo.get_properties_for_user(current_user.id)
 
 
 @app.post("/properties", response_model=PropertyResponse, status_code=status.HTTP_201_CREATED, tags=["Properties"])
 def create_property(
     payload: PropertyCreate,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
+    repo: DataRepository = Depends(get_repository),
 ):
     """Create a new real estate object for the authenticated user."""
-    prop = RealEstateObject(
+    prop = RealEstateObjectModel(
         user_id=current_user.id,
         name=payload.name,
         address=payload.address,
@@ -200,23 +192,18 @@ def create_property(
         prop.data["floors"] = payload.floors
     if payload.current_tenants is not None:
         prop.data["current_tenants"] = payload.current_tenants
-    db.add(prop)
-    db.commit()
-    db.refresh(prop)
+    prop = repo.create_property(prop)
     return prop
 
 
 @app.get("/properties/{property_id}", response_model=PropertyResponse, tags=["Properties"])
 def get_property(
-    property_id: int,
+    property_id: str,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
+    repo: DataRepository = Depends(get_repository),
 ):
     """Get a single property by ID (must belong to the authenticated user)."""
-    prop = db.query(RealEstateObject).filter(
-        RealEstateObject.id == property_id,
-        RealEstateObject.user_id == current_user.id,
-    ).first()
+    prop = repo.get_property_by_id_and_user(property_id, current_user.id)
 
     if prop is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Property not found.")
@@ -226,16 +213,13 @@ def get_property(
 
 @app.put("/properties/{property_id}", response_model=PropertyResponse, tags=["Properties"])
 def update_property(
-    property_id: int,
+    property_id: str,
     payload: PropertyUpdate,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
+    repo: DataRepository = Depends(get_repository),
 ):
     """Update a property's name, address, or raw data blob."""
-    prop = db.query(RealEstateObject).filter(
-        RealEstateObject.id == property_id,
-        RealEstateObject.user_id == current_user.id,
-    ).first()
+    prop = repo.get_property_by_id_and_user(property_id, current_user.id)
 
     if prop is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Property not found.")
@@ -259,42 +243,35 @@ def update_property(
     prop.data = new_data
 
     prop.updated_at = datetime.now(timezone.utc)
-    db.commit()
-    db.refresh(prop)
+    prop = repo.update_property(prop)
     return prop
 
 
 @app.get("/properties/{property_id}/conversations", response_model=list[ConversationResponse], tags=["Properties"])
 def get_property_conversations(
-    property_id: int,
+    property_id: str,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
+    repo: DataRepository = Depends(get_repository),
 ):
     """Retrieve all conversations belonging to a property."""
-    prop = db.query(RealEstateObject).filter(
-        RealEstateObject.id == property_id,
-        RealEstateObject.user_id == current_user.id,
-    ).first()
+    prop = repo.get_property_by_id_and_user(property_id, current_user.id)
     if prop is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Property not found.")
         
-    return db.query(Conversation).filter(Conversation.property_id == property_id).order_by(Conversation.created_at).all()
+    return repo.get_conversations_for_property(property_id)
 
 
 @app.get("/properties/{property_id}/slides", tags=["Properties"])
 def download_presentation(
-    property_id: int,
+    property_id: str,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
+    repo: DataRepository = Depends(get_repository),
 ):
     """Generate and download a PPTX presentation for the property."""
     from fastapi.responses import StreamingResponse
     from app.slides import extract_presentation_data, generate_pptx
 
-    prop = db.query(RealEstateObject).filter(
-        RealEstateObject.id == property_id,
-        RealEstateObject.user_id == current_user.id,
-    ).first()
+    prop = repo.get_property_by_id_and_user(property_id, current_user.id)
 
     if prop is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Property not found.")
@@ -317,21 +294,17 @@ def download_presentation(
 
 @app.delete("/properties/{property_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["Properties"])
 def delete_property(
-    property_id: int,
+    property_id: str,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
+    repo: DataRepository = Depends(get_repository),
 ):
     """Delete a property and all its associated conversations and messages."""
-    prop = db.query(RealEstateObject).filter(
-        RealEstateObject.id == property_id,
-        RealEstateObject.user_id == current_user.id,
-    ).first()
+    prop = repo.get_property_by_id_and_user(property_id, current_user.id)
 
     if prop is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Property not found.")
 
-    db.delete(prop)
-    db.commit()
+    repo.delete_property(property_id, current_user.id)
 
 
 # ---------------------------------------------------------------------------
@@ -340,20 +313,17 @@ def delete_property(
 
 @app.get("/conversations/validate", response_model=StepValidationResponse, tags=["Conversations"])
 def validate_step(
-    property_id: int = Query(..., description="The property to validate for."),
+    property_id: str = Query(..., description="The property to validate for."),
     step: str = Query(..., description="The step name to validate (e.g. 'step_2_analysis')."),
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
+    repo: DataRepository = Depends(get_repository),
 ):
     """
     Pre-flight check before starting a step.
     Returns which fields required by the step are missing from the property data.
     The UI can display a warning and allow the user to bypass if desired.
     """
-    prop = db.query(RealEstateObject).filter(
-        RealEstateObject.id == property_id,
-        RealEstateObject.user_id == current_user.id,
-    ).first()
+    prop = repo.get_property_by_id_and_user(property_id, current_user.id)
 
     if prop is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Property not found.")
@@ -390,7 +360,7 @@ def validate_step(
 def start_conversation(
     payload: ConversationCreate,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
+    repo: DataRepository = Depends(get_repository),
 ):
     """Start a new conversation session for a given property and step."""
     prop = db.query(RealEstateObject).filter(
@@ -407,15 +377,13 @@ def start_conversation(
             detail=f"Unknown step '{payload.current_step}'. Known steps: {list(STEP_SYSTEM_PROMPTS.keys())}",
         )
 
-    conversation = Conversation(
+    conversation = ConversationModel(
         user_id=current_user.id,
         property_id=payload.property_id,
         current_step=payload.current_step,
         status="active",
     )
-    db.add(conversation)
-    db.commit()
-    db.refresh(conversation)
+    conversation = repo.create_conversation(conversation)
 
     # Automatically generate the first message from the agent
     try:
@@ -424,10 +392,9 @@ def start_conversation(
             prop.data,
             "Начни работу над этим этапом. Задай первый вопрос или предложи варианты действий."
         )
-        agent_msg = Message(conversation_id=conversation.id, role="assistant", content=reply_text)
-        db.add(agent_msg)
-        db.commit()
-        db.refresh(conversation)
+        agent_msg = MessageModel(conversation_id=conversation.id, role="assistant", content=reply_text)
+        agent_msg = repo.add_message(agent_msg)
+        conv = repo.get_conversation_by_id_and_user(conversation.id, current_user.id)
     except Exception as exc:
         # If generation fails, we still return the conversation, just without an initial message
         import traceback
@@ -440,13 +407,10 @@ def start_conversation(
 def get_conversation(
     conversation_id: str,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
+    repo: DataRepository = Depends(get_repository),
 ):
     """Get a conversation and its full message history."""
-    conv = db.query(Conversation).filter(
-        Conversation.id == conversation_id,
-        Conversation.user_id == current_user.id,
-    ).first()
+    conv = repo.get_conversation_by_id_and_user(conversation_id, current_user.id)
 
     if conv is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found.")
@@ -468,16 +432,13 @@ def send_message(
     conversation_id: str,
     payload: MessageCreate,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
+    repo: DataRepository = Depends(get_repository),
 ):
     """
     Post a user message to the conversation and receive the agent's reply.
     The agent reply is persisted to the database before being returned.
     """
-    conv = db.query(Conversation).filter(
-        Conversation.id == conversation_id,
-        Conversation.user_id == current_user.id,
-    ).first()
+    conv = repo.get_conversation_by_id_and_user(conversation_id, current_user.id)
 
     if conv is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found.")
@@ -489,18 +450,16 @@ def send_message(
         )
 
     # Fetch current property data to inject into the agent's context
-    prop = db.query(RealEstateObject).filter(RealEstateObject.id == conv.property_id).first()
+    prop = repo.get_property_by_id(conv.property_id)
     if prop is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Associated property not found.")
 
     # Persist the user message
-    user_msg = Message(conversation_id=conv.id, role="user", content=payload.content)
-    db.add(user_msg)
-    db.commit()
-    db.refresh(user_msg)
+    user_msg = MessageModel(conversation_id=conv.id, role="user", content=payload.content)
+    user_msg = repo.add_message(user_msg)
 
     # Reload conversation with messages for history building
-    db.refresh(conv)
+    conv = repo.get_conversation_by_id_and_user(conv.id, current_user.id)
 
     # Call the LLM
     try:
@@ -509,10 +468,8 @@ def send_message(
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc))
 
     # Persist the agent reply
-    agent_msg = Message(conversation_id=conv.id, role="assistant", content=reply_text)
-    db.add(agent_msg)
-    db.commit()
-    db.refresh(agent_msg)
+    agent_msg = MessageModel(conversation_id=conv.id, role="assistant", content=reply_text)
+    agent_msg = repo.add_message(agent_msg)
 
     return ChatResponse(
         agent_message=MessageResponse.model_validate(agent_msg),
@@ -524,22 +481,19 @@ def send_message(
 def commit_conversation(
     conversation_id: str,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
+    repo: DataRepository = Depends(get_repository),
 ):
     """
     Run structured extraction on the conversation history and merge the results
     into the property's JSON data blob.
     Does NOT close the conversation — the user can continue chatting after committing.
     """
-    conv = db.query(Conversation).filter(
-        Conversation.id == conversation_id,
-        Conversation.user_id == current_user.id,
-    ).first()
+    conv = repo.get_conversation_by_id_and_user(conversation_id, current_user.id)
 
     if conv is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found.")
 
-    prop = db.query(RealEstateObject).filter(RealEstateObject.id == conv.property_id).first()
+    prop = repo.get_property_by_id(conv.property_id)
     if prop is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Associated property not found.")
 
@@ -555,7 +509,7 @@ def commit_conversation(
     # Merge extracted fields into the property's existing data blob
     prop.data = {**(prop.data or {}), **extracted}
     prop.updated_at = datetime.now(timezone.utc)
-    db.commit()
+    repo.update_property(prop)
 
     return CommitResponse(
         property_id=prop.id,
@@ -572,20 +526,17 @@ def commit_conversation(
 def complete_conversation(
     conversation_id: str,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
+    repo: DataRepository = Depends(get_repository),
 ):
     """Mark a conversation as completed."""
-    conv = db.query(Conversation).filter(
-        Conversation.id == conversation_id,
-        Conversation.user_id == current_user.id,
-    ).first()
+    conv = repo.get_conversation_by_id_and_user(conversation_id, current_user.id)
 
     if conv is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found.")
 
     conv.status = "completed"
     db.commit()
-    db.refresh(conv)
+    conv = repo.get_conversation_by_id_and_user(conv.id, current_user.id)
     return conv
 
 
@@ -593,19 +544,15 @@ def complete_conversation(
 def delete_conversation(
     conversation_id: str,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
+    repo: DataRepository = Depends(get_repository),
 ):
     """Delete a conversation and its messages."""
-    conv = db.query(Conversation).filter(
-        Conversation.id == conversation_id,
-        Conversation.user_id == current_user.id,
-    ).first()
+    conv = repo.get_conversation_by_id_and_user(conversation_id, current_user.id)
 
     if conv is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found.")
 
-    db.delete(conv)
-    db.commit()
+    repo.delete_conversation(conversation_id, current_user.id)
     return None
 
 

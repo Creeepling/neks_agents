@@ -14,7 +14,7 @@ class UserCreate(BaseModel):
 
 
 class UserResponse(BaseModel):
-    id: int
+    id: str
     username: str
     is_active: bool
     created_at: datetime
@@ -54,7 +54,7 @@ class PropertyUpdate(BaseModel):
 
 
 class PropertyResponse(BaseModel):
-    id: int
+    id: str
     name: str
     address: Optional[str]
     data: Optional[Dict[str, Any]]
@@ -69,7 +69,7 @@ class PropertyResponse(BaseModel):
 # ---------------------------------------------------------------------------
 
 class ConversationCreate(BaseModel):
-    property_id: int
+    property_id: str
     current_step: str = Field(
         ...,
         description="The step name for this conversation, e.g. 'step_1_lookup' or 'step_2_analysis'.",
@@ -78,7 +78,7 @@ class ConversationCreate(BaseModel):
 
 class ConversationResponse(BaseModel):
     id: str
-    property_id: int
+    property_id: str
     current_step: str
     status: str
     created_at: datetime
@@ -95,7 +95,7 @@ class MessageCreate(BaseModel):
 
 
 class MessageResponse(BaseModel):
-    id: int
+    id: str
     conversation_id: str
     role: str
     content: str
@@ -123,7 +123,7 @@ class CommitResponse(BaseModel):
     Returned after a commit action triggers LLM extraction and DB write.
     Contains the fields that were written into the property's JSON data blob.
     """
-    property_id: int
+    property_id: str
     extracted_fields: Dict[str, Any]
     missing_fields: List[str]
     message: str

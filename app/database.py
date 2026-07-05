@@ -1,141 +1,162 @@
-import uuid
-from datetime import datetime, timezone
-from typing import Any, Optional
-
-from sqlalchemy import (
-    Boolean,
-    DateTime,
-    ForeignKey,
-    Integer,
-    String,
-    Text,
-    create_engine,
-)
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship, sessionmaker
-from sqlalchemy.types import JSON
-
+from typing import Optional, List
+from google.cloud import firestore
 from app.config import settings
+from app.models import UserModel, RealEstateObjectModel, ConversationModel, MessageModel
+from app.repository import DataRepository
 
-# ---------------------------------------------------------------------------
-# Engine & Session
-# ---------------------------------------------------------------------------
+class FirestoreRepository(DataRepository):
+    def __init__(self):
+        # We assume the environment is properly authenticated (e.g. ADC)
+        # or it uses FIRESTORE_PROJECT_ID.
+        self.db = firestore.Client(project=settings.FIRESTORE_PROJECT_ID)
+        self.users_col = self.db.collection("users")
+        self.properties_col = self.db.collection("properties")
+        self.conversations_col = self.db.collection("conversations")
 
-# SQLite requires the check_same_thread=False flag for use with FastAPI.
-# PostgreSQL does not need it, so we only set it when using SQLite.
-_connect_args = {"check_same_thread": False} if settings.DATABASE_URL.startswith("sqlite") else {}
+    def get_user_by_username(self, username: str) -> Optional[UserModel]:
+        docs = self.users_col.where("username", "==", username).limit(1).stream()
+        for doc in docs:
+            data = doc.to_dict()
+            data["id"] = doc.id
+            return UserModel(**data)
+        return None
 
-engine = create_engine(settings.DATABASE_URL, connect_args=_connect_args)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    def get_user_by_id(self, user_id: str) -> Optional[UserModel]:
+        doc = self.users_col.document(user_id).get()
+        if doc.exists:
+            data = doc.to_dict()
+            data["id"] = doc.id
+            return UserModel(**data)
+        return None
 
+    def create_user(self, user: UserModel) -> UserModel:
+        doc_ref = self.users_col.document()
+        user_data = user.model_dump(exclude={"id"})
+        doc_ref.set(user_data)
+        user.id = doc_ref.id
+        return user
 
-# ---------------------------------------------------------------------------
-# Declarative Base
-# ---------------------------------------------------------------------------
+    def get_properties_for_user(self, user_id: str) -> List[RealEstateObjectModel]:
+        docs = self.properties_col.where("user_id", "==", user_id).stream()
+        props = []
+        for doc in docs:
+            data = doc.to_dict()
+            data["id"] = doc.id
+            props.append(RealEstateObjectModel(**data))
+        return props
 
-class Base(DeclarativeBase):
-    pass
+    def get_property_by_id_and_user(self, property_id: str, user_id: str) -> Optional[RealEstateObjectModel]:
+        doc = self.properties_col.document(property_id).get()
+        if doc.exists:
+            data = doc.to_dict()
+            if data.get("user_id") == user_id:
+                data["id"] = doc.id
+                return RealEstateObjectModel(**data)
+        return None
 
+    def get_property_by_id(self, property_id: str) -> Optional[RealEstateObjectModel]:
+        doc = self.properties_col.document(property_id).get()
+        if doc.exists:
+            data = doc.to_dict()
+            data["id"] = doc.id
+            return RealEstateObjectModel(**data)
+        return None
 
-# ---------------------------------------------------------------------------
-# Models
-# ---------------------------------------------------------------------------
+    def create_property(self, property: RealEstateObjectModel) -> RealEstateObjectModel:
+        doc_ref = self.properties_col.document()
+        data = property.model_dump(exclude={"id"})
+        doc_ref.set(data)
+        property.id = doc_ref.id
+        return property
 
-class User(Base):
-    __tablename__ = "users"
+    def update_property(self, property: RealEstateObjectModel) -> RealEstateObjectModel:
+        if not property.id:
+            raise ValueError("Property must have an ID to be updated")
+        doc_ref = self.properties_col.document(property.id)
+        data = property.model_dump(exclude={"id"})
+        doc_ref.update(data)
+        return property
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    username: Mapped[str] = mapped_column(String(128), unique=True, index=True, nullable=False)
-    hashed_password: Mapped[str] = mapped_column(String(256), nullable=False)
-    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
-    )
+    def delete_property(self, property_id: str, user_id: str) -> bool:
+        doc = self.properties_col.document(property_id).get()
+        if doc.exists and doc.to_dict().get("user_id") == user_id:
+            # Note: in Firestore, deleting a document doesn't delete subcollections.
+            # But we don't have subcollections on properties right now.
+            self.properties_col.document(property_id).delete()
+            return True
+        return False
 
-    properties: Mapped[list["RealEstateObject"]] = relationship(
-        "RealEstateObject", back_populates="owner", cascade="all, delete-orphan"
-    )
-    conversations: Mapped[list["Conversation"]] = relationship(
-        "Conversation", back_populates="owner", cascade="all, delete-orphan"
-    )
+    def get_conversations_for_property(self, property_id: str) -> List[ConversationModel]:
+        docs = self.conversations_col.where("property_id", "==", property_id).stream()
+        convs = []
+        for doc in docs:
+            data = doc.to_dict()
+            data["id"] = doc.id
+            convs.append(ConversationModel(**data))
+        # Sort by created_at since firestore doesn't do it automatically without an index
+        return sorted(convs, key=lambda c: c.created_at)
 
+    def get_conversation_by_id_and_user(self, conversation_id: str, user_id: str) -> Optional[ConversationModel]:
+        doc = self.conversations_col.document(conversation_id).get()
+        if doc.exists:
+            data = doc.to_dict()
+            if data.get("user_id") == user_id:
+                data["id"] = doc.id
+                conv = ConversationModel(**data)
+                # Load messages
+                messages = []
+                msg_docs = self.conversations_col.document(conversation_id).collection("messages").order_by("created_at").stream()
+                for mdoc in msg_docs:
+                    mdata = mdoc.to_dict()
+                    mdata["id"] = mdoc.id
+                    messages.append(MessageModel(**mdata))
+                conv.messages = messages
+                return conv
+        return None
 
-class RealEstateObject(Base):
-    __tablename__ = "properties"
+    def create_conversation(self, conversation: ConversationModel) -> ConversationModel:
+        if not conversation.id:
+            # We already have a default_factory for uuid4, but just in case
+            doc_ref = self.conversations_col.document()
+        else:
+            doc_ref = self.conversations_col.document(conversation.id)
+            
+        data = conversation.model_dump(exclude={"id", "messages"})
+        doc_ref.set(data)
+        conversation.id = doc_ref.id
+        return conversation
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
-    name: Mapped[str] = mapped_column(String(256), nullable=False)
-    address: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
-    # Flexible JSON blob for any structured step output (price, area, type, etc.)
-    data: Mapped[Optional[Any]] = mapped_column(JSON, nullable=True, default=dict)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
-    )
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        default=lambda: datetime.now(timezone.utc),
-        onupdate=lambda: datetime.now(timezone.utc),
-    )
+    def update_conversation(self, conversation: ConversationModel) -> ConversationModel:
+        if not conversation.id:
+            raise ValueError("Conversation must have an ID to be updated")
+        doc_ref = self.conversations_col.document(conversation.id)
+        data = conversation.model_dump(exclude={"id", "messages"})
+        doc_ref.update(data)
+        return conversation
 
-    owner: Mapped["User"] = relationship("User", back_populates="properties")
-    conversations: Mapped[list["Conversation"]] = relationship(
-        "Conversation", back_populates="property", cascade="all, delete-orphan"
-    )
+    def delete_conversation(self, conversation_id: str, user_id: str) -> bool:
+        doc = self.conversations_col.document(conversation_id).get()
+        if doc.exists and doc.to_dict().get("user_id") == user_id:
+            self.conversations_col.document(conversation_id).delete()
+            # Also delete messages subcollection
+            msgs = self.conversations_col.document(conversation_id).collection("messages").stream()
+            for m in msgs:
+                m.reference.delete()
+            return True
+        return False
 
+    def add_message(self, message: MessageModel) -> MessageModel:
+        doc_ref = self.conversations_col.document(message.conversation_id).collection("messages").document()
+        data = message.model_dump(exclude={"id"})
+        doc_ref.set(data)
+        message.id = doc_ref.id
+        return message
 
-class Conversation(Base):
-    __tablename__ = "conversations"
+# Global instance
+repo_instance = FirestoreRepository()
 
-    id: Mapped[str] = mapped_column(
-        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
-    )
-    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
-    property_id: Mapped[int] = mapped_column(Integer, ForeignKey("properties.id"), nullable=False)
-    current_step: Mapped[str] = mapped_column(String(64), nullable=False)
-    status: Mapped[str] = mapped_column(String(32), default="active")  # active | completed
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
-    )
-
-    owner: Mapped["User"] = relationship("User", back_populates="conversations")
-    property: Mapped["RealEstateObject"] = relationship(
-        "RealEstateObject", back_populates="conversations"
-    )
-    messages: Mapped[list["Message"]] = relationship(
-        "Message", back_populates="conversation", cascade="all, delete-orphan",
-        order_by="Message.created_at"
-    )
-
-
-class Message(Base):
-    __tablename__ = "messages"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    conversation_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("conversations.id"), nullable=False
-    )
-    role: Mapped[str] = mapped_column(String(16), nullable=False)  # system | user | assistant
-    content: Mapped[str] = mapped_column(Text, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
-    )
-
-    conversation: Mapped["Conversation"] = relationship("Conversation", back_populates="messages")
-
-
-# ---------------------------------------------------------------------------
-# DB Init & Dependency
-# ---------------------------------------------------------------------------
+def get_repository() -> DataRepository:
+    return repo_instance
 
 def init_db() -> None:
-    """Create all tables if they do not already exist."""
-    Base.metadata.create_all(bind=engine)
-
-
-def get_db():
-    """FastAPI dependency that yields a database session and closes it after the request."""
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+    pass
