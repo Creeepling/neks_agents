@@ -95,7 +95,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")
 def get_current_user(
     token: str = Depends(oauth2_scheme),
     repo: DataRepository = Depends(get_repository),
-) -> User:
+) -> UserModel:
     """FastAPI dependency: decode the JWT and return the authenticated User row."""
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -163,7 +163,7 @@ def login(form: OAuth2PasswordRequestForm = Depends(), repo: DataRepository = De
 
 @app.get("/properties", response_model=list[PropertyResponse], tags=["Properties"])
 def list_properties(
-    current_user: User = Depends(get_current_user),
+    current_user: UserModel = Depends(get_current_user),
     repo: DataRepository = Depends(get_repository),
 ):
     """Return all properties belonging to the authenticated user."""
@@ -173,7 +173,7 @@ def list_properties(
 @app.post("/properties", response_model=PropertyResponse, status_code=status.HTTP_201_CREATED, tags=["Properties"])
 def create_property(
     payload: PropertyCreate,
-    current_user: User = Depends(get_current_user),
+    current_user: UserModel = Depends(get_current_user),
     repo: DataRepository = Depends(get_repository),
 ):
     """Create a new real estate object for the authenticated user."""
@@ -199,7 +199,7 @@ def create_property(
 @app.get("/properties/{property_id}", response_model=PropertyResponse, tags=["Properties"])
 def get_property(
     property_id: str,
-    current_user: User = Depends(get_current_user),
+    current_user: UserModel = Depends(get_current_user),
     repo: DataRepository = Depends(get_repository),
 ):
     """Get a single property by ID (must belong to the authenticated user)."""
@@ -215,7 +215,7 @@ def get_property(
 def update_property(
     property_id: str,
     payload: PropertyUpdate,
-    current_user: User = Depends(get_current_user),
+    current_user: UserModel = Depends(get_current_user),
     repo: DataRepository = Depends(get_repository),
 ):
     """Update a property's name, address, or raw data blob."""
@@ -250,7 +250,7 @@ def update_property(
 @app.get("/properties/{property_id}/conversations", response_model=list[ConversationResponse], tags=["Properties"])
 def get_property_conversations(
     property_id: str,
-    current_user: User = Depends(get_current_user),
+    current_user: UserModel = Depends(get_current_user),
     repo: DataRepository = Depends(get_repository),
 ):
     """Retrieve all conversations belonging to a property."""
@@ -264,7 +264,7 @@ def get_property_conversations(
 @app.get("/properties/{property_id}/slides", tags=["Properties"])
 def download_presentation(
     property_id: str,
-    current_user: User = Depends(get_current_user),
+    current_user: UserModel = Depends(get_current_user),
     repo: DataRepository = Depends(get_repository),
 ):
     """Generate and download a PPTX presentation for the property."""
@@ -295,7 +295,7 @@ def download_presentation(
 @app.delete("/properties/{property_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["Properties"])
 def delete_property(
     property_id: str,
-    current_user: User = Depends(get_current_user),
+    current_user: UserModel = Depends(get_current_user),
     repo: DataRepository = Depends(get_repository),
 ):
     """Delete a property and all its associated conversations and messages."""
@@ -315,7 +315,7 @@ def delete_property(
 def validate_step(
     property_id: str = Query(..., description="The property to validate for."),
     step: str = Query(..., description="The step name to validate (e.g. 'step_2_analysis')."),
-    current_user: User = Depends(get_current_user),
+    current_user: UserModel = Depends(get_current_user),
     repo: DataRepository = Depends(get_repository),
 ):
     """
@@ -359,7 +359,7 @@ def validate_step(
 @app.post("/conversations", response_model=ConversationResponse, status_code=status.HTTP_201_CREATED, tags=["Conversations"])
 def start_conversation(
     payload: ConversationCreate,
-    current_user: User = Depends(get_current_user),
+    current_user: UserModel = Depends(get_current_user),
     repo: DataRepository = Depends(get_repository),
 ):
     """Start a new conversation session for a given property and step."""
@@ -406,7 +406,7 @@ def start_conversation(
 @app.get("/conversations/{conversation_id}", tags=["Conversations"])
 def get_conversation(
     conversation_id: str,
-    current_user: User = Depends(get_current_user),
+    current_user: UserModel = Depends(get_current_user),
     repo: DataRepository = Depends(get_repository),
 ):
     """Get a conversation and its full message history."""
@@ -431,7 +431,7 @@ def get_conversation(
 def send_message(
     conversation_id: str,
     payload: MessageCreate,
-    current_user: User = Depends(get_current_user),
+    current_user: UserModel = Depends(get_current_user),
     repo: DataRepository = Depends(get_repository),
 ):
     """
@@ -480,7 +480,7 @@ def send_message(
 @app.post("/conversations/{conversation_id}/commit", response_model=CommitResponse, tags=["Conversations"])
 def commit_conversation(
     conversation_id: str,
-    current_user: User = Depends(get_current_user),
+    current_user: UserModel = Depends(get_current_user),
     repo: DataRepository = Depends(get_repository),
 ):
     """
@@ -525,7 +525,7 @@ def commit_conversation(
 @app.post("/conversations/{conversation_id}/complete", response_model=ConversationResponse, tags=["Conversations"])
 def complete_conversation(
     conversation_id: str,
-    current_user: User = Depends(get_current_user),
+    current_user: UserModel = Depends(get_current_user),
     repo: DataRepository = Depends(get_repository),
 ):
     """Mark a conversation as completed."""
@@ -543,7 +543,7 @@ def complete_conversation(
 @app.delete("/conversations/{conversation_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["Conversations"])
 def delete_conversation(
     conversation_id: str,
-    current_user: User = Depends(get_current_user),
+    current_user: UserModel = Depends(get_current_user),
     repo: DataRepository = Depends(get_repository),
 ):
     """Delete a conversation and its messages."""
