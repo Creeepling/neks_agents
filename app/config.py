@@ -10,6 +10,7 @@ class Settings(BaseSettings):
 
     # --- Database ---
     FIRESTORE_PROJECT_ID: str = "chatbot-414822"
+    FIRESTORE_DATABASE_ID: str = "neksagents"
 
     # --- JWT Authentication ---
     # IMPORTANT: Override this with a long random string in production.

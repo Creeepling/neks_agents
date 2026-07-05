@@ -8,7 +8,10 @@ class FirestoreRepository(DataRepository):
     def __init__(self):
         # We assume the environment is properly authenticated (e.g. ADC)
         # or it uses FIRESTORE_PROJECT_ID.
-        self.db = firestore.Client(project=settings.FIRESTORE_PROJECT_ID)
+        self.db = firestore.Client(
+            project=settings.FIRESTORE_PROJECT_ID,
+            database=settings.FIRESTORE_DATABASE_ID
+        )
         self.users_col = self.db.collection("users")
         self.properties_col = self.db.collection("properties")
         self.conversations_col = self.db.collection("conversations")
