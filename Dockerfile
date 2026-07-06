@@ -19,6 +19,9 @@ WORKDIR /app
 # Copy installed packages from the builder stage
 COPY --from=builder /install /usr/local
 
+# Install playwright browsers and dependencies
+RUN playwright install chromium --with-deps
+
 # Copy application source
 COPY app/ ./app/
 COPY frontend/ ./frontend/

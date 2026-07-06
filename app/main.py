@@ -389,7 +389,8 @@ def start_conversation(
     try:
         reply_text = get_agent_reply(
             conversation,
-            prop.data,
+            prop,
+            repo,
             "Начни работу над этим этапом. Задай первый вопрос или предложи варианты действий."
         )
         agent_msg = MessageModel(conversation_id=conversation.id, role="assistant", content=reply_text)
@@ -463,7 +464,7 @@ def send_message(
 
     # Call the LLM
     try:
-        reply_text = get_agent_reply(conv, prop.data, payload.content)
+        reply_text = get_agent_reply(conv, prop, repo, payload.content)
     except RuntimeError as exc:
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc))
 
@@ -559,6 +560,25 @@ def delete_conversation(
 # ---------------------------------------------------------------------------
 # System Endpoints
 # ---------------------------------------------------------------------------
+
+@app.post("/system/seed-retailers", tags=["System"])
+def seed_retailers():
+    """Seed the retail property requirements into Firestore."""
+    try:
+        import sys
+        import os
+        # Ensure root directory is in sys.path
+        root_dir = os.path.dirname(os.path.dirname(__file__))
+        if root_dir not in sys.path:
+            sys.path.append(root_dir)
+            
+        from seed_retail_requirements import seed_database
+        seed_database()
+        return {"status": "success", "message": "Successfully seeded retail property requirements to Firestore."}
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to seed database: {str(e)}")
 
 @app.get("/steps", tags=["System"])
 def get_available_steps():

@@ -2,6 +2,7 @@
 
 step_1_city_analyst:
   title: "Агент 1: Аналитик города"
+  available_tools: ["google_search", "yandex_maps"]
   description: "Оценка макроэкономических и демографических трендов города."
   required_fields: []
   system_prompt: |
@@ -69,11 +70,13 @@ step_1_city_analyst:
 
 step_2_object_location:
   title: "Агент 2: Аналитик объекта и локации"
+  available_tools: ["google_search"]
   description: "Оценка конкретного объекта и его микролокации."
   required_fields: 
     - city_name
     - square_meters
     - floors
+    -yandex_maps_results
   system_prompt: |
     Ты — эксперт по анализу конкретных объектов недвижимости и их микролокации.
     Пользователь предоставит тебе адрес или название района.
@@ -142,6 +145,7 @@ step_2_object_location:
 
 step_3_concept_developer:
   title: "Агент 3: Разработчик концепций объекта"
+  available_tools: ["google_search"]
   description: "Разработка концепции наилучшего использования объекта (Best and Highest Use)."
   use_thinking: true
   thinking_level: "medium"
@@ -205,6 +209,7 @@ step_3_concept_developer:
 
 step_4_tenant_mix:
   title: "Агент 4: Tenant mix builder"
+  available_tools: ["google_search"]
   description: "Подбор оптимального состава арендаторов для утвержденной концепции."
   use_thinking: true
   thinking_level: "medium"

@@ -20,8 +20,10 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440  # 24 hours
 
     # --- LLM ---
-    GEMINI_API_KEY: str = ""
+    GEMINI_API_KEY: Optional[str] = None
     GEMINI_MODEL: str = "gemini-3-flash-preview"
+    
+    DADATA_API_KEY: Optional[str] = None
 
     # --- Environment ---
     ENVIRONMENT: str = "local"  # "local" | "production"

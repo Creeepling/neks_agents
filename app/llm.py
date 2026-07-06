@@ -14,6 +14,7 @@ STEP_EXTRACTION_SCHEMAS at the bottom of this file.
 
 import os
 import yaml
+import asyncio
 from typing import Any, Dict, List, Optional, Tuple
 
 import instructor
@@ -23,6 +24,58 @@ from pydantic import BaseModel, Field, create_model
 
 from app.config import settings
 from app.models import ConversationModel as Conversation, MessageModel as Message
+from app.tools.yandex_maps import search_yandex_maps_businesses
+from app.tools.dadata_licenses import search_dadata_licenses, bulk_check_yandex_companies
+
+def yandex_maps_tool(location: str, query: str = "организации") -> str:
+    """
+    Ищет организации на Яндекс.Картах по заданному местоположению.
+    """
+    return asyncio.run(search_yandex_maps_businesses(location, query))
+
+def dadata_licenses_tool(query: str) -> str:
+    """
+    Ищет лицензии организации по ИНН, названию или адресу с помощью API Dadata.
+    """
+    return search_dadata_licenses(query)
+
+def bulk_dadata_licenses_tool() -> str:
+    """
+    Массовая проверка лицензий: берет список компаний из Яндекс Карт (из базы данных)
+    и автоматически запрашивает лицензии для каждой компании через API Dadata.
+    """
+    # Note: actual execution happens in get_agent_reply to access prop.data
+    pass
+
+def match_retail_requirements_tool(area_sqm: float, power_kw: float) -> str:
+    """
+    Ищет подходящих ритейлеров (арендаторов) в базе данных Firestore 
+    на основе площади (кв.м) и электрической мощности (кВт) объекта.
+    """
+    import json
+    from google.cloud import firestore
+    
+    db = firestore.Client()
+    docs = db.collection('retail_property_requirements').stream()
+    
+    def check_range(field_data: dict | None, value: float) -> bool:
+        if not field_data:
+            return True
+        min_val = field_data.get("min")
+        max_val = field_data.get("max")
+        if min_val is not None and value < min_val:
+            return False
+        if max_val is not None and value > max_val:
+            return False
+        return True
+        
+    matches = []
+    for doc in docs:
+        data = doc.to_dict()
+        if check_range(data.get("area_sqm"), area_sqm) and check_range(data.get("power_kw"), power_kw):
+            matches.append(data)
+            
+    return json.dumps(matches, ensure_ascii=False)
 
 # ---------------------------------------------------------------------------
 # Client Setup
@@ -161,7 +214,8 @@ def _build_messages(
 
 def get_agent_reply(
     conversation: Conversation,
-    property_data: Optional[Dict[str, Any]],
+    prop: Any,
+    repo: Any,
     new_user_message: str,
 ) -> str:
     """
@@ -174,32 +228,138 @@ def get_agent_reply(
             "Set it in your .env file or as an environment variable."
         )
 
-    messages = _build_messages(conversation, property_data, new_user_message)
+    messages = _build_messages(conversation, prop.data, new_user_message)
 
     agent_config = AGENTS_CONFIG.get(conversation.current_step, {})
     use_thinking = agent_config.get("use_thinking", False)
     
-    config_kwargs = {"tools": [{"google_search": {}}]}
+    AVAILABLE_TOOLS = {
+        "google_search": {"google_search": {}},
+        "yandex_maps": yandex_maps_tool,
+        "dadata_licenses": dadata_licenses_tool,
+        "bulk_dadata_licenses": bulk_dadata_licenses_tool,
+        "match_retail_requirements_tool": match_retail_requirements_tool
+    }
+    
+    # Default to both tools if not specified
+    step_tools_names = agent_config.get("available_tools", ["google_search", "yandex_maps", "dadata_licenses", "bulk_dadata_licenses", "match_retail_requirements_tool"])
+    step_tools = [AVAILABLE_TOOLS[name] for name in step_tools_names if name in AVAILABLE_TOOLS]
+    
+    config_kwargs = {}
+    if step_tools:
+        config_kwargs["tools"] = step_tools
+        
     if use_thinking:
         config_kwargs["thinking_config"] = types.ThinkingConfig(thinking_budget=4096)
 
-    try:
-        response = _raw_client.models.generate_content(
-            model=settings.GEMINI_MODEL,
-            contents=messages,
-            config=types.GenerateContentConfig(**config_kwargs)
-        )
-    except Exception as e:
-        # If the current model rejects the thinking_config, fallback without it
-        if use_thinking and "thinking_config" in config_kwargs:
-            del config_kwargs["thinking_config"]
+    for _ in range(5):
+        try:
             response = _raw_client.models.generate_content(
                 model=settings.GEMINI_MODEL,
                 contents=messages,
                 config=types.GenerateContentConfig(**config_kwargs)
             )
-        else:
-            raise e
+        except Exception as e:
+            # If the current model rejects the thinking_config, fallback without it
+            if use_thinking and "thinking_config" in config_kwargs:
+                del config_kwargs["thinking_config"]
+                response = _raw_client.models.generate_content(
+                    model=settings.GEMINI_MODEL,
+                    contents=messages,
+                    config=types.GenerateContentConfig(**config_kwargs)
+                )
+            else:
+                raise e
+
+        if response.function_calls:
+            # Append the model's tool call request
+            messages.append(response.candidates[0].content)
+            
+            # Execute the requested functions and append their results
+            parts = []
+            for fc in response.function_calls:
+                if fc.name == "yandex_maps_tool":
+                    args = fc.args
+                    try:
+                        result = yandex_maps_tool(**args)
+                        parts.append(types.Part.from_function_response(name=fc.name, response={"result": result}))
+                        
+                        # Save result to DB
+                        import json
+                        try:
+                            parsed_result = json.loads(result)
+                            if isinstance(parsed_result, list):
+                                new_data = dict(prop.data or {})
+                                new_data["yandex_maps_results"] = parsed_result
+                                prop.data = new_data
+                                from datetime import datetime, timezone
+                                prop.updated_at = datetime.now(timezone.utc)
+                                repo.update_property(prop)
+                        except Exception as db_err:
+                            print(f"Failed to save yandex maps results to DB: {db_err}")
+                            
+                    except Exception as e:
+                        parts.append(types.Part.from_function_response(name=fc.name, response={"error": str(e)}))
+                        
+                elif fc.name == "dadata_licenses_tool":
+                    args = fc.args
+                    try:
+                        result = dadata_licenses_tool(**args)
+                        parts.append(types.Part.from_function_response(name=fc.name, response={"result": result}))
+                        
+                        import json
+                        try:
+                            parsed_result = json.loads(result)
+                            if isinstance(parsed_result, list):
+                                new_data = dict(prop.data or {})
+                                new_data["dadata_licenses_results"] = parsed_result
+                                prop.data = new_data
+                                from datetime import datetime, timezone
+                                prop.updated_at = datetime.now(timezone.utc)
+                                repo.update_property(prop)
+                        except Exception as db_err:
+                            print(f"Failed to save dadata licenses results to DB: {db_err}")
+                            
+                    except Exception as e:
+                        parts.append(types.Part.from_function_response(name=fc.name, response={"error": str(e)}))
+                        
+                elif fc.name == "bulk_dadata_licenses_tool":
+                    try:
+                        yandex_results = prop.data.get("yandex_maps_results", [])
+                        if not yandex_results:
+                            parts.append(types.Part.from_function_response(name=fc.name, response={"error": "No Yandex Maps results found in the database. Run the Maps tool first."}))
+                            continue
+                            
+                        result = bulk_check_yandex_companies(yandex_results)
+                        parts.append(types.Part.from_function_response(name=fc.name, response={"result": result}))
+                        
+                        import json
+                        try:
+                            parsed_result = json.loads(result)
+                            if isinstance(parsed_result, list):
+                                new_data = dict(prop.data or {})
+                                new_data["dadata_licenses_results"] = parsed_result
+                                prop.data = new_data
+                                from datetime import datetime, timezone
+                                prop.updated_at = datetime.now(timezone.utc)
+                                repo.update_property(prop)
+                        except Exception as db_err:
+                            print(f"Failed to save bulk dadata licenses results to DB: {db_err}")
+                            
+                    except Exception as e:
+                        parts.append(types.Part.from_function_response(name=fc.name, response={"error": str(e)}))
+                        
+                elif fc.name == "match_retail_requirements_tool":
+                    args = fc.args
+                    try:
+                        result = match_retail_requirements_tool(**args)
+                        parts.append(types.Part.from_function_response(name=fc.name, response={"result": result}))
+                    except Exception as e:
+                        parts.append(types.Part.from_function_response(name=fc.name, response={"error": str(e)}))
+            
+            messages.append({"role": "user", "parts": parts})
+            continue
+        break
 
     if response and response.text:
         text = response.text
