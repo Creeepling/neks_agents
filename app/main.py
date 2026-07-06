@@ -565,14 +565,7 @@ def delete_conversation(
 def seed_retailers():
     """Seed the retail property requirements into Firestore."""
     try:
-        import sys
-        import os
-        # Ensure root directory is in sys.path
-        root_dir = os.path.dirname(os.path.dirname(__file__))
-        if root_dir not in sys.path:
-            sys.path.append(root_dir)
-            
-        from seed_retail_requirements import seed_database
+        from app.seed_retail_requirements import seed_database
         seed_database()
         return {"status": "success", "message": "Successfully seeded retail property requirements to Firestore."}
     except Exception as e:
