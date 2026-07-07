@@ -37,6 +37,7 @@ from app import auth as auth_utils
 from app.config import settings
 from app.database import get_repository, init_db
 from app.repository import DataRepository
+from google.cloud import firestore
 from app.models import ConversationModel, MessageModel, RealEstateObjectModel, UserModel
 from app.llm import AGENTS_CONFIG, STEP_EXTRACTION_SCHEMAS, STEP_SYSTEM_PROMPTS, extract_structured_data, get_agent_reply
 from app.schemas import (
@@ -53,6 +54,9 @@ from app.schemas import (
     Token,
     UserCreate,
     UserResponse,
+    RetailerCreate,
+    RetailerUpdate,
+    RetailerResponse,
 )
 
 # ---------------------------------------------------------------------------
@@ -554,6 +558,71 @@ def delete_conversation(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found.")
 
     repo.delete_conversation(conversation_id, current_user.id)
+    return None
+
+
+# ---------------------------------------------------------------------------
+# Retailers Routes
+# ---------------------------------------------------------------------------
+
+def get_firestore_db():
+    return firestore.Client(project=settings.FIRESTORE_PROJECT_ID, database=settings.FIRESTORE_DATABASE_ID)
+
+@app.get("/retailers", response_model=list[RetailerResponse], tags=["Retailers"])
+def list_retailers(
+    current_user: UserModel = Depends(get_current_user),
+):
+    """List all retailer requirements from Firestore."""
+    db_fs = get_firestore_db()
+    docs = db_fs.collection('retail_property_requirements').stream()
+    retailers = []
+    for doc in docs:
+        data = doc.to_dict()
+        data['id'] = doc.id
+        retailers.append(data)
+    return retailers
+
+@app.post("/retailers", response_model=RetailerResponse, status_code=status.HTTP_201_CREATED, tags=["Retailers"])
+def create_retailer(
+    payload: RetailerCreate,
+    current_user: UserModel = Depends(get_current_user),
+):
+    """Create a new retailer requirement."""
+    db_fs = get_firestore_db()
+    data = payload.model_dump(exclude_none=True)
+    _, doc_ref = db_fs.collection('retail_property_requirements').add(data)
+    data['id'] = doc_ref.id
+    return data
+
+@app.put("/retailers/{retailer_id}", response_model=RetailerResponse, tags=["Retailers"])
+def update_retailer(
+    retailer_id: str,
+    payload: RetailerUpdate,
+    current_user: UserModel = Depends(get_current_user),
+):
+    """Update an existing retailer requirement."""
+    db_fs = get_firestore_db()
+    doc_ref = db_fs.collection('retail_property_requirements').document(retailer_id)
+    doc = doc_ref.get()
+    if not doc.exists:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Retailer not found.")
+    
+    update_data = payload.model_dump(exclude_unset=True)
+    if update_data:
+        doc_ref.update(update_data)
+    
+    updated_doc = doc_ref.get().to_dict()
+    updated_doc['id'] = retailer_id
+    return updated_doc
+
+@app.delete("/retailers/{retailer_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["Retailers"])
+def delete_retailer(
+    retailer_id: str,
+    current_user: UserModel = Depends(get_current_user),
+):
+    """Delete a retailer requirement."""
+    db_fs = get_firestore_db()
+    db_fs.collection('retail_property_requirements').document(retailer_id).delete()
     return None
 
 

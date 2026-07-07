@@ -141,3 +141,36 @@ class StepValidationResponse(BaseModel):
     can_proceed: bool
     missing_fields: List[str]
     message: str
+
+
+# ---------------------------------------------------------------------------
+# Retailer Requirements Schemas
+# ---------------------------------------------------------------------------
+
+class RangeSchema(BaseModel):
+    min: Optional[float] = None
+    max: Optional[float] = None
+
+class RetailerBase(BaseModel):
+    company: str
+    brand: str
+    format: str
+    area_sqm: Optional[RangeSchema] = None
+    power_kw: Optional[RangeSchema] = None
+    ceilings_m: Optional[RangeSchema] = None
+    requirements: Optional[str] = None
+
+class RetailerCreate(RetailerBase):
+    pass
+
+class RetailerUpdate(BaseModel):
+    company: Optional[str] = None
+    brand: Optional[str] = None
+    format: Optional[str] = None
+    area_sqm: Optional[RangeSchema] = None
+    power_kw: Optional[RangeSchema] = None
+    ceilings_m: Optional[RangeSchema] = None
+    requirements: Optional[str] = None
+
+class RetailerResponse(RetailerBase):
+    id: str

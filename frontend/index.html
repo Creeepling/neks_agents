@@ -929,6 +929,7 @@ function render() {
   // Determine which view to render
   switch (State.view) {
     case 'dashboard': renderDashboard(); break;
+    case 'retailers': renderRetailers(); break;
     case 'detail':    renderDetail();    break;
     case 'chat':      renderChat();      break;
     default:          renderDashboard(); break;
@@ -1017,6 +1018,7 @@ function logout() {
 function shellHtml(breadcrumbs, topbarActions, bodyHtml, activeNav = 'dashboard') {
   const navItems = [
     { id: 'dashboard', icon: '⊞', label: 'Объекты' },
+    { id: 'retailers', icon: '☰', label: 'Требования ритейлеров' },
   ];
 
   return `
@@ -1210,6 +1212,217 @@ function openNewPropertyModal() {
       btn.textContent = 'Создать объект';
     }
   });
+}
+
+/* =============================================================================
+   RETAILERS VIEW & MODAL
+============================================================================= */
+async function renderRetailers() {
+  const app = document.getElementById('app');
+  app.innerHTML = shellHtml(
+    `<span class="crumb-active">Требования Ритейлеров</span>`,
+    `<button class="btn btn-primary" onclick="openRetailerModal()">Добавить Ритейлера</button>`,
+    `<div class="page-loader"><div class="spinner"></div>Загрузка ритейлеров...</div>`,
+    'retailers'
+  );
+
+  try {
+    const res = await fetch('/retailers', {
+      headers: { 'Authorization': 'Bearer ' + State.token }
+    });
+    if (res.status === 401) return clearAuth();
+    const retailers = await res.json();
+    
+    // Global variable for easier editing
+    window._retailersList = retailers;
+
+    let bodyHtml = '';
+    if (retailers.length === 0) {
+      bodyHtml = `
+        <div class="empty-state">
+          <div class="empty-icon">🏪</div>
+          <div class="empty-title">Нет ритейлеров</div>
+          <div class="empty-sub">Вы еще не добавили ни одного ритейлера.</div>
+        </div>
+      `;
+    } else {
+      bodyHtml = `
+        <div class="property-grid">
+          ${retailers.map(r => `
+            <div class="property-card" onclick="openRetailerModal('${r.id}')">
+              <div class="property-card-name">${escHtml(r.company)} - ${escHtml(r.brand)}</div>
+              <div class="property-card-address">${escHtml(r.format)}</div>
+              <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 8px;">
+                <strong>Площадь:</strong> ${r.area_sqm?.min || 0} - ${r.area_sqm?.max || '∞'} м²<br/>
+                <strong>Мощность:</strong> ${r.power_kw?.min || 0} - ${r.power_kw?.max || '∞'} кВт
+              </div>
+              <div class="property-card-footer">
+                <div class="property-card-updated">Нажмите, чтобы изменить</div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+
+    app.innerHTML = shellHtml(
+      `<span class="crumb-active">Требования Ритейлеров</span>`,
+      `<button class="btn btn-primary" onclick="openRetailerModal()">Добавить Ритейлера</button>`,
+      bodyHtml,
+      'retailers'
+    );
+  } catch (e) {
+    toast('Ошибка загрузки ритейлеров', 'error');
+  }
+}
+
+function openRetailerModal(id = null) {
+  let r = null;
+  if (id && window._retailersList) {
+    r = window._retailersList.find(x => x.id === id);
+  }
+
+  const title = r ? 'Изменить Ритейлера' : 'Новый Ритейлер';
+  const saveBtn = r ? 'Сохранить' : 'Добавить';
+
+  const html = `
+    <div class="modal-backdrop" id="retailer-modal-backdrop" onclick="closeModalOnBackdrop(event)">
+      <div class="modal">
+        <div class="modal-header">
+          <div class="modal-header-text">
+            <div class="modal-title">${title}</div>
+          </div>
+          <button class="modal-close" onclick="closeModal()">×</button>
+        </div>
+        <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+          <input type="hidden" id="retailer_id" value="${r ? r.id : ''}" />
+          
+          <div class="form-group">
+            <label class="form-label">Компания</label>
+            <input type="text" class="form-input" id="ret_company" value="${r ? escAttr(r.company) : ''}" placeholder="X5 Group" />
+          </div>
+          <div class="form-group" style="margin-top: 12px;">
+            <label class="form-label">Бренд</label>
+            <input type="text" class="form-input" id="ret_brand" value="${r ? escAttr(r.brand) : ''}" placeholder="Пятерочка" />
+          </div>
+          <div class="form-group" style="margin-top: 12px;">
+            <label class="form-label">Формат</label>
+            <input type="text" class="form-input" id="ret_format" value="${r ? escAttr(r.format) : ''}" placeholder="Супермаркет" />
+          </div>
+
+          <div style="display: flex; gap: 12px; margin-top: 12px;">
+            <div class="form-group" style="flex:1;">
+              <label class="form-label">Площадь от (м²)</label>
+              <input type="number" class="form-input" id="ret_area_min" value="${r && r.area_sqm && r.area_sqm.min !== null ? r.area_sqm.min : ''}" />
+            </div>
+            <div class="form-group" style="flex:1;">
+              <label class="form-label">Площадь до (м²)</label>
+              <input type="number" class="form-input" id="ret_area_max" value="${r && r.area_sqm && r.area_sqm.max !== null ? r.area_sqm.max : ''}" />
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 12px; margin-top: 12px;">
+            <div class="form-group" style="flex:1;">
+              <label class="form-label">Мощность от (кВт)</label>
+              <input type="number" class="form-input" id="ret_power_min" value="${r && r.power_kw && r.power_kw.min !== null ? r.power_kw.min : ''}" />
+            </div>
+            <div class="form-group" style="flex:1;">
+              <label class="form-label">Мощность до (кВт)</label>
+              <input type="number" class="form-input" id="ret_power_max" value="${r && r.power_kw && r.power_kw.max !== null ? r.power_kw.max : ''}" />
+            </div>
+          </div>
+          
+          <div style="display: flex; gap: 12px; margin-top: 12px;">
+            <div class="form-group" style="flex:1;">
+              <label class="form-label">Потолки от (м)</label>
+              <input type="number" step="0.1" class="form-input" id="ret_ceilings_min" value="${r && r.ceilings_m && r.ceilings_m.min !== null ? r.ceilings_m.min : ''}" />
+            </div>
+            <div class="form-group" style="flex:1;">
+              <label class="form-label">Потолки до (м)</label>
+              <input type="number" step="0.1" class="form-input" id="ret_ceilings_max" value="${r && r.ceilings_m && r.ceilings_m.max !== null ? r.ceilings_m.max : ''}" />
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-top: 12px;">
+            <label class="form-label">Доп. Требования</label>
+            <textarea class="form-textarea" id="ret_reqs" placeholder="Первая линия...">${r ? escHtml(r.requirements || '') : ''}</textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          ${r ? `<button class="btn btn-danger" onclick="deleteRetailer('${r.id}')" style="margin-right: auto;">Удалить</button>` : ''}
+          <button class="btn btn-ghost" onclick="closeModal()">Отмена</button>
+          <button class="btn btn-primary" id="save-ret-btn" onclick="saveRetailer()">${saveBtn}</button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.insertAdjacentHTML('beforeend', html);
+}
+
+async function saveRetailer() {
+  const btn = document.getElementById('save-ret-btn');
+  const id = document.getElementById('retailer_id').value;
+  
+  const getNum = (val) => val.trim() === '' ? null : parseFloat(val);
+
+  const payload = {
+    company: document.getElementById('ret_company').value.trim(),
+    brand: document.getElementById('ret_brand').value.trim(),
+    format: document.getElementById('ret_format').value.trim(),
+    requirements: document.getElementById('ret_reqs').value.trim(),
+    area_sqm: { min: getNum(document.getElementById('ret_area_min').value), max: getNum(document.getElementById('ret_area_max').value) },
+    power_kw: { min: getNum(document.getElementById('ret_power_min').value), max: getNum(document.getElementById('ret_power_max').value) },
+    ceilings_m: { min: getNum(document.getElementById('ret_ceilings_min').value), max: getNum(document.getElementById('ret_ceilings_max').value) }
+  };
+
+  if (!payload.company || !payload.brand) {
+    return toast('Компания и Бренд обязательны', 'error');
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner"></div>';
+
+  try {
+    const method = id ? 'PUT' : 'POST';
+    const url = id ? '/retailers/' + id : '/retailers';
+    const res = await fetch(url, {
+      method,
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + State.token },
+      body: JSON.stringify(payload)
+    });
+
+    if (res.ok) {
+      toast('Ритейлер ' + (id ? 'обновлен' : 'добавлен'), 'success');
+      closeModal();
+      if (State.view === 'retailers') renderRetailers();
+    } else {
+      const err = await res.json();
+      toast('Ошибка: ' + (err.detail || 'Неизвестно'), 'error');
+    }
+  } catch (e) {
+    toast('Ошибка сети', 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerText = id ? 'Сохранить' : 'Добавить'; }
+  }
+}
+
+async function deleteRetailer(id) {
+  if (!confirm('Удалить этого ритейлера?')) return;
+  try {
+    const res = await fetch('/retailers/' + id, {
+      method: 'DELETE',
+      headers: { 'Authorization': 'Bearer ' + State.token }
+    });
+    if (res.ok) {
+      toast('Ритейлер удален', 'success');
+      closeModal();
+      if (State.view === 'retailers') renderRetailers();
+    } else {
+      toast('Ошибка удаления', 'error');
+    }
+  } catch(e) {
+    toast('Ошибка сети', 'error');
+  }
 }
 
 /* =============================================================================
