@@ -55,7 +55,7 @@ def match_retail_requirements_tool(area_sqm: float, power_kw: float) -> str:
     import json
     from google.cloud import firestore
     
-    db = firestore.Client()
+    db = firestore.Client(project=settings.FIRESTORE_PROJECT_ID, database=settings.FIRESTORE_DATABASE_ID)
     docs = db.collection('retail_property_requirements').stream()
     
     def check_range(field_data: dict | None, value: float) -> bool:

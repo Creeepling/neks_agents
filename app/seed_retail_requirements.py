@@ -4,7 +4,8 @@ from google.cloud import firestore
 # Initialize Firestore client
 # Note: Ensure that the GOOGLE_APPLICATION_CREDENTIALS environment variable 
 # is set to your service account key file path, or run this where Application Default Credentials (ADC) are available.
-db = firestore.Client()
+from app.config import settings
+db = firestore.Client(project=settings.FIRESTORE_PROJECT_ID, database=settings.FIRESTORE_DATABASE_ID)
 
 COLLECTION_NAME = 'retail_property_requirements'
 
