@@ -1107,7 +1107,7 @@ function propertyCard(p) {
   const updated = p.updated_at ? relTime(p.updated_at) : 'никогда';
 
   return `
-  <div class="property-card" onclick="openProperty(${p.id})">
+  <div class="property-card" onclick="openProperty('${p.id}')">
     <div class="property-card-name">${escHtml(p.name)}</div>
     <div class="property-card-address">${escHtml(p.address || 'Адрес не указан')}</div>
     <div class="property-card-footer" style="margin-top: 12px;">
