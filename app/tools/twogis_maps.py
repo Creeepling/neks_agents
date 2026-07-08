@@ -25,7 +25,7 @@ def search_twogis_businesses(location: str, query: str = "организации
         "q": search_q,
         "key": settings.TWOGIS_API_KEY,
         "fields": "items.point",
-        "page_size": 15
+        "page_size": 10
     }
     
     results = []
