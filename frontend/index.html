@@ -847,8 +847,9 @@ function setToken(token, username) {
 }
 
 function clearAuth() {
+  State.token = null;
+  State.username = null;
   localStorage.removeItem('neks_token');
-  localStorage.removeItem('neks_username');
   localStorage.removeItem('neks_username');
 }
 

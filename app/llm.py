@@ -305,6 +305,13 @@ def get_agent_reply(
                                 from datetime import datetime, timezone
                                 prop.updated_at = datetime.now(timezone.utc)
                                 repo.update_property(prop)
+                            elif isinstance(parsed_result, dict) and "error" in parsed_result:
+                                new_data = dict(prop.data or {})
+                                new_data["yandex_maps_error"] = parsed_result["error"]
+                                prop.data = new_data
+                                from datetime import datetime, timezone
+                                prop.updated_at = datetime.now(timezone.utc)
+                                repo.update_property(prop)
                         except Exception as db_err:
                             print(f"Failed to save yandex maps results to DB: {db_err}")
                             
@@ -323,6 +330,13 @@ def get_agent_reply(
                             if isinstance(parsed_result, list):
                                 new_data = dict(prop.data or {})
                                 new_data["dadata_licenses_results"] = parsed_result
+                                prop.data = new_data
+                                from datetime import datetime, timezone
+                                prop.updated_at = datetime.now(timezone.utc)
+                                repo.update_property(prop)
+                            elif isinstance(parsed_result, dict) and "error" in parsed_result:
+                                new_data = dict(prop.data or {})
+                                new_data["dadata_licenses_error"] = parsed_result["error"]
                                 prop.data = new_data
                                 from datetime import datetime, timezone
                                 prop.updated_at = datetime.now(timezone.utc)
@@ -349,6 +363,13 @@ def get_agent_reply(
                             if isinstance(parsed_result, list):
                                 new_data = dict(prop.data or {})
                                 new_data["dadata_licenses_results"] = parsed_result
+                                prop.data = new_data
+                                from datetime import datetime, timezone
+                                prop.updated_at = datetime.now(timezone.utc)
+                                repo.update_property(prop)
+                            elif isinstance(parsed_result, dict) and "error" in parsed_result:
+                                new_data = dict(prop.data or {})
+                                new_data["bulk_dadata_licenses_error"] = parsed_result["error"]
                                 prop.data = new_data
                                 from datetime import datetime, timezone
                                 prop.updated_at = datetime.now(timezone.utc)

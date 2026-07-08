@@ -28,10 +28,14 @@ from datetime import datetime, timezone
 from typing import Optional
 
 import os
-from fastapi import Depends, FastAPI, HTTPException, Query, status
+from fastapi import Depends, FastAPI, HTTPException, Query, status, Request
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 
 from app import auth as auth_utils
 from app.config import settings
@@ -74,12 +78,23 @@ async def lifespan(app):
 # App Setup
 # ---------------------------------------------------------------------------
 
+def get_real_ip(request: Request) -> str:
+    forwarded = request.headers.get("X-Forwarded-For")
+    if forwarded:
+        return forwarded.split(",")[0]
+    return request.client.host if request.client else "127.0.0.1"
+
+limiter = Limiter(key_func=get_real_ip, default_limits=["120/minute"])
+
 app = FastAPI(
     title="Real Estate Agent Backend",
     description="Multi-step conversational AI backend for real estate research and analysis.",
     version="1.0.0",
     lifespan=lifespan,
 )
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_middleware(SlowAPIMiddleware)
 
 app.add_middleware(
     CORSMiddleware,
@@ -166,7 +181,9 @@ def login(form: OAuth2PasswordRequestForm = Depends(), repo: DataRepository = De
 # ---------------------------------------------------------------------------
 
 @app.get("/properties", response_model=list[PropertyResponse], tags=["Properties"])
+@limiter.limit("10/minute")
 def list_properties(
+    request: Request,
     current_user: UserModel = Depends(get_current_user),
     repo: DataRepository = Depends(get_repository),
 ):
