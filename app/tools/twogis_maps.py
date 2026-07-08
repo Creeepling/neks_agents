@@ -52,6 +52,9 @@ def search_twogis_businesses(location: str, query: str = "организации
                         "address": address.strip() if address else ""
                     })
                     
+    except httpx.HTTPStatusError as e:
+        error_msg = f"Ошибка API 2GIS (статус {e.response.status_code}): {e.response.text}"
+        return json.dumps({"error": error_msg}, ensure_ascii=False)
     except Exception as e:
         return json.dumps({"error": f"Ошибка при запросе к 2GIS: {str(e)}"}, ensure_ascii=False)
         

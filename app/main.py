@@ -405,11 +405,16 @@ def start_conversation(
 
     # Automatically generate the first message from the agent
     try:
+        agent_config = AGENTS_CONFIG.get(payload.current_step, {})
+        first_message = agent_config.get(
+            "first_user_message", 
+            "Начни работу над этим этапом. Задай первый вопрос или предложи варианты действий."
+        )
         reply_text = get_agent_reply(
             conversation,
             prop,
             repo,
-            "Начни работу над этим этапом. Задай первый вопрос или предложи варианты действий."
+            first_message
         )
         agent_msg = MessageModel(conversation_id=conversation.id, role="assistant", content=reply_text)
         agent_msg = repo.add_message(agent_msg)
