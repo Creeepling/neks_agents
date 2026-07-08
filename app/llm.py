@@ -193,17 +193,23 @@ def _build_messages(
             "Используй эти данные для контекста."
         )
 
-    messages: List[Dict[str, str]] = [{"role": "user", "parts": [{"text": f"[SYSTEM]\n{system_prompt}"}]}]
+    messages: List[Dict[str, Any]] = [{"role": "user", "parts": [{"text": f"[SYSTEM]\n{system_prompt}"}]}]
 
     # Add recent history (oldest messages first, capped)
     recent: List[Message] = conversation.messages[-history_limit:] if conversation.messages else []
     for msg in recent:
         if msg.role in ("user", "assistant"):
             role = "user" if msg.role == "user" else "model"
-            messages.append({"role": role, "parts": [{"text": msg.content}]})
+            if messages[-1]["role"] == role:
+                messages[-1]["parts"][0]["text"] += f"\n\n{msg.content}"
+            else:
+                messages.append({"role": role, "parts": [{"text": msg.content}]})
 
     # New user turn
-    messages.append({"role": "user", "parts": [{"text": new_user_message}]})
+    if messages[-1]["role"] == "user":
+        messages[-1]["parts"][0]["text"] += f"\n\n{new_user_message}"
+    else:
+        messages.append({"role": "user", "parts": [{"text": new_user_message}]})
 
     return messages
 

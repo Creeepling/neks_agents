@@ -401,8 +401,11 @@ def start_conversation(
         # If generation fails, we still return the conversation, just without an initial message
         import traceback
         traceback.print_exc()
+        agent_msg = MessageModel(conversation_id=conversation.id, role="assistant", content=f"INTERNAL ERROR: {exc}")
+        repo.add_message(agent_msg)
+        conv = repo.get_conversation_by_id_and_user(conversation.id, current_user.id)
 
-    return conversation
+    return conv
 
 
 @app.get("/conversations/{conversation_id}", tags=["Conversations"])
