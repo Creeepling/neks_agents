@@ -44,7 +44,8 @@ def search_twogis_businesses(location: str, query: str = "организации
             items = data["result"].get("items", [])
             for item in items:
                 name = item.get("name", "")
-                address = item.get("address_name", "")
+                # Use full_name to get city context, fallback to address_name
+                address = item.get("full_name", item.get("address_name", ""))
                 
                 # 2GIS puts categories in deep objects, so we skip it to keep it simple and backwards compatible
                 category = ""
