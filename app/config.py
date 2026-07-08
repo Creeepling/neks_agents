@@ -25,6 +25,7 @@ class Settings(BaseSettings):
     GEMINI_MODEL: str = "gemini-3-flash-preview"
     
     DADATA_API_KEY: Optional[str] = None
+    TWOGIS_API_KEY: Optional[str] = None
 
     # --- Environment ---
     ENVIRONMENT: str = "local"  # "local" | "production"
