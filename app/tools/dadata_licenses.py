@@ -60,9 +60,9 @@ def search_dadata_licenses(query: str) -> str:
     return json.dumps(results, ensure_ascii=False)
 
 
-def bulk_check_yandex_companies(companies: list) -> str:
+def bulk_check_twogis_companies(companies: list) -> str:
     """
-    Автоматически перебирает список компаний (полученных из Яндекс карт),
+    Автоматически перебирает список компаний (полученных из 2GIS API),
     формирует запрос на основе названия и адреса, и запрашивает лицензии через Dadata API.
     """
     if not isinstance(companies, list) or not companies:

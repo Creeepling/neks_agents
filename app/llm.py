@@ -24,14 +24,14 @@ from pydantic import BaseModel, Field, create_model
 
 from app.config import settings
 from app.models import ConversationModel as Conversation, MessageModel as Message
-from app.tools.yandex_maps import search_yandex_maps_businesses
-from app.tools.dadata_licenses import search_dadata_licenses, bulk_check_yandex_companies
+from app.tools.twogis_maps import search_twogis_businesses
+from app.tools.dadata_licenses import search_dadata_licenses, bulk_check_twogis_companies
 
-def yandex_maps_tool(location: str, query: str = "организации") -> str:
-    """
-    Ищет организации на Яндекс.Картах по заданному местоположению.
-    """
-    return asyncio.run(search_yandex_maps_businesses(location, query))
+def twogis_maps_tool(location: str, query: str = "организации") -> str:
+    """Обертка для поиска организаций по адресу через 2GIS"""
+    # 2GIS API is synchronous but if it was async we'd use asyncio.run
+    # wait, our search_twogis_businesses is synchronous right now! I used httpx.get not async!
+    return search_twogis_businesses(location, query)
 
 def dadata_licenses_tool(query: str) -> str:
     """
@@ -41,7 +41,7 @@ def dadata_licenses_tool(query: str) -> str:
 
 def bulk_dadata_licenses_tool() -> str:
     """
-    Массовая проверка лицензий: берет список компаний из Яндекс Карт (из базы данных)
+    Массовая проверка лицензий: берет список компаний из 2GIS (из базы данных)
     и автоматически запрашивает лицензии для каждой компании через API Dadata.
     """
     # Note: actual execution happens in get_agent_reply to access prop.data
@@ -241,14 +241,14 @@ def get_agent_reply(
     
     AVAILABLE_TOOLS = {
         "google_search": {"google_search": {}},
-        "yandex_maps": yandex_maps_tool,
+        "twogis_maps": twogis_maps_tool,
         "dadata_licenses": dadata_licenses_tool,
         "bulk_dadata_licenses": bulk_dadata_licenses_tool,
         "match_retail_requirements_tool": match_retail_requirements_tool
     }
     
-    # Default to both tools if not specified
-    step_tools_names = agent_config.get("available_tools", ["google_search", "yandex_maps", "dadata_licenses", "bulk_dadata_licenses", "match_retail_requirements_tool"])
+    # Available tools for the current step (configured in agents.yaml)
+    step_tools_names = agent_config.get("available_tools", ["google_search", "twogis_maps", "dadata_licenses", "bulk_dadata_licenses", "match_retail_requirements_tool"])
     step_tools = [AVAILABLE_TOOLS[name] for name in step_tools_names if name in AVAILABLE_TOOLS]
     
     config_kwargs = {}
@@ -288,10 +288,10 @@ def get_agent_reply(
             # Execute the requested functions and append their results
             parts = []
             for fc in response.function_calls:
-                if fc.name == "yandex_maps_tool":
+                if fc.name == "twogis_maps_tool":
                     args = fc.args
                     try:
-                        result = yandex_maps_tool(**args)
+                        result = twogis_maps_tool(**args)
                         parts.append(types.Part.from_function_response(name=fc.name, response={"result": result}))
                         
                         # Save result to DB
@@ -300,20 +300,20 @@ def get_agent_reply(
                             parsed_result = json.loads(result)
                             if isinstance(parsed_result, list):
                                 new_data = dict(prop.data or {})
-                                new_data["yandex_maps_results"] = parsed_result
+                                new_data["twogis_maps_results"] = parsed_result
                                 prop.data = new_data
                                 from datetime import datetime, timezone
                                 prop.updated_at = datetime.now(timezone.utc)
                                 repo.update_property(prop)
                             elif isinstance(parsed_result, dict) and "error" in parsed_result:
                                 new_data = dict(prop.data or {})
-                                new_data["yandex_maps_error"] = parsed_result["error"]
+                                new_data["twogis_maps_error"] = parsed_result["error"]
                                 prop.data = new_data
                                 from datetime import datetime, timezone
                                 prop.updated_at = datetime.now(timezone.utc)
                                 repo.update_property(prop)
                         except Exception as db_err:
-                            print(f"Failed to save yandex maps results to DB: {db_err}")
+                            print(f"Failed to save 2gis maps results to DB: {db_err}")
                             
                     except Exception as e:
                         parts.append(types.Part.from_function_response(name=fc.name, response={"error": str(e)}))
@@ -349,12 +349,12 @@ def get_agent_reply(
                         
                 elif fc.name == "bulk_dadata_licenses_tool":
                     try:
-                        yandex_results = prop.data.get("yandex_maps_results", [])
-                        if not yandex_results:
-                            parts.append(types.Part.from_function_response(name=fc.name, response={"error": "No Yandex Maps results found in the database. Run the Maps tool first."}))
+                        twogis_results = prop.data.get("twogis_maps_results", [])
+                        if not twogis_results:
+                            parts.append(types.Part.from_function_response(name=fc.name, response={"error": "No 2GIS maps results found in the database. Run the Maps tool first."}))
                             continue
                             
-                        result = bulk_check_yandex_companies(yandex_results)
+                        result = bulk_check_twogis_companies(twogis_results)
                         parts.append(types.Part.from_function_response(name=fc.name, response={"result": result}))
                         
                         import json
