@@ -367,10 +367,7 @@ def start_conversation(
     repo: DataRepository = Depends(get_repository),
 ):
     """Start a new conversation session for a given property and step."""
-    prop = db.query(RealEstateObject).filter(
-        RealEstateObject.id == payload.property_id,
-        RealEstateObject.user_id == current_user.id,
-    ).first()
+    prop = repo.get_property_by_id_and_user(payload.property_id, current_user.id)
 
     if prop is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Property not found.")
@@ -540,7 +537,7 @@ def complete_conversation(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found.")
 
     conv.status = "completed"
-    db.commit()
+    repo.update_conversation(conv)
     conv = repo.get_conversation_by_id_and_user(conv.id, current_user.id)
     return conv
 
