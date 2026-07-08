@@ -36,8 +36,12 @@ def search_twogis_businesses(location: str, query: str = "организации
         
         data = response.json()
         
-        if "result" in data and "items" in data["result"]:
-            items = data["result"]["items"]
+        # 2GIS sometimes returns errors with HTTP 200 OK, encapsulated in the 'meta' block
+        if "meta" in data and data["meta"].get("code") != 200:
+            return json.dumps({"error": f"API Error (meta code {data['meta'].get('code')}): {json.dumps(data, ensure_ascii=False)}"}, ensure_ascii=False)
+        
+        if "result" in data:
+            items = data["result"].get("items", [])
             for item in items:
                 name = item.get("name", "")
                 address = item.get("address_name", "")
@@ -51,6 +55,9 @@ def search_twogis_businesses(location: str, query: str = "организации
                         "category": category,
                         "address": address.strip() if address else ""
                     })
+        else:
+            # If there's no result and no meta error, return the raw data so we can debug it
+            return json.dumps({"error": f"Unexpected API response structure: {json.dumps(data, ensure_ascii=False)}"}, ensure_ascii=False)
                     
     except httpx.HTTPStatusError as e:
         error_msg = f"Ошибка API 2GIS (статус {e.response.status_code}): {e.response.text}"
