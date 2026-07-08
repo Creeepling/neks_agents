@@ -1909,7 +1909,7 @@ async function bypassAndStart(propId, stepId) {
 async function startConversation(propId, stepId) {
   try {
     const conv = await API.post('/conversations', {
-      property_id: Number(propId),
+      property_id: String(propId),
       current_step: stepId,
     });
     if (!conv) { toast('Не удалось начать диалог', 'error'); return; }

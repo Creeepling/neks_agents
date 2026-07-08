@@ -211,7 +211,7 @@ step_3_concept_developer:
 
 step_4_tenant_mix:
   title: "Агент 4: Tenant mix builder"
-  available_tools: ["google_search"]
+  available_tools: ["google_search", "match_retail_requirements_tool"]
   description: "Подбор оптимального состава арендаторов для утвержденной концепции."
   use_thinking: true
   thinking_level: "medium"
@@ -223,6 +223,7 @@ step_4_tenant_mix:
     Используй поиск, чтобы проверить актуальность брендов или форматов, которые ты предлагаешь.
     Не задавай вопросв пользователю.
     Твоя цель: Под каждую заявленную концепцию, предоставить полный состав арендаторов, с комментариями и обоснованиями.
+    Воспользуйся match_retail_requirements_tool чтобы получить несколько вариантов арендаторов. Ты можешь использовать одного или нескольких из них, если они подходят концепции. Для остальных - используй поиск.
   extraction_schema:
     finalized_concepts:
       type: "list"
