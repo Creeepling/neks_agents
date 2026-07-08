@@ -254,6 +254,10 @@ def get_agent_reply(
     config_kwargs = {}
     if step_tools:
         config_kwargs["tools"] = step_tools
+        config_kwargs["tool_config"] = types.ToolConfig(
+            function_calling_config=types.FunctionCallingConfig(mode="AUTO"),
+            include_server_side_tool_invocations=True
+        )
         
     if use_thinking:
         config_kwargs["thinking_config"] = types.ThinkingConfig(thinking_budget=4096)
