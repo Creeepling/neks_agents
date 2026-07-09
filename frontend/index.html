@@ -1528,6 +1528,7 @@ const DISPLAY_LABELS = {
 
 function formatDataValue(val) {
   if (Array.isArray(val)) {
+    if (val.length === 0) return escHtml('Ничего не найдено (пустой список)');
     if (val.length > 0 && typeof val[0] === 'object' && val[0] !== null) {
       return `<div style="display:flex;flex-direction:column;gap:8px;margin-top:6px;">` + 
         val.map(item => `
