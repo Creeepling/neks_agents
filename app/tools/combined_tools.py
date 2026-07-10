@@ -37,9 +37,13 @@ def analyze_location_businesses(city: str, location: str) -> str:
         name = business.get("name", "")
         address = business.get("address", "")
         
-        # Strip marketing descriptors from name (e.g. "INVITRO, медицинская компания" -> "INVITRO")
+        # Clean up the output JSON by moving descriptors to the category field
         if "," in name:
-            name = name.split(",")[0].strip()
+            parts = name.split(",", 1)
+            business["name"] = parts[0].strip()
+            business["category"] = parts[1].strip()
+            name = business["name"]  # Use the clean name for Dadata
+            
             
         # Ensure city is in address for Dadata search
         if city.lower() not in address.lower():
