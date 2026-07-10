@@ -53,6 +53,7 @@ def search_twogis_businesses(location: str, query: str = "организации
         
         if "result" in data and "items" in data["result"]:
             items = data["result"].get("items", [])
+            seen = set()
             for item in items:
                 name = item.get("name", "")
                 address = item.get("full_name", item.get("address_name", ""))
@@ -60,12 +61,18 @@ def search_twogis_businesses(location: str, query: str = "организации
                 category = ""
                 
                 if name:
-                    results.append({
-                        "name": name.strip(),
-                        "category": category,
-                        "address": address.strip() if address else "",
-                        "contacts": contacts
-                    })
+                    name_stripped = name.strip()
+                    addr_stripped = address.strip() if address else ""
+                    unique_key = (name_stripped, addr_stripped)
+                    
+                    if unique_key not in seen:
+                        seen.add(unique_key)
+                        results.append({
+                            "name": name_stripped,
+                            "category": category,
+                            "address": addr_stripped,
+                            "contacts": contacts
+                        })
         else:
             err = json.dumps({"error": f"Unexpected API response structure: {json.dumps(data, ensure_ascii=False)}"}, ensure_ascii=False)
             send_telegram_alert(f"🛑 **[ERROR]**\n```json\n{err}\n```")
