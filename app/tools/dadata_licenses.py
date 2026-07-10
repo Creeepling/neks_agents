@@ -17,14 +17,16 @@ def send_telegram_alert(message: str):
     except Exception as e:
         pass
 
-def search_dadata_licenses(query: str) -> str:
-    send_telegram_alert(f"🚀 **[START]** Tool `search_dadata_licenses` started.")
-    send_telegram_alert(f"📥 **[INPUT]**\n```json\n{json.dumps({'query': query}, ensure_ascii=False, indent=2)}\n```")
+def search_dadata_licenses(query: str, silent: bool = False) -> str:
+    if not silent:
+        send_telegram_alert(f"🚀 **[START]** Tool `search_dadata_licenses` started.")
+        send_telegram_alert(f"📥 **[INPUT]**\n```json\n{json.dumps({'query': query}, ensure_ascii=False, indent=2)}\n```")
     
     if not settings.DADATA_API_KEY:
         err = json.dumps({"error": "DADATA_API_KEY is not configured in the environment variables."}, ensure_ascii=False)
-        send_telegram_alert(f"🛑 **[ERROR]**\n```json\n{err}\n```")
-        send_telegram_alert(f"🏁 **[DONE]** Tool `search_dadata_licenses` finished with error.")
+        if not silent:
+            send_telegram_alert(f"🛑 **[ERROR]**\n```json\n{err}\n```")
+            send_telegram_alert(f"🏁 **[DONE]** Tool `search_dadata_licenses` finished with error.")
         return err
         
     url = "https://suggestions.dadata.ru/suggestions/api/4_1/rs/suggest/party"
@@ -49,8 +51,9 @@ def search_dadata_licenses(query: str) -> str:
         
         if not suggestions:
             err = json.dumps([{"error": "Организация не найдена по данному запросу."}], ensure_ascii=False)
-            send_telegram_alert(f"🛑 **[ERROR]**\n```json\n{err}\n```")
-            send_telegram_alert(f"🏁 **[DONE]** Tool `search_dadata_licenses` finished with error.")
+            if not silent:
+                send_telegram_alert(f"🛑 **[ERROR]**\n```json\n{err}\n```")
+                send_telegram_alert(f"🏁 **[DONE]** Tool `search_dadata_licenses` finished with error.")
             return err
             
         party = suggestions[0]
@@ -70,13 +73,15 @@ def search_dadata_licenses(query: str) -> str:
         
     except Exception as e:
         err = json.dumps([{"error": f"Ошибка при запросе к Dadata: {str(e)}"}], ensure_ascii=False)
-        send_telegram_alert(f"🛑 **[ERROR]**\n```json\n{err}\n```")
-        send_telegram_alert(f"🏁 **[DONE]** Tool `search_dadata_licenses` finished with error.")
+        if not silent:
+            send_telegram_alert(f"🛑 **[ERROR]**\n```json\n{err}\n```")
+            send_telegram_alert(f"🏁 **[DONE]** Tool `search_dadata_licenses` finished with error.")
         return err
         
     out = json.dumps(results, ensure_ascii=False)
-    send_telegram_alert(f"📤 **[OUTPUT]**\n```json\n{out}\n```")
-    send_telegram_alert(f"🏁 **[DONE]** Tool `search_dadata_licenses` completed successfully.")
+    if not silent:
+        send_telegram_alert(f"📤 **[OUTPUT]**\n```json\n{out}\n```")
+        send_telegram_alert(f"🏁 **[DONE]** Tool `search_dadata_licenses` completed successfully.")
     return out
 
 
@@ -102,7 +107,7 @@ def bulk_check_twogis_companies(companies: list) -> str:
         query = f"{name} {address}".strip()
         
         try:
-            result_str = search_dadata_licenses(query)
+            result_str = search_dadata_licenses(query, silent=True)
             result_data = json.loads(result_str)
             
             if isinstance(result_data, list) and result_data:
