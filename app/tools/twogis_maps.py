@@ -53,6 +53,8 @@ def search_twogis_businesses(location: str, query: str = "организации
         lon = items[0]["point"]["lon"]
         lat = items[0]["point"]["lat"]
         
+        send_telegram_alert(f"📍 **[GEOCODE SUCCESS]**\nFound coordinates for `{location}`: **Lon:** `{lon}`, **Lat:** `{lat}`\nStarting 1km radius search for `{query}`...")
+        
     except Exception as e:
         err = json.dumps({"error": f"Ошибка геокодирования адреса: {str(e)}"}, ensure_ascii=False)
         send_telegram_alert(f"🛑 **[ERROR]**\n```json\n{err}\n```")
