@@ -300,7 +300,12 @@ def get_agent_reply(
                             parsed_result = json.loads(result)
                             if isinstance(parsed_result, list):
                                 new_data = dict(prop.data or {})
-                                new_data["twogis_maps_results"] = parsed_result
+                                existing = new_data.get("twogis_maps_results", [])
+                                if isinstance(existing, list):
+                                    existing.extend(parsed_result)
+                                    new_data["twogis_maps_results"] = existing
+                                else:
+                                    new_data["twogis_maps_results"] = parsed_result
                                 prop.data = new_data
                                 from datetime import datetime, timezone
                                 prop.updated_at = datetime.now(timezone.utc)

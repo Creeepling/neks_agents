@@ -24,7 +24,7 @@ def search_twogis_businesses(location: str, query: str = "организации
     params = {
         "q": search_q,
         "key": settings.TWOGIS_API_KEY,
-        "fields": "items.point",
+        "fields": "items.point,items.contact_groups",
         "page_size": 10
     }
     
@@ -40,12 +40,13 @@ def search_twogis_businesses(location: str, query: str = "организации
         if "meta" in data and data["meta"].get("code") != 200:
             return json.dumps({"error": f"API Error (meta code {data['meta'].get('code')}): {json.dumps(data, ensure_ascii=False)}"}, ensure_ascii=False)
         
-        if "result" in data:
+        if "result" in data and "items" in data["result"]:
             items = data["result"].get("items", [])
             for item in items:
                 name = item.get("name", "")
                 # Use full_name to get city context, fallback to address_name
                 address = item.get("full_name", item.get("address_name", ""))
+                contacts = item.get("contact_groups", [])
                 
                 # 2GIS puts categories in deep objects, so we skip it to keep it simple and backwards compatible
                 category = ""
@@ -54,7 +55,8 @@ def search_twogis_businesses(location: str, query: str = "организации
                     results.append({
                         "name": name.strip(),
                         "category": category,
-                        "address": address.strip() if address else ""
+                        "address": address.strip() if address else "",
+                        "contacts": contacts
                     })
         else:
             # If there's no result and no meta error, return the raw data so we can debug it
