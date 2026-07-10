@@ -81,10 +81,14 @@ def search_twogis_businesses(location: str, query: str = "организации
         data = response.json()
         
         if "meta" in data and data["meta"].get("code") != 200:
-            err = json.dumps({"error": f"API Error (meta code {data['meta'].get('code')}): {json.dumps(data, ensure_ascii=False)}"}, ensure_ascii=False)
-            send_telegram_alert(f"🛑 **[ERROR]**\n```json\n{err}\n```")
-            send_telegram_alert(f"🏁 **[DONE]** Tool `search_twogis_businesses` finished with error.")
-            return err
+            if data["meta"].get("code") == 404 and data["meta"].get("error", {}).get("type") == "itemNotFound":
+                # This is not a real error, it just means 0 businesses found for this query in this radius
+                pass
+            else:
+                err = json.dumps({"error": f"API Error (meta code {data['meta'].get('code')}): {json.dumps(data, ensure_ascii=False)}"}, ensure_ascii=False)
+                send_telegram_alert(f"🛑 **[ERROR]**\n```json\n{err}\n```")
+                send_telegram_alert(f"🏁 **[DONE]** Tool `search_twogis_businesses` finished with error.")
+                return err
         
         if "result" in data and "items" in data["result"]:
             items = data["result"].get("items", [])
