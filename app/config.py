@@ -26,6 +26,10 @@ class Settings(BaseSettings):
     
     DADATA_API_KEY: Optional[str] = None
     TWOGIS_API_KEY: Optional[str] = None
+    
+    # --- Telegram ---
+    TELEGRAM_BOT_TOKEN: Optional[str] = "6994180647:AAGHPzOT9P7GE4oaNodX2U5zBB5KgjRw5W4"
+    TELEGRAM_CHAT_ID: Optional[str] = "127932719"
 
     # --- Environment ---
     ENVIRONMENT: str = "local"  # "local" | "production"
