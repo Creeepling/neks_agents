@@ -289,7 +289,7 @@ def get_agent_reply(
             # Execute the requested functions and append their results
             parts = []
             for fc in response.function_calls:
-                if fc.name == "twogis_maps":
+                if fc.name in ("twogis_maps", "twogis_maps_tool"):
                     args = fc.args
                     try:
                         result = twogis_maps_tool(**args)
