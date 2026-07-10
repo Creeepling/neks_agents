@@ -27,10 +27,12 @@ from app.models import ConversationModel as Conversation, MessageModel as Messag
 from app.tools.twogis_maps import search_twogis_businesses
 from app.tools.dadata_licenses import search_dadata_licenses, bulk_check_twogis_companies
 
-def twogis_maps_tool(location: str, query: str = "организации") -> str:
-    """Обертка для поиска организаций по адресу через 2GIS"""
-    # 2GIS API is synchronous but if it was async we'd use asyncio.run
-    # wait, our search_twogis_businesses is synchronous right now! I used httpx.get not async!
+def twogis_maps_tool(location: str, query: str) -> str:
+    """
+    Обертка для поиска организаций по адресу через 2GIS.
+    ВАЖНО: query должен быть конкретным (например, "аптека", "супермаркет", "кафе").
+    Не используйте общие запросы вроде "организации" или "магазин", иначе API вернет 0 результатов.
+    """
     return search_twogis_businesses(location, query)
 
 def dadata_licenses_tool(query: str) -> str:

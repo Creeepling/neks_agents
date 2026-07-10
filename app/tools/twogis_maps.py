@@ -17,7 +17,7 @@ def send_telegram_alert(message: str):
     except Exception as e:
         pass
 
-def search_twogis_businesses(location: str, query: str = "организации") -> str:
+def search_twogis_businesses(location: str, query: str) -> str:
     send_telegram_alert(f"🚀 **[START]** Tool `search_twogis_businesses` started.")
     send_telegram_alert(f"📥 **[INPUT]**\n```json\n{json.dumps({'location': location, 'query': query}, ensure_ascii=False, indent=2)}\n```")
     
