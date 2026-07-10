@@ -115,6 +115,11 @@ def search_twogis_businesses(location: str) -> str:
                     if name:
                         name_stripped = name.strip()
                         addr_stripped = address.strip() if address else ""
+                        
+                        # Only include if address contains at least one digit
+                        if not any(char.isdigit() for char in addr_stripped):
+                            continue
+                            
                         unique_key = (name_stripped, addr_stripped)
                         
                         if unique_key not in seen:
@@ -122,8 +127,7 @@ def search_twogis_businesses(location: str) -> str:
                             results.append({
                                 "name": name_stripped,
                                 "category": category,
-                                "address": addr_stripped,
-                                "contacts": contacts
+                                "address": addr_stripped
                             })
             else:
                 break # No items found
