@@ -27,13 +27,12 @@ from app.models import ConversationModel as Conversation, MessageModel as Messag
 from app.tools.twogis_maps import search_twogis_businesses
 from app.tools.dadata_licenses import search_dadata_licenses, bulk_check_twogis_companies
 
-def twogis_maps_tool(location: str, query: str) -> str:
+def twogis_maps_tool(location: str) -> str:
     """
-    Обертка для поиска организаций по адресу через 2GIS.
-    ВАЖНО: query должен быть конкретным (например, "аптека", "супермаркет", "кафе").
-    Не используйте общие запросы вроде "организации" или "магазин", иначе API вернет 0 результатов.
+    Обертка для поиска всех организаций по адресу через 2GIS.
+    Возвращает до 50 ЛЮБЫХ организаций (кафе, аптеки, магазины и т.д.) в радиусе 500м.
     """
-    return search_twogis_businesses(location, query)
+    return search_twogis_businesses(location)
 
 def dadata_licenses_tool(query: str) -> str:
     """
