@@ -27,12 +27,45 @@ def search_twogis_businesses(location: str, query: str = "организации
         send_telegram_alert(f"🏁 **[DONE]** Tool `search_twogis_businesses` finished with error.")
         return err
         
-    url = "https://catalog.api.2gis.com/3.0/items"
-    search_q = f"{query} {location}".strip()
-    
-    params = {
-        "q": search_q,
+    # STEP 1: Geocode the location to get coordinates
+    geocode_url = "https://catalog.api.2gis.com/3.0/items/geocode"
+    geocode_params = {
+        "q": location,
         "key": settings.TWOGIS_API_KEY,
+        "fields": "items.point"
+    }
+    
+    try:
+        geo_response = httpx.get(geocode_url, params=geocode_params, timeout=10.0)
+        geo_response.raise_for_status()
+        geo_data = geo_response.json()
+        
+        if "meta" in geo_data and geo_data["meta"].get("code") != 200:
+            raise Exception(f"Geocode API Error: {geo_data['meta'].get('error', 'Unknown')}")
+            
+        items = geo_data.get("result", {}).get("items", [])
+        if not items or "point" not in items[0]:
+            err = json.dumps({"error": f"Не удалось найти координаты для адреса: {location}"}, ensure_ascii=False)
+            send_telegram_alert(f"🛑 **[ERROR]**\n```json\n{err}\n```")
+            send_telegram_alert(f"🏁 **[DONE]** Tool `search_twogis_businesses` finished with error.")
+            return err
+            
+        lon = items[0]["point"]["lon"]
+        lat = items[0]["point"]["lat"]
+        
+    except Exception as e:
+        err = json.dumps({"error": f"Ошибка геокодирования адреса: {str(e)}"}, ensure_ascii=False)
+        send_telegram_alert(f"🛑 **[ERROR]**\n```json\n{err}\n```")
+        send_telegram_alert(f"🏁 **[DONE]** Tool `search_twogis_businesses` finished with error.")
+        return err
+
+    # STEP 2: Radius search around the coordinates
+    url = "https://catalog.api.2gis.com/3.0/items"
+    params = {
+        "q": query,
+        "key": settings.TWOGIS_API_KEY,
+        "point": f"{lon},{lat}",
+        "radius": 1000, # 1km radius
         "fields": "items.point,items.contact_groups",
         "page_size": 10
     }
@@ -74,10 +107,8 @@ def search_twogis_businesses(location: str, query: str = "организации
                             "contacts": contacts
                         })
         else:
-            err = json.dumps({"error": f"Unexpected API response structure: {json.dumps(data, ensure_ascii=False)}"}, ensure_ascii=False)
-            send_telegram_alert(f"🛑 **[ERROR]**\n```json\n{err}\n```")
-            send_telegram_alert(f"🏁 **[DONE]** Tool `search_twogis_businesses` finished with error.")
-            return err
+            # If no items found, just return empty list (it's not an error, just no businesses in radius)
+            pass
                     
     except httpx.HTTPStatusError as e:
         err = json.dumps({"error": f"Ошибка API 2GIS (статус {e.response.status_code}): {e.response.text}"}, ensure_ascii=False)
