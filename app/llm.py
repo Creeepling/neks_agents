@@ -35,13 +35,13 @@ def twogis_maps_tool(location: str) -> str:
     """
     return search_twogis_businesses(location)
 
-def analyze_location_businesses_tool(location: str) -> str:
+def analyze_location_businesses_tool(city: str, location: str) -> str:
     """
     Единый инструмент для поиска организаций вокруг объекта с помощью 2GIS 
     и последующего обогащения этих организаций данными о лицензиях (Dadata).
     Возвращает JSON с подробной инфраструктурой.
     """
-    return analyze_location_businesses(location)
+    return analyze_location_businesses(city, location)
 
 def dadata_licenses_tool(query: str) -> str:
     """

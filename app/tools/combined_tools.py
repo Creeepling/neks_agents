@@ -2,14 +2,15 @@ import json
 from app.tools.twogis_maps import search_twogis_businesses, send_telegram_alert
 from app.tools.dadata_licenses import search_dadata_licenses
 
-def analyze_location_businesses(location: str) -> str:
+def analyze_location_businesses(city: str, location: str) -> str:
     """
     Finds businesses in a location using 2GIS, limits to top 15, and enriches them with Dadata licenses.
     """
-    send_telegram_alert(f"🚀 **[START]** Tool `analyze_location_businesses` started for: {location}")
+    full_location = f"{city}, {location}".strip(", ")
+    send_telegram_alert(f"🚀 **[START]** Tool `analyze_location_businesses` started for: {full_location}")
     
     # Step 1: Get businesses from 2GIS
-    twogis_result_str = search_twogis_businesses(location)
+    twogis_result_str = search_twogis_businesses(full_location)
     try:
         twogis_data = json.loads(twogis_result_str)
     except Exception as e:
@@ -35,6 +36,15 @@ def analyze_location_businesses(location: str) -> str:
     for business in top_businesses:
         name = business.get("name", "")
         address = business.get("address", "")
+        
+        # Strip marketing descriptors from name (e.g. "INVITRO, медицинская компания" -> "INVITRO")
+        if "," in name:
+            name = name.split(",")[0].strip()
+            
+        # Ensure city is in address for Dadata search
+        if city.lower() not in address.lower():
+            address = f"{city}, {address}".strip(", ")
+            
         query = f"{name} {address}".strip()
         
         if not query:
