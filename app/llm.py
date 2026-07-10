@@ -26,6 +26,7 @@ from app.config import settings
 from app.models import ConversationModel as Conversation, MessageModel as Message
 from app.tools.twogis_maps import search_twogis_businesses
 from app.tools.dadata_licenses import search_dadata_licenses, bulk_check_twogis_companies
+from app.tools.combined_tools import analyze_location_businesses
 
 def twogis_maps_tool(location: str) -> str:
     """
@@ -33,6 +34,14 @@ def twogis_maps_tool(location: str) -> str:
     Возвращает до 50 ЛЮБЫХ организаций (кафе, аптеки, магазины и т.д.) в радиусе 500м.
     """
     return search_twogis_businesses(location)
+
+def analyze_location_businesses_tool(location: str) -> str:
+    """
+    Единый инструмент для поиска организаций вокруг объекта с помощью 2GIS 
+    и последующего обогащения этих организаций данными о лицензиях (Dadata).
+    Возвращает JSON с подробной инфраструктурой.
+    """
+    return analyze_location_businesses(location)
 
 def dadata_licenses_tool(query: str) -> str:
     """
@@ -242,9 +251,8 @@ def get_agent_reply(
     
     AVAILABLE_TOOLS = {
         "google_search": {"google_search": {}},
-        "twogis_maps": twogis_maps_tool,
         "dadata_licenses": dadata_licenses_tool,
-        "bulk_dadata_licenses": bulk_dadata_licenses_tool,
+        "analyze_location_businesses": analyze_location_businesses_tool,
         "match_retail_requirements_tool": match_retail_requirements_tool
     }
     
@@ -290,17 +298,17 @@ def get_agent_reply(
             # Execute the requested functions and append their results
             parts = []
             for fc in response.function_calls:
-                if fc.name in ("twogis_maps", "twogis_maps_tool"):
+                if fc.name in ("analyze_location_businesses", "analyze_location_businesses_tool"):
                     args = fc.args
                     try:
-                        result = twogis_maps_tool(**args)
+                        result = analyze_location_businesses_tool(**args)
                         parts.append(types.Part.from_function_response(name=fc.name, response={"result": result}))
                         
                         # Save result to DB
                         import json
                         from app.tools.twogis_maps import send_telegram_alert
                         try:
-                            send_telegram_alert("[DB-SAVE-STEP 1] Parsing JSON result from twogis_maps_tool...")
+                            send_telegram_alert("[DB-SAVE-STEP 1] Parsing JSON result from analyze_location_businesses_tool...")
                             parsed_result = json.loads(result)
                             send_telegram_alert(f"[DB-SAVE-STEP 2] JSON parsed successfully. Is list: {isinstance(parsed_result, list)}. Length: {len(parsed_result) if isinstance(parsed_result, list) else 'N/A'}")
                             
@@ -309,16 +317,9 @@ def get_agent_reply(
                                 new_data = dict(prop.data or {})
                                 send_telegram_alert(f"[DB-SAVE-STEP 4] Current keys in prop.data: {list(new_data.keys())}")
                                 
-                                existing = new_data.get("twogis_maps_results", [])
-                                send_telegram_alert(f"[DB-SAVE-STEP 5] Retrieved existing 'twogis_maps_results'. Type: {type(existing)}, Length: {len(existing) if isinstance(existing, list) else 'N/A'}")
-                                
-                                if isinstance(existing, list):
-                                    existing.extend(parsed_result)
-                                    new_data["twogis_maps_results"] = existing
-                                    send_telegram_alert(f"[DB-SAVE-STEP 6A] Appended results. New length: {len(existing)}")
-                                else:
-                                    new_data["twogis_maps_results"] = parsed_result
-                                    send_telegram_alert(f"[DB-SAVE-STEP 6B] Overwrote with new results. Length: {len(parsed_result)}")
+                                # Saving to twogis_maps_results to maintain UI compatibility
+                                new_data["twogis_maps_results"] = parsed_result
+                                send_telegram_alert(f"[DB-SAVE-STEP 6] Saved enriched results. Length: {len(parsed_result)}")
                                 
                                 prop.data = new_data
                                 send_telegram_alert("[DB-SAVE-STEP 7] Reassigned updated dictionary back to prop.data.")
@@ -336,76 +337,14 @@ def get_agent_reply(
                                 prop.updated_at = datetime.now(timezone.utc)
                                 repo.update_property(prop)
                         except Exception as db_err:
-                            send_telegram_alert(f"Failed to save 2gis maps results to DB: {db_err}")
+                            send_telegram_alert(f"Failed to save combined tools results to DB: {db_err}")
                             
                     except Exception as e:
                         from app.tools.twogis_maps import send_telegram_alert
-                        send_telegram_alert(f"🛑 **[FATAL CRASH]** Exception between tool execution and DB save for twogis_maps: {type(e).__name__}: {str(e)}")
+                        send_telegram_alert(f"🛑 **[FATAL CRASH]** Exception between tool execution and DB save for analyze_location_businesses: {type(e).__name__}: {str(e)}")
                         parts.append(types.Part.from_function_response(name=fc.name, response={"error": str(e)}))
                         
                 elif fc.name == "dadata_licenses_tool":
-                    args = fc.args
-                    try:
-                        result = dadata_licenses_tool(**args)
-                        parts.append(types.Part.from_function_response(name=fc.name, response={"result": result}))
-                        
-                        import json
-                        try:
-                            parsed_result = json.loads(result)
-                            if isinstance(parsed_result, list):
-                                new_data = dict(prop.data or {})
-                                new_data["dadata_licenses_results"] = parsed_result
-                                prop.data = new_data
-                                from datetime import datetime, timezone
-                                prop.updated_at = datetime.now(timezone.utc)
-                                repo.update_property(prop)
-                            elif isinstance(parsed_result, dict) and "error" in parsed_result:
-                                new_data = dict(prop.data or {})
-                                new_data["dadata_licenses_error"] = parsed_result["error"]
-                                prop.data = new_data
-                                from datetime import datetime, timezone
-                                prop.updated_at = datetime.now(timezone.utc)
-                                repo.update_property(prop)
-                        except Exception as db_err:
-                            print(f"Failed to save dadata licenses results to DB: {db_err}")
-                            
-                    except Exception as e:
-                        parts.append(types.Part.from_function_response(name=fc.name, response={"error": str(e)}))
-                        
-                elif fc.name == "bulk_dadata_licenses_tool":
-                    try:
-                        twogis_results = prop.data.get("twogis_maps_results", [])
-                        if not twogis_results:
-                            parts.append(types.Part.from_function_response(name=fc.name, response={"error": "No 2GIS maps results found in the database. Run the Maps tool first."}))
-                            continue
-                            
-                        result = bulk_check_twogis_companies(twogis_results)
-                        parts.append(types.Part.from_function_response(name=fc.name, response={"result": result}))
-                        
-                        import json
-                        try:
-                            parsed_result = json.loads(result)
-                            if isinstance(parsed_result, list):
-                                new_data = dict(prop.data or {})
-                                new_data["dadata_licenses_results"] = parsed_result
-                                prop.data = new_data
-                                from datetime import datetime, timezone
-                                prop.updated_at = datetime.now(timezone.utc)
-                                repo.update_property(prop)
-                            elif isinstance(parsed_result, dict) and "error" in parsed_result:
-                                new_data = dict(prop.data or {})
-                                new_data["bulk_dadata_licenses_error"] = parsed_result["error"]
-                                prop.data = new_data
-                                from datetime import datetime, timezone
-                                prop.updated_at = datetime.now(timezone.utc)
-                                repo.update_property(prop)
-                        except Exception as db_err:
-                            print(f"Failed to save bulk dadata licenses results to DB: {db_err}")
-                            
-                    except Exception as e:
-                        parts.append(types.Part.from_function_response(name=fc.name, response={"error": str(e)}))
-                        
-                elif fc.name == "match_retail_requirements_tool":
                     args = fc.args
                     try:
                         result = match_retail_requirements_tool(**args)
