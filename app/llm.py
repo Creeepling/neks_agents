@@ -297,35 +297,36 @@ def get_agent_reply(
                         
                         # Save result to DB
                         import json
+                        from app.tools.twogis_maps import send_telegram_alert
                         try:
-                            print("[DB-SAVE-STEP 1] Parsing JSON result from twogis_maps_tool...")
+                            send_telegram_alert("[DB-SAVE-STEP 1] Parsing JSON result from twogis_maps_tool...")
                             parsed_result = json.loads(result)
-                            print(f"[DB-SAVE-STEP 2] JSON parsed successfully. Is list: {isinstance(parsed_result, list)}. Length: {len(parsed_result) if isinstance(parsed_result, list) else 'N/A'}")
+                            send_telegram_alert(f"[DB-SAVE-STEP 2] JSON parsed successfully. Is list: {isinstance(parsed_result, list)}. Length: {len(parsed_result) if isinstance(parsed_result, list) else 'N/A'}")
                             
                             if isinstance(parsed_result, list):
-                                print("[DB-SAVE-STEP 3] Fetching existing property data...")
+                                send_telegram_alert("[DB-SAVE-STEP 3] Fetching existing property data...")
                                 new_data = dict(prop.data or {})
-                                print(f"[DB-SAVE-STEP 4] Current keys in prop.data: {list(new_data.keys())}")
+                                send_telegram_alert(f"[DB-SAVE-STEP 4] Current keys in prop.data: {list(new_data.keys())}")
                                 
                                 existing = new_data.get("twogis_maps_results", [])
-                                print(f"[DB-SAVE-STEP 5] Retrieved existing 'twogis_maps_results'. Type: {type(existing)}, Length: {len(existing) if isinstance(existing, list) else 'N/A'}")
+                                send_telegram_alert(f"[DB-SAVE-STEP 5] Retrieved existing 'twogis_maps_results'. Type: {type(existing)}, Length: {len(existing) if isinstance(existing, list) else 'N/A'}")
                                 
                                 if isinstance(existing, list):
                                     existing.extend(parsed_result)
                                     new_data["twogis_maps_results"] = existing
-                                    print(f"[DB-SAVE-STEP 6A] Appended results. New length: {len(existing)}")
+                                    send_telegram_alert(f"[DB-SAVE-STEP 6A] Appended results. New length: {len(existing)}")
                                 else:
                                     new_data["twogis_maps_results"] = parsed_result
-                                    print(f"[DB-SAVE-STEP 6B] Overwrote with new results. Length: {len(parsed_result)}")
+                                    send_telegram_alert(f"[DB-SAVE-STEP 6B] Overwrote with new results. Length: {len(parsed_result)}")
                                 
                                 prop.data = new_data
-                                print("[DB-SAVE-STEP 7] Reassigned updated dictionary back to prop.data.")
+                                send_telegram_alert("[DB-SAVE-STEP 7] Reassigned updated dictionary back to prop.data.")
                                 
                                 from datetime import datetime, timezone
                                 prop.updated_at = datetime.now(timezone.utc)
-                                print("[DB-SAVE-STEP 8] Committing to Firestore via repo.update_property(prop)...")
+                                send_telegram_alert("[DB-SAVE-STEP 8] Committing to Firestore via repo.update_property(prop)...")
                                 repo.update_property(prop)
-                                print("[DB-SAVE-STEP 9] SUCCESS! Property updated in Firestore.")
+                                send_telegram_alert("[DB-SAVE-STEP 9] SUCCESS! Property updated in Firestore.")
                             elif isinstance(parsed_result, dict) and "error" in parsed_result:
                                 new_data = dict(prop.data or {})
                                 new_data["twogis_maps_error"] = parsed_result["error"]
@@ -334,7 +335,7 @@ def get_agent_reply(
                                 prop.updated_at = datetime.now(timezone.utc)
                                 repo.update_property(prop)
                         except Exception as db_err:
-                            print(f"Failed to save 2gis maps results to DB: {db_err}")
+                            send_telegram_alert(f"Failed to save 2gis maps results to DB: {db_err}")
                             
                     except Exception as e:
                         parts.append(types.Part.from_function_response(name=fc.name, response={"error": str(e)}))
