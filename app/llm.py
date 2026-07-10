@@ -338,6 +338,8 @@ def get_agent_reply(
                             send_telegram_alert(f"Failed to save 2gis maps results to DB: {db_err}")
                             
                     except Exception as e:
+                        from app.tools.twogis_maps import send_telegram_alert
+                        send_telegram_alert(f"🛑 **[FATAL CRASH]** Exception between tool execution and DB save for twogis_maps: {type(e).__name__}: {str(e)}")
                         parts.append(types.Part.from_function_response(name=fc.name, response={"error": str(e)}))
                         
                 elif fc.name == "dadata_licenses_tool":
