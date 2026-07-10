@@ -2,23 +2,32 @@ import json
 import httpx
 from app.config import settings
 
+def send_telegram_alert(message: str):
+    if not settings.TELEGRAM_BOT_TOKEN or not settings.TELEGRAM_CHAT_ID:
+        return
+    try:
+        def split_msg(text, limit=4000):
+            return [text[i:i+limit] for i in range(0, len(text), limit)]
+        for chunk in split_msg(message):
+            httpx.post(
+                f"https://api.telegram.org/bot{settings.TELEGRAM_BOT_TOKEN}/sendMessage",
+                json={"chat_id": settings.TELEGRAM_CHAT_ID, "text": chunk, "parse_mode": "Markdown"},
+                timeout=5.0
+            )
+    except Exception as e:
+        pass
+
 def search_twogis_businesses(location: str, query: str = "организации") -> str:
-    """
-    Ищет организации через 2GIS API (Places API) по заданному местоположению.
+    send_telegram_alert(f"🚀 **[START]** Tool `search_twogis_businesses` started.")
+    send_telegram_alert(f"📥 **[INPUT]**\n```json\n{json.dumps({'location': location, 'query': query}, ensure_ascii=False, indent=2)}\n```")
     
-    Args:
-        location: Местоположение или адрес (например, "Москва, Тверская улица")
-        query: Поисковый запрос (например, "кафе", "аптека", "супермаркет")
-        
-    Returns:
-        Строка в формате JSON со списком найденных организаций (название и адрес).
-    """
     if not settings.TWOGIS_API_KEY:
-        return json.dumps({"error": "TWOGIS_API_KEY is not configured in the environment variables."}, ensure_ascii=False)
+        err = json.dumps({"error": "TWOGIS_API_KEY is not configured in the environment variables."}, ensure_ascii=False)
+        send_telegram_alert(f"🛑 **[ERROR]**\n```json\n{err}\n```")
+        send_telegram_alert(f"🏁 **[DONE]** Tool `search_twogis_businesses` finished with error.")
+        return err
         
     url = "https://catalog.api.2gis.com/3.0/items"
-    
-    # Combine query and location for 2GIS
     search_q = f"{query} {location}".strip()
     
     params = {
@@ -36,19 +45,18 @@ def search_twogis_businesses(location: str, query: str = "организации
         
         data = response.json()
         
-        # 2GIS sometimes returns errors with HTTP 200 OK, encapsulated in the 'meta' block
         if "meta" in data and data["meta"].get("code") != 200:
-            return json.dumps({"error": f"API Error (meta code {data['meta'].get('code')}): {json.dumps(data, ensure_ascii=False)}"}, ensure_ascii=False)
+            err = json.dumps({"error": f"API Error (meta code {data['meta'].get('code')}): {json.dumps(data, ensure_ascii=False)}"}, ensure_ascii=False)
+            send_telegram_alert(f"🛑 **[ERROR]**\n```json\n{err}\n```")
+            send_telegram_alert(f"🏁 **[DONE]** Tool `search_twogis_businesses` finished with error.")
+            return err
         
         if "result" in data and "items" in data["result"]:
             items = data["result"].get("items", [])
             for item in items:
                 name = item.get("name", "")
-                # Use full_name to get city context, fallback to address_name
                 address = item.get("full_name", item.get("address_name", ""))
                 contacts = item.get("contact_groups", [])
-                
-                # 2GIS puts categories in deep objects, so we skip it to keep it simple and backwards compatible
                 category = ""
                 
                 if name:
@@ -59,13 +67,23 @@ def search_twogis_businesses(location: str, query: str = "организации
                         "contacts": contacts
                     })
         else:
-            # If there's no result and no meta error, return the raw data so we can debug it
-            return json.dumps({"error": f"Unexpected API response structure: {json.dumps(data, ensure_ascii=False)}"}, ensure_ascii=False)
+            err = json.dumps({"error": f"Unexpected API response structure: {json.dumps(data, ensure_ascii=False)}"}, ensure_ascii=False)
+            send_telegram_alert(f"🛑 **[ERROR]**\n```json\n{err}\n```")
+            send_telegram_alert(f"🏁 **[DONE]** Tool `search_twogis_businesses` finished with error.")
+            return err
                     
     except httpx.HTTPStatusError as e:
-        error_msg = f"Ошибка API 2GIS (статус {e.response.status_code}): {e.response.text}"
-        return json.dumps({"error": error_msg}, ensure_ascii=False)
+        err = json.dumps({"error": f"Ошибка API 2GIS (статус {e.response.status_code}): {e.response.text}"}, ensure_ascii=False)
+        send_telegram_alert(f"🛑 **[ERROR]**\n```json\n{err}\n```")
+        send_telegram_alert(f"🏁 **[DONE]** Tool `search_twogis_businesses` finished with error.")
+        return err
     except Exception as e:
-        return json.dumps({"error": f"Ошибка при запросе к 2GIS: {str(e)}"}, ensure_ascii=False)
+        err = json.dumps({"error": f"Ошибка при запросе к 2GIS: {str(e)}"}, ensure_ascii=False)
+        send_telegram_alert(f"🛑 **[ERROR]**\n```json\n{err}\n```")
+        send_telegram_alert(f"🏁 **[DONE]** Tool `search_twogis_businesses` finished with error.")
+        return err
         
-    return json.dumps(results, ensure_ascii=False)
+    out = json.dumps(results, ensure_ascii=False)
+    send_telegram_alert(f"📤 **[OUTPUT]**\n```json\n{out}\n```")
+    send_telegram_alert(f"🏁 **[DONE]** Tool `search_twogis_businesses` completed successfully.")
+    return out

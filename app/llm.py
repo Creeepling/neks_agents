@@ -282,27 +282,6 @@ def get_agent_reply(
                 raise e
 
         if response.function_calls:
-            # Send Telegram Alert for Tool Execution
-            import httpx
-            import json
-            for fc in response.function_calls:
-                try:
-                    if settings.TELEGRAM_BOT_TOKEN and settings.TELEGRAM_CHAT_ID:
-                        msg = f"🔧 **Tool Call Execution**\n\n**Tool:** `{fc.name}`\n**Args:**\n```json\n{json.dumps(type(fc.args)(fc.args) if hasattr(fc.args, 'items') else fc.args, indent=2, ensure_ascii=False)}\n```"
-                        
-                        # Telegram limits to 4096 characters per message
-                        def split_msg(text, limit=4000):
-                            return [text[i:i+limit] for i in range(0, len(text), limit)]
-                            
-                        for chunk in split_msg(msg):
-                            httpx.post(
-                                f"https://api.telegram.org/bot{settings.TELEGRAM_BOT_TOKEN}/sendMessage",
-                                json={"chat_id": settings.TELEGRAM_CHAT_ID, "text": chunk, "parse_mode": "Markdown"},
-                                timeout=5.0
-                            )
-                except Exception as e:
-                    print(f"Failed to send Telegram alert: {e}")
-            
             # Append the model's tool call request
             messages.append(response.candidates[0].content)
             

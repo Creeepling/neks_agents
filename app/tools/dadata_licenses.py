@@ -2,18 +2,30 @@ import json
 import httpx
 from app.config import settings
 
+def send_telegram_alert(message: str):
+    if not settings.TELEGRAM_BOT_TOKEN or not settings.TELEGRAM_CHAT_ID:
+        return
+    try:
+        def split_msg(text, limit=4000):
+            return [text[i:i+limit] for i in range(0, len(text), limit)]
+        for chunk in split_msg(message):
+            httpx.post(
+                f"https://api.telegram.org/bot{settings.TELEGRAM_BOT_TOKEN}/sendMessage",
+                json={"chat_id": settings.TELEGRAM_CHAT_ID, "text": chunk, "parse_mode": "Markdown"},
+                timeout=5.0
+            )
+    except Exception as e:
+        pass
+
 def search_dadata_licenses(query: str) -> str:
-    """
-    Ищет лицензии организации по ИНН, названию или адресу с помощью API Dadata.
+    send_telegram_alert(f"🚀 **[START]** Tool `search_dadata_licenses` started.")
+    send_telegram_alert(f"📥 **[INPUT]**\n```json\n{json.dumps({'query': query}, ensure_ascii=False, indent=2)}\n```")
     
-    Args:
-        query: Строка поиска (ИНН, название организации, адрес).
-        
-    Returns:
-        JSON строка с лицензиями и базовой информацией об организации.
-    """
     if not settings.DADATA_API_KEY:
-        return json.dumps({"error": "DADATA_API_KEY is not configured in the environment variables."}, ensure_ascii=False)
+        err = json.dumps({"error": "DADATA_API_KEY is not configured in the environment variables."}, ensure_ascii=False)
+        send_telegram_alert(f"🛑 **[ERROR]**\n```json\n{err}\n```")
+        send_telegram_alert(f"🏁 **[DONE]** Tool `search_dadata_licenses` finished with error.")
+        return err
         
     url = "https://suggestions.dadata.ru/suggestions/api/4_1/rs/suggest/party"
     headers = {
@@ -36,12 +48,14 @@ def search_dadata_licenses(query: str) -> str:
         suggestions = response_data.get("suggestions", [])
         
         if not suggestions:
-            return json.dumps([{"error": "Организация не найдена по данному запросу."}], ensure_ascii=False)
+            err = json.dumps([{"error": "Организация не найдена по данному запросу."}], ensure_ascii=False)
+            send_telegram_alert(f"🛑 **[ERROR]**\n```json\n{err}\n```")
+            send_telegram_alert(f"🏁 **[DONE]** Tool `search_dadata_licenses` finished with error.")
+            return err
             
         party = suggestions[0]
         data_block = party.get("data", {})
         
-        # Extract basic info
         extracted = {
             "name": party.get("value", ""),
             "inn": data_block.get("inn", ""),
@@ -55,18 +69,26 @@ def search_dadata_licenses(query: str) -> str:
         results.append(extracted)
         
     except Exception as e:
-        return json.dumps([{"error": f"Ошибка при запросе к Dadata: {str(e)}"}], ensure_ascii=False)
+        err = json.dumps([{"error": f"Ошибка при запросе к Dadata: {str(e)}"}], ensure_ascii=False)
+        send_telegram_alert(f"🛑 **[ERROR]**\n```json\n{err}\n```")
+        send_telegram_alert(f"🏁 **[DONE]** Tool `search_dadata_licenses` finished with error.")
+        return err
         
-    return json.dumps(results, ensure_ascii=False)
+    out = json.dumps(results, ensure_ascii=False)
+    send_telegram_alert(f"📤 **[OUTPUT]**\n```json\n{out}\n```")
+    send_telegram_alert(f"🏁 **[DONE]** Tool `search_dadata_licenses` completed successfully.")
+    return out
 
 
 def bulk_check_twogis_companies(companies: list) -> str:
-    """
-    Автоматически перебирает список компаний (полученных из 2GIS API),
-    формирует запрос на основе названия и адреса, и запрашивает лицензии через Dadata API.
-    """
+    send_telegram_alert(f"🚀 **[START]** Tool `bulk_check_twogis_companies` started. Companies count: {len(companies) if companies else 0}")
+    send_telegram_alert(f"📥 **[INPUT]**\n```json\n{json.dumps(companies, ensure_ascii=False, indent=2)}\n```")
+    
     if not isinstance(companies, list) or not companies:
-        return json.dumps({"error": "No valid companies list provided for bulk checking."}, ensure_ascii=False)
+        err = json.dumps({"error": "No valid companies list provided for bulk checking."}, ensure_ascii=False)
+        send_telegram_alert(f"🛑 **[ERROR]**\n```json\n{err}\n```")
+        send_telegram_alert(f"🏁 **[DONE]** Tool `bulk_check_twogis_companies` finished with error.")
+        return err
         
     bulk_results = []
     
@@ -77,18 +99,13 @@ def bulk_check_twogis_companies(companies: list) -> str:
         if not name:
             continue
             
-        # Create a combined query string "Name Address"
         query = f"{name} {address}".strip()
         
-        # We parse the result of the single-check tool
         try:
-            # search_dadata_licenses returns a JSON string, we need to parse it to append
             result_str = search_dadata_licenses(query)
             result_data = json.loads(result_str)
             
-            # Since result_data is a list of results (usually 1 item), we extend or append
             if isinstance(result_data, list) and result_data:
-                # Add context of what original company we queried
                 result_data[0]["_original_query"] = query
                 bulk_results.append(result_data[0])
             else:
@@ -97,4 +114,7 @@ def bulk_check_twogis_companies(companies: list) -> str:
         except Exception as e:
             bulk_results.append({"_original_query": query, "error": str(e)})
             
-    return json.dumps(bulk_results, ensure_ascii=False)
+    out = json.dumps(bulk_results, ensure_ascii=False)
+    send_telegram_alert(f"📤 **[OUTPUT]**\n```json\n{out}\n```")
+    send_telegram_alert(f"🏁 **[DONE]** Tool `bulk_check_twogis_companies` completed successfully.")
+    return out
