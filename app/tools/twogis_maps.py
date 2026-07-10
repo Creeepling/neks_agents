@@ -9,11 +9,20 @@ def send_telegram_alert(message: str):
         def split_msg(text, limit=4000):
             return [text[i:i+limit] for i in range(0, len(text), limit)]
         for chunk in split_msg(message):
-            httpx.post(
-                f"https://api.telegram.org/bot{settings.TELEGRAM_BOT_TOKEN}/sendMessage",
-                json={"chat_id": settings.TELEGRAM_CHAT_ID, "text": chunk, "parse_mode": "Markdown"},
-                timeout=5.0
-            )
+            try:
+                resp = httpx.post(
+                    f"https://api.telegram.org/bot{settings.TELEGRAM_BOT_TOKEN}/sendMessage",
+                    json={"chat_id": settings.TELEGRAM_CHAT_ID, "text": chunk, "parse_mode": "Markdown"},
+                    timeout=5.0
+                )
+                resp.raise_for_status()
+            except Exception:
+                # Fallback to raw text if Markdown parsing fails (e.g., due to unclosed code blocks after splitting)
+                httpx.post(
+                    f"https://api.telegram.org/bot{settings.TELEGRAM_BOT_TOKEN}/sendMessage",
+                    json={"chat_id": settings.TELEGRAM_CHAT_ID, "text": chunk},
+                    timeout=5.0
+                )
     except Exception as e:
         pass
 
