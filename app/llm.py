@@ -259,6 +259,7 @@ def get_agent_reply(
             function_calling_config=types.FunctionCallingConfig(mode="AUTO"),
             include_server_side_tool_invocations=True
         )
+        config_kwargs["automatic_function_calling"] = types.AutomaticFunctionCallingConfig(disable=True)
         
     if use_thinking:
         config_kwargs["thinking_config"] = types.ThinkingConfig(thinking_budget=4096)
