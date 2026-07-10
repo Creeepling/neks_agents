@@ -244,7 +244,7 @@ def get_agent_reply(
         "google_search": {"google_search": {}},
         "twogis_maps": twogis_maps_tool,
         "dadata_licenses": dadata_licenses_tool,
-        "bulk_dadata_licenses_tool": bulk_dadata_licenses_tool,
+        "bulk_dadata_licenses": bulk_dadata_licenses_tool,
         "match_retail_requirements_tool": match_retail_requirements_tool
     }
     
