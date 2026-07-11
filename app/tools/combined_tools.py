@@ -28,12 +28,8 @@ def analyze_location_businesses(city: str, location: str) -> str:
     if not isinstance(twogis_data, list):
         twogis_data = []
 
-    # Step 2: Slice to top 15
-    top_businesses = twogis_data[:15]
-    send_telegram_alert(f"ℹ️ **[INFO]** Found {len(twogis_data)} businesses, slicing to top {len(top_businesses)} for license enrichment.")
-
-    # Step 3: Clean and standardize data
-    for business in top_businesses:
+    # Step 3: Clean data and infer licenses
+    for business in twogis_data:
         name = business.get("name", "")
         address = business.get("address", "")
         
@@ -43,30 +39,32 @@ def analyze_location_businesses(city: str, location: str) -> str:
             business["name"] = parts[0].strip()
             business["category"] = parts[1].strip()
             
-        # Ensure city is in address for Dadata search
+        category_lower = business.get("category", "").lower()
+        name_lower = business.get("name", "").lower()
+        search_string = f"{category_lower} {name_lower}"
+        
+        licenses = []
+        
+        # Infer Educational License
+        if any(keyword in search_string for keyword in ["школ", "детск", "лицей", "гимнази", "университет", "институт", "колледж", "образоват"]):
+            licenses.append("ОБРАЗОВАТЕЛЬНАЯ ДЕЯТЕЛЬНОСТЬ")
+            
+        # Infer Medical License
+        if any(keyword in search_string for keyword in ["медицин", "аптек", "клиник", "больниц", "поликлиник", "стоматолог"]):
+            licenses.append("МЕДИЦИНСКАЯ ДЕЯТЕЛЬНОСТЬ")
+            
+        # Infer Alcohol License (or presence of alcohol sales)
+        if any(keyword in search_string for keyword in ["супермаркет", "алкомаркет", "бар", "ресторан", "кафе", "пиво", "вин", "гипермаркет"]):
+            licenses.append("АЛКОГОЛЬНАЯ ПРОДУКЦИЯ")
+            
+        business["licenses"] = licenses
+            
+        # Ensure city is in address for consistency
         if city.lower() not in address.lower():
             business["address"] = f"{city}, {address}".strip(", ")
             
-    # Step 4: Enrich with Dadata licenses using the bulk tool
-    from app.tools.dadata_licenses import bulk_check_twogis_companies
-    
-    try:
-        bulk_result_str = bulk_check_twogis_companies(top_businesses, silent=True)
-        bulk_results = json.loads(bulk_result_str)
-        
-        # Merge licenses back into top_businesses
-        for i, business in enumerate(top_businesses):
-            if i < len(bulk_results):
-                dadata_match = bulk_results[i]
-                business["licenses"] = dadata_match.get("licenses", [])
-            else:
-                business["licenses"] = []
-    except Exception as e:
-        for business in top_businesses:
-            business["licenses"] = []
-            
-    # Step 5: Return enriched list
-    out = json.dumps(top_businesses, ensure_ascii=False)
+    # Step 4: Return fully enriched list without slicing length
+    out = json.dumps(twogis_data, ensure_ascii=False)
     send_telegram_alert(f"📤 **[OUTPUT]**\n```json\n{out}\n```")
     send_telegram_alert(f"🏁 **[DONE]** Tool `analyze_location_businesses` completed successfully.")
     
