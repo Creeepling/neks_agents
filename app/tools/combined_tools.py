@@ -48,6 +48,7 @@ def analyze_location_businesses(city: str, location: str) -> str:
         # Ensure city is in address for Dadata search
         if city.lower() not in address.lower():
             address = f"{city}, {address}".strip(", ")
+            business["address"] = address
             
         query = f"{name} {address}".strip()
         
