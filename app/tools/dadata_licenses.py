@@ -85,14 +85,16 @@ def search_dadata_licenses(query: str, silent: bool = False) -> str:
     return out
 
 
-def bulk_check_twogis_companies(companies: list) -> str:
-    send_telegram_alert(f"🚀 **[START]** Tool `bulk_check_twogis_companies` started. Companies count: {len(companies) if companies else 0}")
-    send_telegram_alert(f"📥 **[INPUT]**\n```json\n{json.dumps(companies, ensure_ascii=False, indent=2)}\n```")
+def bulk_check_twogis_companies(companies: list, silent: bool = False) -> str:
+    if not silent:
+        send_telegram_alert(f"🚀 **[START]** Tool `bulk_check_twogis_companies` started. Companies count: {len(companies) if companies else 0}")
+        send_telegram_alert(f"📥 **[INPUT]**\n```json\n{json.dumps(companies, ensure_ascii=False, indent=2)}\n```")
     
     if not isinstance(companies, list) or not companies:
         err = json.dumps({"error": "No valid companies list provided for bulk checking."}, ensure_ascii=False)
-        send_telegram_alert(f"🛑 **[ERROR]**\n```json\n{err}\n```")
-        send_telegram_alert(f"🏁 **[DONE]** Tool `bulk_check_twogis_companies` finished with error.")
+        if not silent:
+            send_telegram_alert(f"🛑 **[ERROR]**\n```json\n{err}\n```")
+            send_telegram_alert(f"🏁 **[DONE]** Tool `bulk_check_twogis_companies` finished with error.")
         return err
         
     bulk_results = []
@@ -120,6 +122,7 @@ def bulk_check_twogis_companies(companies: list) -> str:
             bulk_results.append({"_original_query": query, "error": str(e)})
             
     out = json.dumps(bulk_results, ensure_ascii=False)
-    send_telegram_alert(f"📤 **[OUTPUT]**\n```json\n{out}\n```")
-    send_telegram_alert(f"🏁 **[DONE]** Tool `bulk_check_twogis_companies` completed successfully.")
+    if not silent:
+        send_telegram_alert(f"📤 **[OUTPUT]**\n```json\n{out}\n```")
+        send_telegram_alert(f"🏁 **[DONE]** Tool `bulk_check_twogis_companies` completed successfully.")
     return out

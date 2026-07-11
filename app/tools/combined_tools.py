@@ -32,7 +32,7 @@ def analyze_location_businesses(city: str, location: str) -> str:
     top_businesses = twogis_data[:15]
     send_telegram_alert(f"ℹ️ **[INFO]** Found {len(twogis_data)} businesses, slicing to top {len(top_businesses)} for license enrichment.")
 
-    # Step 3: Enrich with Dadata licenses
+    # Step 3: Clean and standardize data
     for business in top_businesses:
         name = business.get("name", "")
         address = business.get("address", "")
@@ -42,32 +42,30 @@ def analyze_location_businesses(city: str, location: str) -> str:
             parts = name.split(",", 1)
             business["name"] = parts[0].strip()
             business["category"] = parts[1].strip()
-            name = business["name"]  # Use the clean name for Dadata
-            
             
         # Ensure city is in address for Dadata search
         if city.lower() not in address.lower():
-            address = f"{city}, {address}".strip(", ")
-            business["address"] = address
+            business["address"] = f"{city}, {address}".strip(", ")
             
-        query = f"{name} {address}".strip()
+    # Step 4: Enrich with Dadata licenses using the bulk tool
+    from app.tools.dadata_licenses import bulk_check_twogis_companies
+    
+    try:
+        bulk_result_str = bulk_check_twogis_companies(top_businesses, silent=True)
+        bulk_results = json.loads(bulk_result_str)
         
-        if not query:
-            business["licenses"] = []
-            continue
-            
-        try:
-            dadata_result_str = search_dadata_licenses(query, silent=True)
-            dadata_result = json.loads(dadata_result_str)
-            
-            if isinstance(dadata_result, list) and dadata_result:
-                business["licenses"] = dadata_result[0].get("licenses", [])
+        # Merge licenses back into top_businesses
+        for i, business in enumerate(top_businesses):
+            if i < len(bulk_results):
+                dadata_match = bulk_results[i]
+                business["licenses"] = dadata_match.get("licenses", [])
             else:
                 business["licenses"] = []
-        except Exception as e:
+    except Exception as e:
+        for business in top_businesses:
             business["licenses"] = []
             
-    # Step 4: Return enriched list
+    # Step 5: Return enriched list
     out = json.dumps(top_businesses, ensure_ascii=False)
     send_telegram_alert(f"📤 **[OUTPUT]**\n```json\n{out}\n```")
     send_telegram_alert(f"🏁 **[DONE]** Tool `analyze_location_businesses` completed successfully.")
