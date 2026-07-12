@@ -126,8 +126,35 @@ step_2_object_location:
       type: "string"
       description: "Детальный SWOT-анализ локации и объекта"
 
-step_3_concept_developer:
-  title: "Агент 3: Разработчик концепций объекта"
+step_3_offers_analyzer:
+  title: "Агент 3: Аналитик предложений (Cian & Avito)"
+  available_tools: ["google_search"]
+  description: "Анализ предложений и цен на cian и avito в локации."
+  first_user_message: |
+    Проанализируй актуальные предложения и цены на коммерческую недвижимость в указанной локации с помощью поиска по площадкам Cian и Avito.
+    Оцени среднюю стоимость квадратного метра на продажу и ставки аренды.
+    Сформируй отчет по ценообразованию и доступным предложениям.
+  required_fields: 
+    - city_name
+    - exact_location
+  system_prompt: |
+    Ты — аналитик рынка недвижимости, специализирующийся на сборе данных о ценах.
+    Твоя задача — анализировать предложения конкурентов и рыночные цены (продажа/аренда) на Cian и Avito.
+    Оперируй фактами, собирай средние ставки и стоимость.
+    Если cian и avito дают пустые результаты - ОБЯЗАТЕЛЬНО сообщи об этом пользователю.
+  extraction_schema:
+    average_rent_rate:
+      type: "string"
+      description: "Средняя арендная ставка"
+    average_sale_price:
+      type: "string"
+      description: "Средняя цена продажи"
+    market_offers_summary:
+      type: "string"
+      description: "Краткое резюме предложений на рынке"
+
+step_4_concept_developer:
+  title: "Агент 4: Разработчик концепций объекта"
   available_tools: ["google_search"]
   description: "Разработка концепции наилучшего использования объекта (Best and Highest Use)."
   first_user_message: |
@@ -194,8 +221,8 @@ step_3_concept_developer:
             type: "string"
             description: "Сроки реализации"
 
-step_4_tenant_mix:
-  title: "Агент 4: Tenant mix builder"
+step_5_tenant_mix:
+  title: "Агент 5: Tenant mix builder"
   available_tools: ["google_search", "match_retail_requirements_tool"]
   description: "Подбор оптимального состава арендаторов для утвержденной концепции."
   first_user_message: |
