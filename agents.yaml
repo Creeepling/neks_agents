@@ -246,19 +246,20 @@ step_5_tenant_mix:
   extraction_schema:
     finalized_concepts:
       type: "list"
-      items: "object"
       description: "Список финализированных концепций"
-      properties:
-        name:
-          type: "string"
-          description: "Название концепции"
-        description:
-          type: "string"
-          description: "Описание концепции"
-        proposed_tenants:
-          type: "list"
-          items: "string"
-          description: "Краткий список названий брендов или форматов предлагаемых арендаторов"
-        comprehensive_tenant_strategy:
-          type: "string"
-          description: "Максимально подробное описание стратегии арендаторов, включая обоснования, комментарии по форматам, рекомендации по площади и ставкам, без сокращений. Пиши развернуто."
+      items:
+        type: "object"
+        properties:
+          name:
+            type: "string"
+            description: "Название концепции"
+          description:
+            type: "string"
+            description: "Описание концепции"
+          proposed_tenants:
+            type: "list"
+            items: "string"
+            description: "Краткий список названий брендов или форматов предлагаемых арендаторов"
+          comprehensive_tenant_strategy:
+            type: "string"
+            description: "Максимально подробное описание стратегии арендаторов, включая обоснования, комментарии по форматам, рекомендации по площади и ставкам, без сокращений. Пиши развернуто."
