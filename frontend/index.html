@@ -808,14 +808,26 @@
       font-size: 10px;
       font-weight: 700;
     }    .expandable-content {
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
+      max-height: 3.2em; /* roughly 2 lines of text */
       overflow: hidden;
-      transition: max-height 0.3s;
+      position: relative;
+      transition: max-height 0.3s ease;
+    }
+    .expandable-content::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 1.5em;
+      background: linear-gradient(to bottom, transparent, var(--bg-primary));
+      pointer-events: none;
     }
     .expandable-content.expanded {
-      -webkit-line-clamp: unset;
+      max-height: 5000px; /* arbitrary large height for transition */
+    }
+    .expandable-content.expanded::after {
+      display: none;
     }
     .expand-btn {
       display: none;
@@ -1572,12 +1584,7 @@ function formatDataValue(val) {
   } else if (typeof val === 'object' && val !== null) {
     return escHtml(JSON.stringify(val));
   }
-  
-  // Wrap simple values in the expandable structure
-  return `<div class="data-value-wrapper" style="width: 100%;">
-            <div class="expandable-content">${escHtml(String(val))}</div>
-            <button class="expand-btn" onclick="toggleExpand(this)">Развернуть</button>
-          </div>`;
+  return escHtml(String(val));
 }
 
 function renderDetailContent() {
@@ -1597,7 +1604,10 @@ function renderDetailContent() {
     : dataKeys.map(k => {
         return `<div class="data-row">
           <div class="data-key" style="font-weight:600;">${escHtml(DISPLAY_LABELS[k] || String(k))}</div>
-          <div class="data-value" style="width:100%;">${formatDataValue(data[k])}</div>
+          <div class="data-value-wrapper" style="width: 100%;">
+            <div class="data-value expandable-content">${formatDataValue(data[k])}</div>
+            <button class="expand-btn" onclick="toggleExpand(this)">Развернуть</button>
+          </div>
         </div>`;
       }).join('');
 
