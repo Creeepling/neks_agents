@@ -62,30 +62,42 @@ def match_retail_requirements_tool(area_sqm: float, power_kw: float) -> str:
     Ищет подходящих ритейлеров (арендаторов) в базе данных Firestore 
     на основе площади (кв.м) и электрической мощности (кВт) объекта.
     """
+    from app.tools.twogis_maps import send_telegram_alert
     import json
     from google.cloud import firestore
     
-    db = firestore.Client(project=settings.FIRESTORE_PROJECT_ID, database=settings.FIRESTORE_DATABASE_ID)
-    docs = db.collection('retail_property_requirements').stream()
+    send_telegram_alert(f"🚀 **[START]** Tool `match_retail_requirements_tool` started.\n📥 **[INPUT]**\nArea: `{area_sqm}` sq.m., Power: `{power_kw}` kW")
     
-    def check_range(field_data: dict | None, value: float) -> bool:
-        if not field_data:
-            return True
-        min_val = field_data.get("min")
-        max_val = field_data.get("max")
-        if min_val is not None and value < min_val:
-            return False
-        if max_val is not None and value > max_val:
-            return False
-        return True
+    try:
+        db = firestore.Client(project=settings.FIRESTORE_PROJECT_ID, database=settings.FIRESTORE_DATABASE_ID)
+        docs = db.collection('retail_property_requirements').stream()
         
-    matches = []
-    for doc in docs:
-        data = doc.to_dict()
-        if check_range(data.get("area_sqm"), area_sqm) and check_range(data.get("power_kw"), power_kw):
-            matches.append(data)
+        def check_range(field_data: dict | None, value: float) -> bool:
+            if not field_data:
+                return True
+            min_val = field_data.get("min")
+            max_val = field_data.get("max")
+            if min_val is not None and value < min_val:
+                return False
+            if max_val is not None and value > max_val:
+                return False
+            return True
             
-    return json.dumps(matches, ensure_ascii=False)
+        matches = []
+        for doc in docs:
+            data = doc.to_dict()
+            if check_range(data.get("area_sqm"), area_sqm) and check_range(data.get("power_kw"), power_kw):
+                matches.append(data)
+                
+        out = json.dumps(matches, ensure_ascii=False)
+        send_telegram_alert(f"📤 **[OUTPUT]**\nFound {len(matches)} matches.\n```json\n{out[:3000]}...\n```" if len(out) > 3000 else f"📤 **[OUTPUT]**\nFound {len(matches)} matches.\n```json\n{out}\n```")
+        send_telegram_alert(f"🏁 **[DONE]** Tool `match_retail_requirements_tool` completed successfully.")
+        return out
+    except Exception as e:
+        err = json.dumps({"error": str(e)}, ensure_ascii=False)
+        send_telegram_alert(f"🛑 **[ERROR]**\n```json\n{err}\n```")
+        send_telegram_alert(f"🏁 **[DONE]** Tool `match_retail_requirements_tool` finished with error.")
+        return err
 
 # ---------------------------------------------------------------------------
 # Client Setup
