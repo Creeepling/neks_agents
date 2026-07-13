@@ -300,18 +300,20 @@ def fetch_building_tenants_endpoint(
         
     tenants_text = fetch_building_tenants(prop.address)
     
-    if tenants_text and not tenants_text.startswith("TWOGIS_API_KEY") and not tenants_text.startswith("Ошибка") and not tenants_text.startswith("Не удалось"):
-        new_data = dict(prop.data or {})
-        # Prepend to existing tenants if there's any, or just set it
-        existing = new_data.get("current_tenants", "").strip()
-        if existing:
-            new_data["current_tenants"] = f"{tenants_text}\n\n--- Добавлено вручную ---\n{existing}"
-        else:
-            new_data["current_tenants"] = tenants_text
-            
-        prop.data = new_data
-        prop.updated_at = datetime.now(timezone.utc)
-        prop = repo.update_property(prop)
+    if not tenants_text or tenants_text.startswith("TWOGIS_API_KEY") or tenants_text.startswith("Ошибка") or tenants_text.startswith("Не удалось"):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=tenants_text or "Unknown error fetching tenants.")
+        
+    new_data = dict(prop.data or {})
+    # Prepend to existing tenants if there's any, or just set it
+    existing = new_data.get("current_tenants", "").strip()
+    if existing:
+        new_data["current_tenants"] = f"{tenants_text}\n\n--- Добавлено вручную ---\n{existing}"
+    else:
+        new_data["current_tenants"] = tenants_text
+        
+    prop.data = new_data
+    prop.updated_at = datetime.now(timezone.utc)
+    prop = repo.update_property(prop)
         
     return prop
 
