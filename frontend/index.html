@@ -1572,7 +1572,12 @@ function formatDataValue(val) {
   } else if (typeof val === 'object' && val !== null) {
     return escHtml(JSON.stringify(val));
   }
-  return escHtml(String(val));
+  
+  // Wrap simple values in the expandable structure
+  return `<div class="data-value-wrapper" style="width: 100%;">
+            <div class="expandable-content">${escHtml(String(val))}</div>
+            <button class="expand-btn" onclick="toggleExpand(this)">Развернуть</button>
+          </div>`;
 }
 
 function renderDetailContent() {
@@ -1592,10 +1597,7 @@ function renderDetailContent() {
     : dataKeys.map(k => {
         return `<div class="data-row">
           <div class="data-key" style="font-weight:600;">${escHtml(DISPLAY_LABELS[k] || String(k))}</div>
-          <div class="data-value-wrapper" style="width: 100%;">
-            <div class="data-value expandable-content">${formatDataValue(data[k])}</div>
-            <button class="expand-btn" onclick="toggleExpand(this)">Развернуть</button>
-          </div>
+          <div class="data-value" style="width:100%;">${formatDataValue(data[k])}</div>
         </div>`;
       }).join('');
 
