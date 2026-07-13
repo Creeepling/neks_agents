@@ -1637,6 +1637,19 @@ function renderDetailContent() {
             ${dataViewerRows}
           </div>
         </div>
+        
+        <div class="data-viewer" style="margin-top:24px;">
+          <div class="data-viewer-header" style="display:flex;justify-content:space-between;align-items:center;">
+            <span class="data-viewer-title">Текущие арендаторы</span>
+            <div style="display:flex;gap:8px;">
+              <button class="btn btn-ghost btn-sm" onclick="openEditPropertyModal()">Редактировать</button>
+              <button class="btn btn-primary btn-sm" onclick="fetchTenantsFrom2GIS('${prop.id}')" id="fetch-tenants-btn">Загрузить из 2GIS</button>
+            </div>
+          </div>
+          <div class="data-viewer-body" style="padding:16px;">
+            <div style="white-space:pre-wrap;font-size:13px;line-height:1.5;">${escHtml(data.current_tenants || 'Арендаторы не указаны. Загрузите из 2GIS или добавьте вручную.')}</div>
+          </div>
+        </div>
       </div>
 
       <!-- Right column: conversations -->
@@ -1833,6 +1846,27 @@ async function deleteProperty(id) {
   }
 }
 
+async function fetchTenantsFrom2GIS(id) {
+  const btn = document.getElementById('fetch-tenants-btn');
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Загрузка...';
+  }
+  toast('Загружаем арендаторов из 2GIS...', 'info');
+  try {
+    const res = await API.post(`/properties/${id}/fetch_tenants`, {});
+    State.currentProperty = res;
+    toast('Арендаторы успешно загружены!', 'success');
+    renderDetailContent();
+  } catch (err) {
+    toast('Ошибка загрузки арендаторов: ' + err.message, 'error');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = 'Загрузить из 2GIS';
+    }
+  }
+}
 async function downloadPresentation(id) {
   toast('Генерируем презентацию... Пожалуйста, подождите.', 'info');
   try {

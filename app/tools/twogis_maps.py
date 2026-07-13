@@ -147,3 +147,90 @@ def search_twogis_businesses(location: str) -> str:
     send_telegram_alert(f"📤 **[OUTPUT]**\n```json\n{out}\n```")
     send_telegram_alert(f"🏁 **[DONE]** Tool `search_twogis_businesses` completed successfully.")
     return out
+
+def fetch_building_tenants(location: str) -> str:
+    """
+    Geocodes the location to find the building_id, then fetches all businesses located inside that specific building.
+    Returns a formatted string of tenants.
+    """
+    send_telegram_alert(f"🚀 **[START]** Tool `fetch_building_tenants` started for location: `{location}`")
+    
+    if not settings.TWOGIS_API_KEY:
+        err = "TWOGIS_API_KEY is not configured in the environment variables."
+        send_telegram_alert(f"🛑 **[ERROR]** {err}")
+        return err
+        
+    # STEP 1: Geocode the location to get building_id
+    geocode_url = "https://catalog.api.2gis.com/3.0/items/geocode"
+    geocode_params = {
+        "q": location,
+        "key": settings.TWOGIS_API_KEY,
+        "fields": "items.point"
+    }
+    
+    try:
+        geo_response = httpx.get(geocode_url, params=geocode_params, timeout=10.0)
+        geo_response.raise_for_status()
+        geo_data = geo_response.json()
+        
+        if "meta" in geo_data and geo_data["meta"].get("code") != 200:
+            raise Exception(f"Geocode API Error: {geo_data['meta'].get('error', 'Unknown')}")
+            
+        items = geo_data.get("result", {}).get("items", [])
+        if not items:
+            err = f"Не удалось найти здание по адресу: {location}"
+            send_telegram_alert(f"🛑 **[ERROR]** {err}")
+            return err
+            
+        building_id = None
+        for item in items:
+            if item.get("type") == "building":
+                building_id = item.get("id")
+                break
+                
+        if not building_id:
+            building_id = items[0].get("id") # Fallback to first item if no explicit building type found
+            
+        # STEP 2: Fetch businesses by building_id
+        items_url = "https://catalog.api.2gis.com/3.0/items"
+        items_params = {
+            "building_id": building_id,
+            "type": "branch",
+            "key": settings.TWOGIS_API_KEY,
+            "fields": "items.rubrics"
+        }
+        
+        items_response = httpx.get(items_url, params=items_params, timeout=10.0)
+        items_response.raise_for_status()
+        items_data = items_response.json()
+        
+        if "meta" in items_data and items_data["meta"].get("code") != 200:
+            if items_data["meta"].get("code") == 404:
+                return "В данном здании не найдено зарегистрированных организаций."
+            raise Exception(f"Items API Error: {items_data['meta'].get('error', 'Unknown')}")
+            
+        branches = items_data.get("result", {}).get("items", [])
+        if not branches:
+            return "В данном здании не найдено зарегистрированных организаций."
+            
+        formatted_tenants = []
+        for b in branches:
+            name = b.get("name", "Неизвестно")
+            rubrics = b.get("rubrics", [])
+            categories = ", ".join([r.get("name", "") for r in rubrics if r.get("name")])
+            address_comment = b.get("address_comment", "")
+            
+            line = f"- {name}"
+            if categories:
+                line += f" ({categories})"
+            if address_comment:
+                line += f" [{address_comment}]"
+            formatted_tenants.append(line)
+            
+        result_text = "\n".join(formatted_tenants)
+        send_telegram_alert(f"🏁 **[DONE]** `fetch_building_tenants` found {len(branches)} tenants.")
+        return result_text
+        
+    except Exception as e:
+        send_telegram_alert(f"🛑 **[ERROR]** Exception in fetch_building_tenants: {str(e)}")
+        return f"Ошибка при получении арендаторов: {str(e)}"

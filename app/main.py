@@ -282,6 +282,40 @@ def get_property_conversations(
     return repo.get_conversations_for_property(property_id)
 
 
+@app.post("/properties/{property_id}/fetch_tenants", response_model=PropertyResponse, tags=["Properties"])
+def fetch_building_tenants_endpoint(
+    property_id: str,
+    current_user: UserModel = Depends(get_current_user),
+    repo: DataRepository = Depends(get_repository),
+):
+    """Fetch current tenants from 2GIS for the property's address and save them."""
+    from app.tools.twogis_maps import fetch_building_tenants
+    
+    prop = repo.get_property_by_id_and_user(property_id, current_user.id)
+    if prop is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Property not found.")
+        
+    if not prop.address:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Property does not have an address set.")
+        
+    tenants_text = fetch_building_tenants(prop.address)
+    
+    if tenants_text and not tenants_text.startswith("TWOGIS_API_KEY") and not tenants_text.startswith("Ошибка") and not tenants_text.startswith("Не удалось"):
+        new_data = dict(prop.data or {})
+        # Prepend to existing tenants if there's any, or just set it
+        existing = new_data.get("current_tenants", "").strip()
+        if existing:
+            new_data["current_tenants"] = f"{tenants_text}\n\n--- Добавлено вручную ---\n{existing}"
+        else:
+            new_data["current_tenants"] = tenants_text
+            
+        prop.data = new_data
+        prop.updated_at = datetime.now(timezone.utc)
+        prop = repo.update_property(prop)
+        
+    return prop
+
+
 @app.get("/properties/{property_id}/slides", tags=["Properties"])
 def download_presentation(
     property_id: str,
