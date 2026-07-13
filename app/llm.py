@@ -357,6 +357,15 @@ def get_agent_reply(
                         parts.append(types.Part.from_function_response(name=fc.name, response={"error": str(e)}))
                         
                 elif fc.name == "dadata_licenses_tool":
+                    from app.tools.dadata_licenses import search_dadata_licenses
+                    args = fc.args
+                    try:
+                        result = search_dadata_licenses(**args)
+                        parts.append(types.Part.from_function_response(name=fc.name, response={"result": result}))
+                    except Exception as e:
+                        parts.append(types.Part.from_function_response(name=fc.name, response={"error": str(e)}))
+                        
+                elif fc.name == "match_retail_requirements_tool":
                     args = fc.args
                     try:
                         result = match_retail_requirements_tool(**args)
