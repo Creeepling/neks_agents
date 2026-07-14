@@ -160,37 +160,31 @@ def fetch_building_tenants(location: str) -> str:
         send_telegram_alert(f"🛑 **[ERROR]** {err}")
         return err
         
-    # STEP 1: Geocode the location to get building_id
-    geocode_url = "https://catalog.api.2gis.com/3.0/items/geocode"
-    geocode_params = {
+    # STEP 1: Search for the building using intelligent full-text search
+    search_url = "https://catalog.api.2gis.com/3.0/items"
+    search_params = {
         "q": location,
-        "key": settings.TWOGIS_API_KEY,
-        "fields": "items.point"
+        "type": "building",
+        "key": settings.TWOGIS_API_KEY
     }
     
     try:
-        geo_response = httpx.get(geocode_url, params=geocode_params, timeout=10.0)
-        geo_response.raise_for_status()
-        geo_data = geo_response.json()
+        search_response = httpx.get(search_url, params=search_params, timeout=10.0)
+        search_response.raise_for_status()
+        search_data = search_response.json()
         
-        if "meta" in geo_data and geo_data["meta"].get("code") != 200:
-            raise Exception(f"Geocode API Error: {geo_data['meta'].get('error', 'Unknown')}")
+        if "meta" in search_data and search_data["meta"].get("code") != 200:
+            raise Exception(f"Building Search API Error: {search_data['meta'].get('error', 'Unknown')}")
             
-        items = geo_data.get("result", {}).get("items", [])
+        items = search_data.get("result", {}).get("items", [])
         if not items:
-            err = f"Не удалось найти здание по адресу: {location}"
+            err = f"Не удалось найти здание по адресу: {location}. Попробуйте уточнить адрес в формате 'Город, Улица, Дом'."
             send_telegram_alert(f"🛑 **[ERROR]** {err}")
             return err
             
-        building_id = None
-        for item in items:
-            if item.get("type") == "building":
-                building_id = item.get("id")
-                break
-                
-        if not building_id:
-            building_id = items[0].get("id") # Fallback to first item if no explicit building type found
-            
+        building_id = items[0].get("id")
+        building_name = items[0].get("full_name") or items[0].get("address_name") or location
+        
         # STEP 2: Fetch businesses by building_id
         items_url = "https://catalog.api.2gis.com/3.0/items"
         items_params = {
