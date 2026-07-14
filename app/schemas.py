@@ -41,15 +41,16 @@ class PropertyCreate(BaseModel):
     address: str = Field(..., min_length=1, max_length=512)
     square_meters: Optional[float] = None
     floors: Optional[int] = None
-    current_tenants: Optional[str] = None
+    current_tenants: Optional[Any] = None
 
 
 class PropertyUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=256)
+    city: Optional[str] = Field(None, max_length=256)
     address: Optional[str] = Field(None, max_length=512)
     square_meters: Optional[float] = None
     floors: Optional[int] = None
-    current_tenants: Optional[str] = None
+    current_tenants: Optional[Any] = None
     data: Optional[Dict[str, Any]] = None
 
 

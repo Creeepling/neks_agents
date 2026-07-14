@@ -1769,6 +1769,10 @@ function openEditPropertyModal() {
             <input id="edit-prop-name" class="form-input" type="text" value="${escAttr(prop.name)}" required />
           </div>
           <div class="form-group">
+            <label class="form-label">Город</label>
+            <input id="edit-prop-city" class="form-input" type="text" value="${escAttr(prop.data?.city_name || '')}" required />
+          </div>
+          <div class="form-group">
             <label class="form-label">Адрес</label>
             <input id="edit-prop-address" class="form-input" type="text" value="${escAttr(prop.address || '')}" />
           </div>
@@ -1783,8 +1787,28 @@ function openEditPropertyModal() {
             </div>
           </div>
           <div class="form-group">
-            <label class="form-label">Текущие арендаторы (необязательно)</label>
-            <textarea id="edit-prop-tenants" class="form-input" placeholder="Перечислите текущих арендаторов...">${escHtml(prop.data?.current_tenants || '')}</textarea>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+              <label class="form-label" style="margin:0;">Текущие арендаторы</label>
+              <button type="button" class="btn btn-ghost btn-sm" onclick="addTenantRowUI()">+ Добавить</button>
+            </div>
+            <div id="edit-prop-tenants-list" style="display:flex;flex-direction:column;gap:8px;">
+              ${(function(){
+                let tList = [];
+                if (Array.isArray(prop.data?.current_tenants)) {
+                  tList = prop.data.current_tenants;
+                } else if (typeof prop.data?.current_tenants === 'string' && prop.data.current_tenants.trim()) {
+                  tList = [{ name: 'Старые данные', categories: '', floor: prop.data.current_tenants.trim() }];
+                }
+                return tList.map(t => `
+                  <div class="tenant-row" style="display:flex; gap:8px;">
+                    <input type="text" class="form-input t-name" placeholder="Название" value="${escAttr(t.name || '')}" style="flex:2" />
+                    <input type="text" class="form-input t-cat" placeholder="Категории" value="${escAttr(t.categories || '')}" style="flex:2" />
+                    <input type="text" class="form-input t-floor" placeholder="Этаж" value="${escAttr(t.floor || '')}" style="flex:1" />
+                    <button type="button" class="btn btn-danger btn-sm" onclick="this.parentElement.remove()" style="padding:0 8px;">×</button>
+                  </div>
+                `).join('');
+              })()}
+            </div>
           </div>
           <div class="divider"></div>
           <button type="button" class="btn btn-danger btn-sm" onclick="deleteProperty('${prop.id}')">Удалить объект</button>
@@ -1801,15 +1825,26 @@ function openEditPropertyModal() {
   document.getElementById('edit-prop-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const name = document.getElementById('edit-prop-name').value.trim();
+    const city = document.getElementById('edit-prop-city').value.trim();
     const address = document.getElementById('edit-prop-address').value.trim();
     const sqmStr = document.getElementById('edit-prop-sqm').value.trim();
     const floorsStr = document.getElementById('edit-prop-floors').value.trim();
-    const tenants = document.getElementById('edit-prop-tenants').value.trim();
+    
+    const tenants = [];
+    document.querySelectorAll('#edit-prop-tenants-list .tenant-row').forEach(row => {
+      const tName = row.querySelector('.t-name').value.trim();
+      const tCat = row.querySelector('.t-cat').value.trim();
+      const tFloor = row.querySelector('.t-floor').value.trim();
+      if (tName || tCat || tFloor) {
+        tenants.push({ name: tName, categories: tCat, floor: tFloor });
+      }
+    });
     
     const payload = { name, address: address || null };
+    if (city) payload.city = city;
     if (sqmStr) payload.square_meters = parseFloat(sqmStr);
     if (floorsStr) payload.floors = parseInt(floorsStr, 10);
-    if (tenants) payload.current_tenants = tenants;
+    payload.current_tenants = tenants;
 
     const btn = document.getElementById('edit-prop-btn');
     btn.disabled = true;

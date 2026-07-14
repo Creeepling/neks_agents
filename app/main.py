@@ -251,6 +251,8 @@ def update_property(
         prop.address = payload.address
         
     new_data = dict(prop.data or {})
+    if payload.city is not None:
+        new_data["city_name"] = payload.city
     if payload.square_meters is not None:
         new_data["square_meters"] = payload.square_meters
     if payload.floors is not None:
@@ -302,18 +304,26 @@ def fetch_building_tenants_endpoint(
     if city_name and city_name.lower() not in prop.address.lower():
         full_location = f"{city_name}, {prop.address}"
         
-    tenants_text = fetch_building_tenants(full_location)
+    tenants_result = fetch_building_tenants(full_location)
     
-    if not tenants_text or tenants_text.startswith("TWOGIS_API_KEY") or tenants_text.startswith("Ошибка") or tenants_text.startswith("Не удалось"):
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=tenants_text or "Unknown error fetching tenants.")
+    if isinstance(tenants_result, str):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=tenants_result)
         
     new_data = dict(prop.data or {})
-    # Prepend to existing tenants if there's any, or just set it
-    existing = new_data.get("current_tenants", "").strip()
-    if existing:
-        new_data["current_tenants"] = f"{tenants_text}\n\n--- Добавлено вручную ---\n{existing}"
+    existing = new_data.get("current_tenants", [])
+    
+    if isinstance(existing, str):
+        existing_list = [{"name": "Старые данные", "categories": "", "floor": existing.strip()}] if existing.strip() else []
     else:
-        new_data["current_tenants"] = tenants_text
+        existing_list = existing
+        
+    # Merge, keeping existing and appending new ones from 2GIS only if name doesn't match
+    existing_names = {t.get("name", "").lower() for t in existing_list}
+    for t in tenants_result:
+        if t.get("name", "").lower() not in existing_names:
+            existing_list.append(t)
+            
+    new_data["current_tenants"] = existing_list
         
     prop.data = new_data
     prop.updated_at = datetime.now(timezone.utc)

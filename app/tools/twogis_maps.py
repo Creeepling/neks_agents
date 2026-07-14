@@ -148,7 +148,7 @@ def search_twogis_businesses(location: str) -> str:
     send_telegram_alert(f"🏁 **[DONE]** Tool `search_twogis_businesses` completed successfully.")
     return out
 
-def fetch_building_tenants(location: str) -> str:
+def fetch_building_tenants(location: str):
     """
     Geocodes the location to find the building_id, then fetches all businesses located inside that specific building.
     Returns a formatted string of tenants.
@@ -214,16 +214,14 @@ def fetch_building_tenants(location: str) -> str:
             categories = ", ".join([r.get("name", "") for r in rubrics if r.get("name")])
             address_comment = b.get("address_comment", "")
             
-            line = f"- {name}"
-            if categories:
-                line += f" ({categories})"
-            if address_comment:
-                line += f" [{address_comment}]"
-            formatted_tenants.append(line)
+            formatted_tenants.append({
+                "name": name,
+                "categories": categories,
+                "floor": address_comment
+            })
             
-        result_text = "\n".join(formatted_tenants)
         send_telegram_alert(f"🏁 **[DONE]** `fetch_building_tenants` found {len(branches)} tenants.")
-        return result_text
+        return formatted_tenants
         
     except Exception as e:
         send_telegram_alert(f"🛑 **[ERROR]** Exception in fetch_building_tenants: {str(e)}")
