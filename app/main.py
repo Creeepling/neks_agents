@@ -297,8 +297,12 @@ def fetch_building_tenants_endpoint(
         
     if not prop.address:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Property does not have an address set.")
+    full_location = prop.address
+    city_name = (prop.data or {}).get("city_name", "").strip()
+    if city_name and city_name.lower() not in prop.address.lower():
+        full_location = f"{city_name}, {prop.address}"
         
-    tenants_text = fetch_building_tenants(prop.address)
+    tenants_text = fetch_building_tenants(full_location)
     
     if not tenants_text or tenants_text.startswith("TWOGIS_API_KEY") or tenants_text.startswith("Ошибка") or tenants_text.startswith("Не удалось"):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=tenants_text or "Unknown error fetching tenants.")
