@@ -1653,7 +1653,7 @@ function renderDetailContent() {
               <button class="btn btn-primary btn-sm" onclick="fetchTenantsFrom2GIS('${prop.id}')" id="fetch-tenants-btn">Загрузить из 2GIS</button>
             </div>
           </div>
-          <div class="data-viewer-body" style="padding:16px;">
+          <div class="data-viewer-body" style="padding:16px; max-height:300px; overflow-y:auto;">
             <div style="white-space:pre-wrap;font-size:13px;line-height:1.5;">${(function(){
               if (Array.isArray(data.current_tenants) && data.current_tenants.length > 0) {
                 return data.current_tenants.map(t => '• ' + escHtml(t.name || 'Без названия') + (t.categories ? ' (' + escHtml(t.categories) + ')' : '') + (t.floor ? ', этаж ' + escHtml(t.floor) : '')).join('\n');
