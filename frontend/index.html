@@ -1056,7 +1056,7 @@ function shellHtml(breadcrumbs, topbarActions, bodyHtml, activeNav = 'dashboard'
   const navItems = [
     { id: 'dashboard', icon: '⊞', label: 'Объекты' },
     { id: 'retailers', icon: '☰', label: 'Требования ритейлеров' },
-    { id: 'concepts', icon: '📋', label: 'Концепции' },
+    { id: 'concepts', icon: '❖', label: 'Концепции' },
   ];
 
   if (State.currentProperty) {
@@ -2117,7 +2117,7 @@ async function renderChat() {
           <span class="sidebar-icon">☰</span> Требования ритейлеров
         </button>
         <button class="sidebar-item" onclick="navigate('concepts')">
-          <span class="sidebar-icon">📋</span>
+          <span class="sidebar-icon">❖</span>
           <span class="truncate">Концепции</span>
         </button>
         ${prop ? `<button class="sidebar-item" onclick="navigate('detail')">
