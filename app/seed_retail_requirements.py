@@ -175,6 +175,17 @@ retailers_data = [
 ]
 
 def seed_database():
+    print(f"Clearing existing documents in '{COLLECTION_NAME}' collection...")
+    existing_docs = db.collection(COLLECTION_NAME).stream()
+    delete_batch = db.batch()
+    delete_count = 0
+    for doc in existing_docs:
+        delete_batch.delete(doc.reference)
+        delete_count += 1
+    if delete_count > 0:
+        delete_batch.commit()
+        print(f"Deleted {delete_count} existing documents.")
+
     print(f"Seeding {len(retailers_data)} documents into '{COLLECTION_NAME}' collection...")
     batch = db.batch()
     collection_ref = db.collection(COLLECTION_NAME)
