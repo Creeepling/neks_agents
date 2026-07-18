@@ -2523,7 +2523,7 @@ async function saveConcept() {
 async function deleteConcept(id) {
   if (!confirm('Удалить эту концепцию навсегда?')) return;
   try {
-    await API.delete(\`/concepts/\${id}\`);
+    await API.delete(`/concepts/${id}`);
     toast('Концепция удалена', 'success');
     renderConcepts();
   } catch (err) {
