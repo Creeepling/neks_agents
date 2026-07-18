@@ -734,26 +734,23 @@ def get_available_steps():
 # Retail Object Concepts Routes
 # ---------------------------------------------------------------------------
 
-@app.get("/properties/{property_id}/concept", response_model=list[ConceptResponse], tags=["Concepts"])
-def get_property_concepts(
-    property_id: str,
+@app.get("/concepts", response_model=list[ConceptResponse], tags=["Concepts"])
+def get_all_concepts(
     current_user: UserModel = Depends(get_current_user),
-    repo: DataRepository = Depends(get_repository),
+    repo: DataRepository = Depends(get_repository)
 ):
-    """Get the concepts defined for a specific property."""
-    concepts = repo.get_concepts_for_property(property_id)
+    """Get all global concepts."""
+    concepts = repo.get_all_concepts()
     return concepts
 
-@app.post("/properties/{property_id}/concept", response_model=ConceptResponse, status_code=status.HTTP_201_CREATED, tags=["Concepts"])
+@app.post("/concepts", response_model=ConceptResponse, status_code=status.HTTP_201_CREATED, tags=["Concepts"])
 def create_concept(
-    property_id: str,
     payload: ConceptCreate,
     current_user: UserModel = Depends(get_current_user),
-    repo: DataRepository = Depends(get_repository),
+    repo: DataRepository = Depends(get_repository)
 ):
-    """Create a new concept for a specific property."""
+    """Create a new global concept."""
     concept = RetailConceptModel(**payload.model_dump())
-    concept.property_id = property_id
     concept = repo.create_concept(concept)
     return concept
 

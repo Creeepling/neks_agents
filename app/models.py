@@ -37,7 +37,6 @@ class UserModel(BaseModel):
 
 class RetailConceptModel(BaseModel):
     id: Optional[str] = None
-    property_id: str
     name: str
     format_type: str
     positioning_strategy: str

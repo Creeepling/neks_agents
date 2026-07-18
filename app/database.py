@@ -156,8 +156,8 @@ class FirestoreRepository(DataRepository):
         message.id = doc_ref.id
         return message
 
-    def get_concepts_for_property(self, property_id: str) -> List[RetailConceptModel]:
-        docs = self.concepts_col.where("property_id", "==", property_id).stream()
+    def get_all_concepts(self) -> List[RetailConceptModel]:
+        docs = self.concepts_col.stream()
         concepts = []
         for doc in docs:
             data = doc.to_dict()

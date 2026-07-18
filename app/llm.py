@@ -186,11 +186,11 @@ DEFAULT_SYSTEM_PROMPT = (
 def fetch_concepts_context(repo: Any, property_id: str) -> str:
     if not repo:
         return ""
-    concepts = repo.get_concepts_for_property(property_id)
+    concepts = repo.get_all_concepts()
     if not concepts: 
         return ""
     
-    lines = ["--- Утвержденные Концепции Объекта ---"]
+    lines = ["--- Глобальные Концепции ---"]
     for c in concepts:
         lines.append(f"Название: {c.name}")
         lines.append(f"Формат: {c.format_type}")

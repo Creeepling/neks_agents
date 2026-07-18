@@ -1056,11 +1056,11 @@ function shellHtml(breadcrumbs, topbarActions, bodyHtml, activeNav = 'dashboard'
   const navItems = [
     { id: 'dashboard', icon: '⊞', label: 'Объекты' },
     { id: 'retailers', icon: '☰', label: 'Требования ритейлеров' },
+    { id: 'concepts', icon: '📋', label: 'Концепции' },
   ];
 
   if (State.currentProperty) {
     navItems.push({ id: 'detail', icon: '🏠', label: 'Текущий объект' });
-    navItems.push({ id: 'concepts', icon: '📋', label: 'Концепции' });
   }
 
   return `
@@ -1626,7 +1626,6 @@ function renderDetailContent() {
       </div>
       <div style="display:flex;gap:8px;flex-shrink:0">
         <button class="btn btn-ghost btn-sm" onclick="openEditPropertyModal()">Изменить</button>
-        <button class="btn btn-outline btn-sm" onclick="navigate('concepts')">📋 Концепции</button>
         <button class="btn btn-primary btn-sm" onclick="openStepModal()">+ Начать этап</button>
         <button class="btn btn-outline btn-sm" onclick="downloadPresentation(${prop.id})">📊 Сгенерировать презентацию</button>
       </div>
@@ -2117,13 +2116,13 @@ async function renderChat() {
         <button class="sidebar-item" onclick="navigate('retailers')">
           <span class="sidebar-icon">☰</span> Требования ритейлеров
         </button>
-        ${prop ? `<button class="sidebar-item" onclick="navigate('detail')">
-          <span class="sidebar-icon">🏠</span>
-          <span class="truncate">Текущий объект</span>
-        </button>
         <button class="sidebar-item" onclick="navigate('concepts')">
           <span class="sidebar-icon">📋</span>
           <span class="truncate">Концепции</span>
+        </button>
+        ${prop ? `<button class="sidebar-item" onclick="navigate('detail')">
+          <span class="sidebar-icon">🏠</span>
+          <span class="truncate">Текущий объект</span>
         </button>` : ''}
       </div>
       <div class="sidebar-footer">
@@ -2373,20 +2372,15 @@ function closeModalOnBackdrop(e) {
 ============================================================================= */
 async function renderConcepts() {
   const app = document.getElementById('app');
-  if (!State.currentProperty) { navigate('dashboard'); return; }
   app.innerHTML = shellHtml(
-    `<span onclick="navigate('dashboard')" style="cursor:pointer;color:var(--text-secondary)">Объекты</span>
-     <span class="crumb-sep">›</span>
-     <span onclick="navigate('detail')" style="cursor:pointer;color:var(--text-secondary)">${escHtml(State.currentProperty.name)}</span>
-     <span class="crumb-sep">›</span>
-     <span class="crumb-active">Концепции объекта</span>`,
+    `<span class="crumb-active">Глобальные концепции</span>`,
     `<button class="btn btn-primary btn-sm" onclick="openConceptModal()">+ Добавить концепцию</button>`,
     `<div class="page-loader"><div class="spinner"></div> Загрузка…</div>`,
     'concepts'
   );
 
   try {
-    const concepts = await API.get(`/properties/${State.currentProperty.id}/concept`);
+    const concepts = await API.get(`/concepts`);
     renderConceptsContent(concepts || []);
   } catch (err) {
     toast('Ошибка загрузки концепций: ' + err.message, 'error');
@@ -2400,10 +2394,10 @@ function renderConceptsContent(concepts) {
   if (concepts.length === 0) {
     body.innerHTML = `
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
-        <h1 style="font-size:20px;font-weight:700;">Концепции: ${escHtml(State.currentProperty.name)}</h1>
+        <h1 style="font-size:20px;font-weight:700;">Глобальные концепции</h1>
         <button class="btn btn-primary btn-sm" onclick="openConceptModal()">+ Добавить концепцию</button>
       </div>
-      <div class="empty-state">У этого объекта еще нет утвержденных концепций.</div>`;
+      <div class="empty-state">Глобальных концепций еще нет.</div>`;
     return;
   }
 
@@ -2432,7 +2426,7 @@ function renderConceptsContent(concepts) {
 
   body.innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
-      <h1 style="font-size:20px;font-weight:700;">Концепции: ${escHtml(State.currentProperty.name)}</h1>
+      <h1 style="font-size:20px;font-weight:700;">Глобальные концепции</h1>
       <button class="btn btn-primary btn-sm" onclick="openConceptModal()">+ Добавить концепцию</button>
     </div>
     <div class="concepts-list">
@@ -2520,7 +2514,7 @@ async function saveConcept() {
       await API.put(`/concepts/${id}`, payload);
       toast('Концепция обновлена', 'success');
     } else {
-      await API.post(`/properties/${State.currentProperty.id}/concept`, payload);
+      await API.post(`/concepts`, payload);
       toast('Концепция создана', 'success');
     }
     closeModal();

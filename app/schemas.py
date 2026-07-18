@@ -181,7 +181,6 @@ class RetailerResponse(RetailerBase):
 # ---------------------------------------------------------------------------
 
 class ConceptBase(BaseModel):
-    property_id: str
     name: str
     format_type: str
     positioning_strategy: str
