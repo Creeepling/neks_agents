@@ -1814,14 +1814,16 @@ function openEditPropertyModal() {
                 } else if (typeof prop.data?.current_tenants === 'string' && prop.data.current_tenants.trim()) {
                   tList = [{ name: 'Старые данные', categories: '', floor: prop.data.current_tenants.trim() }];
                 }
-                return tList.map(t => `
+                return tList.map(t => {
+                  let combined = t.name || '';
+                  if (t.categories) combined += ' (' + t.categories + ')';
+                  if (t.floor) combined += ', этаж ' + t.floor;
+                  return `
                   <div class="tenant-row" style="display:flex; gap:8px;">
-                    <input type="text" class="form-input t-name" placeholder="Название" value="${escAttr(t.name || '')}" style="flex:2" />
-                    <input type="text" class="form-input t-cat" placeholder="Категории" value="${escAttr(t.categories || '')}" style="flex:2" />
-                    <input type="text" class="form-input t-floor" placeholder="Этаж" value="${escAttr(t.floor || '')}" style="flex:1" />
+                    <input type="text" class="form-input t-name" placeholder="Арендатор (название, категория, этаж)" value="${escAttr(combined.trim())}" style="flex:1" />
                     <button type="button" class="btn btn-danger btn-sm" onclick="this.parentElement.remove()" style="padding:0 8px;">×</button>
                   </div>
-                `).join('');
+                `}).join('');
               })()}
             </div>
           </div>
@@ -1847,11 +1849,12 @@ function openEditPropertyModal() {
     
     const tenants = [];
     document.querySelectorAll('#edit-prop-tenants-list .tenant-row').forEach(row => {
-      const tName = row.querySelector('.t-name').value.trim();
-      const tCat = row.querySelector('.t-cat').value.trim();
-      const tFloor = row.querySelector('.t-floor').value.trim();
-      if (tName || tCat || tFloor) {
-        tenants.push({ name: tName, categories: tCat, floor: tFloor });
+      const tNameEl = row.querySelector('.t-name');
+      if (tNameEl) {
+        const tName = tNameEl.value.trim();
+        if (tName) {
+          tenants.push({ name: tName });
+        }
       }
     });
     
@@ -1887,9 +1890,7 @@ function addTenantRowUI() {
   if (!container) return;
   const html = `
     <div class="tenant-row" style="display:flex; gap:8px;">
-      <input type="text" class="form-input t-name" placeholder="Название" style="flex:2" />
-      <input type="text" class="form-input t-cat" placeholder="Категории" style="flex:2" />
-      <input type="text" class="form-input t-floor" placeholder="Этаж" style="flex:1" />
+      <input type="text" class="form-input t-name" placeholder="Арендатор (название, категория, этаж)" style="flex:1" />
       <button type="button" class="btn btn-danger btn-sm" onclick="this.parentElement.remove()" style="padding:0 8px;">×</button>
     </div>
   `;
