@@ -12,165 +12,165 @@ COLLECTION_NAME = 'retail_property_requirements'
 retailers_data = [
     {
         "company": "X5 Group",
-        "brand": "Pyaterochka",
-        "format": "Convenience",
+        "brand": "Пятерочка",
+        "format": "Магазин у дома",
         "area_sqm": {"min": 250, "max": 600},
         "power_kw": {"min": 50, "max": None},
         "ceilings_m": {"min": 2.5, "max": None},
-        "requirements": "1st floor or basement. High residential density (800m radius)."
+        "requirements": "1 этаж или цоколь. Высокая плотность населения (радиус 800м)."
     },
     {
         "company": "X5 Group",
-        "brand": "Perekrestok",
-        "format": "Supermarket",
+        "brand": "Перекресток",
+        "format": "Супермаркет",
         "area_sqm": {"min": 750, "max": 3000},
         "power_kw": {"min": 180, "max": 350},
         "ceilings_m": {"min": 3.5, "max": None},
-        "requirements": "High-traffic areas, shopping centers (anchor), parking >40 cars. Floor load >800 kg/sq.m."
+        "requirements": "Места с высоким трафиком, ТЦ (якорный арендатор), парковка >40 мест. Нагрузка на пол >800 кг/кв.м."
     },
     {
         "company": "X5 Group",
-        "brand": "Chizhik",
-        "format": "Hard Discounter",
+        "brand": "Чижик",
+        "format": "Жесткий дискаунтер",
         "area_sqm": {"min": 350, "max": 420},
         "power_kw": {"min": 40, "max": 50},
         "ceilings_m": None,
-        "requirements": "Strictly 1st floor, single level. Population >10,000."
+        "requirements": "Строго 1 этаж, один уровень. Население >10,000."
     },
     {
-        "company": "Magnit",
-        "brand": "Magnit",
-        "format": "Convenience",
+        "company": "Магнит",
+        "brand": "Магнит",
+        "format": "Магазин у дома",
         "area_sqm": {"min": 250, "max": 650},
         "power_kw": None,
         "ceilings_m": None,
-        "requirements": "1st floor, street retail, high foot traffic."
+        "requirements": "1 этаж, стрит-ритейл, высокий пешеходный трафик."
     },
     {
-        "company": "Dixy",
-        "brand": "Dixy",
-        "format": "Convenience",
+        "company": "Дикси",
+        "brand": "Дикси",
+        "format": "Магазин у дома",
         "area_sqm": {"min": 290, "max": 700},
         "power_kw": {"min": 45, "max": None},
         "ceilings_m": {"min": 3.0, "max": None},
-        "requirements": "1st floor only. Cities >3,000 population."
+        "requirements": "Только 1 этаж. Города с населением >3,000."
     },
     {
-        "company": "Lenta",
-        "brand": "Lenta",
-        "format": "Supermarket",
+        "company": "Лента",
+        "brand": "Лента",
+        "format": "Супермаркет",
         "area_sqm": {"min": 600, "max": 1700},
         "power_kw": None,
         "ceilings_m": None,
-        "requirements": "1st floors or TCs, high traffic, dedicated loading zone."
+        "requirements": "1 этаж или ТЦ, высокий трафик, выделенная зона погрузки."
     },
     {
-        "company": "Lenta",
-        "brand": "Lenta",
-        "format": "Hypermarket",
+        "company": "Лента",
+        "brand": "Лента",
+        "format": "Гипермаркет",
         "area_sqm": {"min": 5500, "max": None},
         "power_kw": {"min": 900, "max": None},
         "ceilings_m": None,
-        "requirements": "1st line of transport routes. Floor load >1200 kg/sq.m. Massive parking."
+        "requirements": "1 линия транспортных магистралей. Нагрузка на пол >1200 кг/кв.м. Большая парковка."
     },
     {
-        "company": "VkusVill",
-        "brand": "VkusVill",
-        "format": "Healthy Food / Conv.",
+        "company": "ВкусВилл",
+        "brand": "ВкусВилл",
+        "format": "Здоровое питание / У дома",
         "area_sqm": {"min": 100, "max": 300},
         "power_kw": {"min": 30, "max": 50},
         "ceilings_m": {"min": 3.0, "max": None},
-        "requirements": "1st floor, glass storefronts preferred."
+        "requirements": "1 этаж, предпочтительны стеклянные витрины."
     },
     {
         "company": "Mercury Retail Group",
-        "brand": "Krasnoe & Beloe",
-        "format": "Ultra-Convenience / Alcohol",
+        "brand": "Красное & Белое",
+        "format": "Ультра-у дома / Алкомаркет",
         "area_sqm": {"min": 80, "max": 400},
         "power_kw": {"min": 15, "max": None},
         "ceilings_m": {"min": 2.5, "max": None},
-        "requirements": "MUST be >100m from schools/medical facilities. Open-plan sales floor."
+        "requirements": "ОБЯЗАТЕЛЬНО >100м от школ/мед.учреждений. Свободная планировка торгового зала."
     },
     {
         "company": "Wildberries",
         "brand": "Wildberries",
-        "format": "Pick-up Point (PVZ)",
+        "format": "Пункт выдачи заказов (ПВЗ)",
         "area_sqm": {"min": 30, "max": None},
         "power_kw": None,
         "ceilings_m": None,
-        "requirements": "1st floor only (no basements). Storage zone must be 70% of total area."
+        "requirements": "Только 1 этаж (без цоколей). Складская зона должна занимать 70% общей площади."
     },
     {
         "company": "Ozon",
         "brand": "Ozon",
-        "format": "Pick-up Point (PVZ)",
+        "format": "Пункт выдачи заказов (ПВЗ)",
         "area_sqm": {"min": 20, "max": None},
         "power_kw": None,
         "ceilings_m": {"min": 2.2, "max": 2.4},
-        "requirements": "Separate street entrance. No steps or minimal steps (max 5)."
+        "requirements": "Отдельный вход с улицы. Отсутствие ступенек или минимум (до 5)."
     },
     {
-        "company": "Yandex",
-        "brand": "Yandex Market",
-        "format": "Pick-up Point (PVZ)",
+        "company": "Яндекс",
+        "brand": "Яндекс Маркет",
+        "format": "Пункт выдачи заказов (ПВЗ)",
         "area_sqm": {"min": 20, "max": None},
         "power_kw": None,
         "ceilings_m": {"min": 2.3, "max": 2.5},
-        "requirements": "Cannot be in residential apartments. Technical ability for branded facade signage."
+        "requirements": "Не допускается размещение в жилых квартирах. Техническая возможность для брендированной вывески."
     },
     {
-        "company": "Magnit",
-        "brand": "Magnit Cosmetic",
-        "format": "Drogerie / Cosmetics",
+        "company": "Магнит",
+        "brand": "Магнит Косметик",
+        "format": "Дрогери / Косметика",
         "area_sqm": {"min": 180, "max": 300},
         "power_kw": {"min": 30, "max": 60},
         "ceilings_m": {"min": 3.0, "max": None},
-        "requirements": "1st floor, separate entrance, proximity to grocery anchors."
+        "requirements": "1 этаж, отдельный вход, близость к продуктовым якорям."
     },
     {
-        "company": "DNS",
-        "brand": "DNS",
-        "format": "Electronics",
+        "company": "ДНС",
+        "brand": "ДНС",
+        "format": "Электроника",
         "area_sqm": {"min": 150, "max": 1100},
         "power_kw": None,
         "ceilings_m": None,
-        "requirements": "Free layout, rectangular shape. Freight elevator mandatory if not on 1st floor."
+        "requirements": "Свободная планировка, прямоугольная форма. Грузовой лифт обязателен, если не 1 этаж."
     },
     {
-        "company": "DNS",
-        "brand": "DNS Hypermarket",
-        "format": "Electronics",
+        "company": "ДНС",
+        "brand": "ДНС Гипер",
+        "format": "Электроника",
         "area_sqm": {"min": 700, "max": None},
         "power_kw": None,
         "ceilings_m": None,
-        "requirements": "Free layout, rectangular shape. Freight elevator mandatory if not on 1st floor."
+        "requirements": "Свободная планировка, прямоугольная форма. Грузовой лифт обязателен, если не 1 этаж."
     },
     {
-        "company": "M.Video",
-        "brand": "M.Video",
-        "format": "Electronics",
+        "company": "М.Видео",
+        "brand": "М.Видео",
+        "format": "Электроника",
         "area_sqm": {"min": 350, "max": 1000},
         "power_kw": None,
         "ceilings_m": {"min": 3.6, "max": None},
-        "requirements": "Major intersections, large residential arrays, mandatory customer parking."
+        "requirements": "Крупные перекрестки, большие жилые массивы, обязательна парковка для клиентов."
     },
     {
-        "company": "Lemana PRO",
-        "brand": "Leroy Merlin / Lemana PRO",
-        "format": "DIY / Home Improvement",
+        "company": "Лемана ПРО",
+        "brand": "Леруа Мерлен / Лемана ПРО",
+        "format": "DIY / Товары для дома",
         "area_sqm": {"min": 8000, "max": 20000},
         "power_kw": None,
         "ceilings_m": {"min": 5.0, "max": None},
-        "requirements": "High visibility, proximity to highways. Land plots of 2.5 – 30 hectares."
+        "requirements": "Высокая видимость, близость к шоссе. Земельные участки от 2,5 до 30 гектаров."
     },
     {
-        "company": "Detsky Mir",
-        "brand": "Detsky Mir",
-        "format": "Kids & Toys",
+        "company": "Детский мир",
+        "brand": "Детский мир",
+        "format": "Товары для детей",
         "area_sqm": {"min": 700, "max": 1200},
         "power_kw": {"min": 35, "max": None}, 
         "ceilings_m": {"min": 3.5, "max": None},
-        "requirements": "Cities >80k population. Levels -1 to 3 with freight elevators & escalators."
+        "requirements": "Города с населением >80 тыс. Уровни от -1 до 3 с грузовыми лифтами и эскалаторами."
     }
 ]
 
