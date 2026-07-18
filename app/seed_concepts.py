@@ -52,7 +52,8 @@ concepts_data = [
 
 def seed_database():
     try:
-        db = firestore.Client()
+        from app.config import settings
+        db = firestore.Client(project=settings.FIRESTORE_PROJECT_ID, database=settings.FIRESTORE_DATABASE_ID)
         collection = db.collection(COLLECTION_NAME)
 
         print(f"Clearing existing documents in '{COLLECTION_NAME}' collection...")
