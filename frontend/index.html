@@ -1882,6 +1882,20 @@ function openEditPropertyModal() {
   });
 }
 
+function addTenantRowUI() {
+  const container = document.getElementById('edit-prop-tenants-list');
+  if (!container) return;
+  const html = `
+    <div class="tenant-row" style="display:flex; gap:8px;">
+      <input type="text" class="form-input t-name" placeholder="Название" style="flex:2" />
+      <input type="text" class="form-input t-cat" placeholder="Категории" style="flex:2" />
+      <input type="text" class="form-input t-floor" placeholder="Этаж" style="flex:1" />
+      <button type="button" class="btn btn-danger btn-sm" onclick="this.parentElement.remove()" style="padding:0 8px;">×</button>
+    </div>
+  `;
+  container.insertAdjacentHTML('beforeend', html);
+}
+
 async function deleteProperty(id) {
   if (!confirm('Удалить этот объект и все его диалоги? Это действие нельзя отменить.')) return;
   try {
