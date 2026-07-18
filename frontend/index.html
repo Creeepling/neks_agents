@@ -1058,6 +1058,11 @@ function shellHtml(breadcrumbs, topbarActions, bodyHtml, activeNav = 'dashboard'
     { id: 'retailers', icon: '☰', label: 'Требования ритейлеров' },
   ];
 
+  if (State.currentProperty) {
+    navItems.push({ id: 'detail', icon: '🏠', label: 'Текущий объект' });
+    navItems.push({ id: 'concepts', icon: '📋', label: 'Концепции' });
+  }
+
   return `
   <div id="view-app" class="flex" style="height:100vh;">
     <aside class="sidebar">
@@ -1498,7 +1503,7 @@ async function renderDetail() {
      <span class="crumb-active">${escHtml(State.currentProperty.name)}</span>`,
     `<button class="btn btn-ghost btn-sm" onclick="openNewPropertyModal()">+ Новый объект</button>`,
     `<div class="page-loader"><div class="spinner"></div> Загрузка…</div>`,
-    'dashboard'
+    'detail'
   );
   await refreshDetail();
 }
@@ -2107,11 +2112,18 @@ async function renderChat() {
       <div class="sidebar-section">
         <div class="sidebar-section-label">Навигация</div>
         <button class="sidebar-item" onclick="navigate('dashboard')">
-          <span class="sidebar-icon">⊞</span> Properties
+          <span class="sidebar-icon">⊞</span> Объекты
         </button>
-        ${prop ? `<button class="sidebar-item active" onclick="navigate('detail')">
+        <button class="sidebar-item" onclick="navigate('retailers')">
+          <span class="sidebar-icon">☰</span> Требования ритейлеров
+        </button>
+        ${prop ? `<button class="sidebar-item" onclick="navigate('detail')">
           <span class="sidebar-icon">🏠</span>
-          <span class="truncate">${escHtml(prop.name)}</span>
+          <span class="truncate">Текущий объект</span>
+        </button>
+        <button class="sidebar-item" onclick="navigate('concepts')">
+          <span class="sidebar-icon">📋</span>
+          <span class="truncate">Концепции</span>
         </button>` : ''}
       </div>
       <div class="sidebar-footer">
@@ -2370,7 +2382,7 @@ async function renderConcepts() {
      <span class="crumb-active">Концепции объекта</span>`,
     `<button class="btn btn-primary btn-sm" onclick="openConceptModal()">+ Добавить концепцию</button>`,
     `<div class="page-loader"><div class="spinner"></div> Загрузка…</div>`,
-    'dashboard'
+    'concepts'
   );
 
   try {
