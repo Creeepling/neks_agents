@@ -717,6 +717,18 @@ def seed_retailers():
         traceback.print_exc()
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to seed database: {str(e)}")
 
+@app.post("/system/seed-concepts", tags=["System"])
+def seed_concepts():
+    """Seed the global concepts into Firestore."""
+    try:
+        from app.seed_concepts import seed_database
+        seed_database()
+        return {"status": "success", "message": "Successfully seeded global concepts to Firestore."}
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to seed database: {str(e)}")
+
 @app.get("/steps", tags=["System"])
 def get_available_steps():
     """Return the list of available agent steps from agents.yaml."""

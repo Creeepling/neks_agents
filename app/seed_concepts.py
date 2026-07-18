@@ -55,6 +55,17 @@ def seed_database():
         db = firestore.Client()
         collection = db.collection(COLLECTION_NAME)
 
+        print(f"Clearing existing documents in '{COLLECTION_NAME}' collection...")
+        existing_docs = collection.stream()
+        delete_batch = db.batch()
+        delete_count = 0
+        for doc in existing_docs:
+            delete_batch.delete(doc.reference)
+            delete_count += 1
+        if delete_count > 0:
+            delete_batch.commit()
+            print(f"Deleted {delete_count} existing documents.")
+
         print(f"Seeding {len(concepts_data)} concepts into '{COLLECTION_NAME}' collection...")
 
         count = 0
