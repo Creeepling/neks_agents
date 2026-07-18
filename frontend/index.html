@@ -967,6 +967,7 @@ function render() {
     case 'dashboard': renderDashboard(); break;
     case 'retailers': renderRetailers(); break;
     case 'detail':    renderDetail();    break;
+    case 'concepts':  renderConcepts();  break;
     case 'chat':      renderChat();      break;
     default:          renderDashboard(); break;
   }
@@ -1620,6 +1621,7 @@ function renderDetailContent() {
       </div>
       <div style="display:flex;gap:8px;flex-shrink:0">
         <button class="btn btn-ghost btn-sm" onclick="openEditPropertyModal()">Изменить</button>
+        <button class="btn btn-outline btn-sm" onclick="navigate('concepts')">📋 Концепции</button>
         <button class="btn btn-primary btn-sm" onclick="openStepModal()">+ Начать этап</button>
         <button class="btn btn-outline btn-sm" onclick="downloadPresentation(${prop.id})">📊 Сгенерировать презентацию</button>
       </div>
@@ -2352,6 +2354,181 @@ function closeModal() {
 
 function closeModalOnBackdrop(e) {
   if (e.target.id === 'modal-backdrop') closeModal();
+}
+
+/* =============================================================================
+   CONCEPTS VIEW
+============================================================================= */
+async function renderConcepts() {
+  const app = document.getElementById('app');
+  if (!State.currentProperty) { navigate('dashboard'); return; }
+  app.innerHTML = shellHtml(
+    `<span onclick="navigate('dashboard')" style="cursor:pointer;color:var(--text-secondary)">Объекты</span>
+     <span class="crumb-sep">›</span>
+     <span onclick="navigate('detail')" style="cursor:pointer;color:var(--text-secondary)">${escHtml(State.currentProperty.name)}</span>
+     <span class="crumb-sep">›</span>
+     <span class="crumb-active">Концепции объекта</span>`,
+    `<button class="btn btn-primary btn-sm" onclick="openConceptModal()">+ Добавить концепцию</button>`,
+    `<div class="page-loader"><div class="spinner"></div> Загрузка…</div>`,
+    'dashboard'
+  );
+
+  try {
+    const concepts = await API.get(`/properties/${State.currentProperty.id}/concept`);
+    renderConceptsContent(concepts || []);
+  } catch (err) {
+    toast('Ошибка загрузки концепций: ' + err.message, 'error');
+  }
+}
+
+function renderConceptsContent(concepts) {
+  const body = document.querySelector('.page-body');
+  if (!body) return;
+
+  if (concepts.length === 0) {
+    body.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+        <h1 style="font-size:20px;font-weight:700;">Концепции: ${escHtml(State.currentProperty.name)}</h1>
+        <button class="btn btn-primary btn-sm" onclick="openConceptModal()">+ Добавить концепцию</button>
+      </div>
+      <div class="empty-state">У этого объекта еще нет утвержденных концепций.</div>`;
+    return;
+  }
+
+  const cardsHtml = concepts.map(c => `
+    <div class="card" style="margin-bottom:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+        <div>
+          <h3 style="margin:0;font-size:18px;">${escHtml(c.name)}</h3>
+          <p style="color:var(--text-secondary);font-size:13px;margin-bottom:12px;">Формат: ${escHtml(c.format_type)}</p>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-ghost btn-sm" onclick='openConceptModal(${JSON.stringify(c).replace(/'/g, "&apos;")})'>Изменить</button>
+          <button class="btn btn-ghost btn-sm" style="color:var(--danger)" onclick="deleteConcept('${c.id}')">Удалить</button>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:12px;">
+        <div><strong>Стратегия позиционирования:</strong><br/>${escHtml(c.positioning_strategy || '-')}</div>
+        <div><strong>Целевая аудитория:</strong><br/>${escHtml(c.target_audience || '-')}</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+        <div><strong>Якорная стратегия:</strong><br/>${escHtml(c.anchor_strategy || '-')}</div>
+        <div><strong>Гайдлайны по арендаторам:</strong><br/>${escHtml(c.tenant_guidelines || '-')}</div>
+      </div>
+    </div>
+  `).join('');
+
+  body.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+      <h1 style="font-size:20px;font-weight:700;">Концепции: ${escHtml(State.currentProperty.name)}</h1>
+      <button class="btn btn-primary btn-sm" onclick="openConceptModal()">+ Добавить концепцию</button>
+    </div>
+    <div class="concepts-list">
+      ${cardsHtml}
+    </div>
+  `;
+}
+
+function openConceptModal(concept = null) {
+  const isEdit = !!concept;
+  const html = `
+    <div id="modal-backdrop" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:999;" onclick="closeModalOnBackdrop(event)">
+      <div class="modal" style="width:100%;max-width:600px;background:var(--bg-elevated);border-radius:var(--radius-lg);box-shadow:var(--shadow-xl);display:flex;flex-direction:column;max-height:90vh;">
+        <div style="padding:20px 24px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
+          <h2 style="margin:0;font-size:18px;font-weight:600">${isEdit ? 'Редактировать концепцию' : 'Новая концепция'}</h2>
+          <button onclick="closeModal()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text-secondary)">&times;</button>
+        </div>
+        <div style="padding:24px;overflow-y:auto;display:flex;flex-direction:column;gap:16px;">
+          <input type="hidden" id="concept-id" value="${concept ? concept.id : ''}">
+          
+          <div class="form-group">
+            <label class="form-label">Название концепции</label>
+            <input type="text" id="concept-name" class="input" placeholder="Например: Районный ТЦ" value="${concept ? escAttr(concept.name) : ''}">
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">Тип формата</label>
+            <input type="text" id="concept-format" class="input" placeholder="Например: Neighborhood Center" value="${concept ? escAttr(concept.format_type) : ''}">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Стратегия позиционирования</label>
+            <textarea id="concept-positioning" class="input" rows="3">${concept ? escHtml(concept.positioning_strategy) : ''}</textarea>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Целевая аудитория</label>
+            <textarea id="concept-audience" class="input" rows="3">${concept ? escHtml(concept.target_audience) : ''}</textarea>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Якорная стратегия</label>
+            <textarea id="concept-anchor" class="input" rows="3">${concept ? escHtml(concept.anchor_strategy) : ''}</textarea>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Гайдлайны по арендаторам</label>
+            <textarea id="concept-tenant" class="input" rows="3">${concept ? escHtml(concept.tenant_guidelines) : ''}</textarea>
+          </div>
+
+        </div>
+        <div style="padding:16px 24px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:12px;background:var(--bg-surface);border-radius:0 0 var(--radius-lg) var(--radius-lg);">
+          <button class="btn btn-ghost" onclick="closeModal()">Отмена</button>
+          <button class="btn btn-primary" id="save-concept-btn" onclick="saveConcept()">Сохранить</button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.insertAdjacentHTML('beforeend', html);
+}
+
+async function saveConcept() {
+  const id = document.getElementById('concept-id').value;
+  const btn = document.getElementById('save-concept-btn');
+  
+  const payload = {
+    name: document.getElementById('concept-name').value.trim(),
+    format_type: document.getElementById('concept-format').value.trim(),
+    positioning_strategy: document.getElementById('concept-positioning').value.trim(),
+    target_audience: document.getElementById('concept-audience').value.trim(),
+    anchor_strategy: document.getElementById('concept-anchor').value.trim(),
+    tenant_guidelines: document.getElementById('concept-tenant').value.trim(),
+  };
+
+  if (!payload.name) {
+    toast('Введите название концепции', 'error');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Сохранение...';
+
+  try {
+    if (id) {
+      await API.put(`/concepts/${id}`, payload);
+      toast('Концепция обновлена', 'success');
+    } else {
+      await API.post(`/properties/${State.currentProperty.id}/concept`, payload);
+      toast('Концепция создана', 'success');
+    }
+    closeModal();
+    renderConcepts(); // re-render
+  } catch (err) {
+    toast('Ошибка сохранения: ' + err.message, 'error');
+    btn.disabled = false;
+    btn.textContent = 'Сохранить';
+  }
+}
+
+async function deleteConcept(id) {
+  if (!confirm('Удалить эту концепцию навсегда?')) return;
+  try {
+    await API.delete(\`/concepts/\${id}\`);
+    toast('Концепция удалена', 'success');
+    renderConcepts();
+  } catch (err) {
+    toast('Ошибка удаления: ' + err.message, 'error');
+  }
 }
 
 /* =============================================================================

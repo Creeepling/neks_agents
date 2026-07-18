@@ -42,7 +42,7 @@ from app.config import settings
 from app.database import get_repository, init_db
 from app.repository import DataRepository
 from google.cloud import firestore
-from app.models import ConversationModel, MessageModel, RealEstateObjectModel, UserModel
+from app.models import ConversationModel, MessageModel, RealEstateObjectModel, UserModel, RetailConceptModel
 from app.llm import AGENTS_CONFIG, STEP_EXTRACTION_SCHEMAS, STEP_SYSTEM_PROMPTS, extract_structured_data, get_agent_reply
 from app.schemas import (
     ChatResponse,
@@ -61,6 +61,9 @@ from app.schemas import (
     RetailerCreate,
     RetailerUpdate,
     RetailerResponse,
+    ConceptCreate,
+    ConceptUpdate,
+    ConceptResponse,
 )
 
 # ---------------------------------------------------------------------------
@@ -726,6 +729,65 @@ def get_available_steps():
         })
     return steps
 
+
+# ---------------------------------------------------------------------------
+# Retail Object Concepts Routes
+# ---------------------------------------------------------------------------
+
+@app.get("/properties/{property_id}/concept", response_model=list[ConceptResponse], tags=["Concepts"])
+def get_property_concepts(
+    property_id: str,
+    current_user: UserModel = Depends(get_current_user),
+    repo: DataRepository = Depends(get_repository),
+):
+    """Get the concepts defined for a specific property."""
+    concepts = repo.get_concepts_for_property(property_id)
+    return concepts
+
+@app.post("/properties/{property_id}/concept", response_model=ConceptResponse, status_code=status.HTTP_201_CREATED, tags=["Concepts"])
+def create_concept(
+    property_id: str,
+    payload: ConceptCreate,
+    current_user: UserModel = Depends(get_current_user),
+    repo: DataRepository = Depends(get_repository),
+):
+    """Create a new concept for a specific property."""
+    concept = RetailConceptModel(**payload.model_dump())
+    concept.property_id = property_id
+    concept = repo.create_concept(concept)
+    return concept
+
+@app.put("/concepts/{concept_id}", response_model=ConceptResponse, tags=["Concepts"])
+def update_concept(
+    concept_id: str,
+    payload: ConceptUpdate,
+    current_user: UserModel = Depends(get_current_user),
+    repo: DataRepository = Depends(get_repository),
+):
+    """Update an existing concept."""
+    concept = repo.get_concept_by_id(concept_id)
+    if not concept:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Concept not found.")
+        
+    update_data = payload.model_dump(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(concept, key, value)
+        
+    concept.updated_at = datetime.now(timezone.utc)
+    concept = repo.update_concept(concept)
+    return concept
+
+@app.delete("/concepts/{concept_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["Concepts"])
+def delete_concept(
+    concept_id: str,
+    current_user: UserModel = Depends(get_current_user),
+    repo: DataRepository = Depends(get_repository),
+):
+    """Delete a concept."""
+    success = repo.delete_concept(concept_id)
+    if not success:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Concept not found.")
+    return None
 
 # ---------------------------------------------------------------------------
 # Frontend Static Hosting

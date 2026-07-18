@@ -180,6 +180,32 @@ DEFAULT_SYSTEM_PROMPT = (
 
 
 # ---------------------------------------------------------------------------
+# Context Fetchers Registry
+# ---------------------------------------------------------------------------
+
+def fetch_concepts_context(repo: Any, property_id: str) -> str:
+    if not repo:
+        return ""
+    concepts = repo.get_concepts_for_property(property_id)
+    if not concepts: 
+        return ""
+    
+    lines = ["--- Утвержденные Концепции Объекта ---"]
+    for c in concepts:
+        lines.append(f"Название: {c.name}")
+        lines.append(f"Формат: {c.format_type}")
+        lines.append(f"Стратегия: {c.positioning_strategy}")
+        lines.append(f"Аудитория: {c.target_audience}")
+        lines.append(f"Якоря: {c.anchor_strategy}")
+        lines.append(f"Гайдлайны по арендаторам: {c.tenant_guidelines}\n")
+    return "\n".join(lines)
+
+CONTEXT_FETCHERS = {
+    "retail_concepts": fetch_concepts_context,
+}
+
+
+# ---------------------------------------------------------------------------
 # Prompt Building
 # ---------------------------------------------------------------------------
 
@@ -187,6 +213,7 @@ def _build_messages(
     conversation: Conversation,
     property_data: Optional[Dict[str, Any]],
     new_user_message: str,
+    repo: Any = None,
     history_limit: int = 20,
 ) -> List[Dict[str, str]]:
     """
@@ -214,6 +241,25 @@ def _build_messages(
             f"{property_data}\n"
             "Используй эти данные для контекста."
         )
+
+    # Inject requested auxiliary databases (e.g. retail_concepts)
+    step_config = AGENTS_CONFIG.get(conversation.current_step, {})
+    requested_context_keys = step_config.get("injected_context", [])
+    
+    context_variables = {}
+    for key in requested_context_keys:
+        fetcher = CONTEXT_FETCHERS.get(key)
+        if fetcher:
+            context_variables[key] = fetcher(repo, conversation.property_id)
+            
+    for key, val in context_variables.items():
+        if not val:
+            continue
+        placeholder = f"{{{key}}}"
+        if placeholder in system_prompt:
+            system_prompt = system_prompt.replace(placeholder, val)
+        else:
+            system_prompt += f"\n\n{val}"
 
     messages: List[Dict[str, Any]] = [{"role": "user", "parts": [{"text": f"[SYSTEM]\n{system_prompt}"}]}]
 
@@ -256,7 +302,7 @@ def get_agent_reply(
             "Set it in your .env file or as an environment variable."
         )
 
-    messages = _build_messages(conversation, prop.data, new_user_message)
+    messages = _build_messages(conversation, prop.data, new_user_message, repo=repo)
 
     agent_config = AGENTS_CONFIG.get(conversation.current_step, {})
     use_thinking = agent_config.get("use_thinking", False)

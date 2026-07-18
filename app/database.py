@@ -1,7 +1,7 @@
 from typing import Optional, List
 from google.cloud import firestore
 from app.config import settings
-from app.models import UserModel, RealEstateObjectModel, ConversationModel, MessageModel
+from app.models import UserModel, RealEstateObjectModel, ConversationModel, MessageModel, RetailConceptModel
 from app.repository import DataRepository
 
 class FirestoreRepository(DataRepository):
@@ -15,6 +15,7 @@ class FirestoreRepository(DataRepository):
         self.users_col = self.db.collection("users")
         self.properties_col = self.db.collection("properties")
         self.conversations_col = self.db.collection("conversations")
+        self.concepts_col = self.db.collection("retail_concepts")
 
     def get_user_by_username(self, username: str) -> Optional[UserModel]:
         docs = self.users_col.where("username", "==", username).limit(1).stream()
@@ -154,6 +155,45 @@ class FirestoreRepository(DataRepository):
         doc_ref.set(data)
         message.id = doc_ref.id
         return message
+
+    def get_concepts_for_property(self, property_id: str) -> List[RetailConceptModel]:
+        docs = self.concepts_col.where("property_id", "==", property_id).stream()
+        concepts = []
+        for doc in docs:
+            data = doc.to_dict()
+            data["id"] = doc.id
+            concepts.append(RetailConceptModel(**data))
+        return sorted(concepts, key=lambda c: c.created_at)
+
+    def get_concept_by_id(self, concept_id: str) -> Optional[RetailConceptModel]:
+        doc = self.concepts_col.document(concept_id).get()
+        if doc.exists:
+            data = doc.to_dict()
+            data["id"] = doc.id
+            return RetailConceptModel(**data)
+        return None
+
+    def create_concept(self, concept: RetailConceptModel) -> RetailConceptModel:
+        doc_ref = self.concepts_col.document()
+        data = concept.model_dump(exclude={"id"})
+        doc_ref.set(data)
+        concept.id = doc_ref.id
+        return concept
+
+    def update_concept(self, concept: RetailConceptModel) -> RetailConceptModel:
+        if not concept.id:
+            raise ValueError("Concept must have an ID to be updated")
+        doc_ref = self.concepts_col.document(concept.id)
+        data = concept.model_dump(exclude={"id"})
+        doc_ref.update(data)
+        return concept
+
+    def delete_concept(self, concept_id: str) -> bool:
+        doc = self.concepts_col.document(concept_id).get()
+        if doc.exists:
+            self.concepts_col.document(concept_id).delete()
+            return True
+        return False
 
 # Global instance
 repo_instance = FirestoreRepository()

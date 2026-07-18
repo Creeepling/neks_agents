@@ -175,3 +175,32 @@ class RetailerUpdate(BaseModel):
 
 class RetailerResponse(RetailerBase):
     id: str
+
+# ---------------------------------------------------------------------------
+# Retail Object Concept Schemas
+# ---------------------------------------------------------------------------
+
+class ConceptBase(BaseModel):
+    property_id: str
+    name: str
+    format_type: str
+    positioning_strategy: str
+    target_audience: str
+    anchor_strategy: str
+    tenant_guidelines: str
+
+class ConceptCreate(ConceptBase):
+    pass
+
+class ConceptUpdate(BaseModel):
+    name: Optional[str] = None
+    format_type: Optional[str] = None
+    positioning_strategy: Optional[str] = None
+    target_audience: Optional[str] = None
+    anchor_strategy: Optional[str] = None
+    tenant_guidelines: Optional[str] = None
+
+class ConceptResponse(ConceptBase):
+    id: str
+    created_at: datetime
+    updated_at: datetime

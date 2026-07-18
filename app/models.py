@@ -34,3 +34,15 @@ class UserModel(BaseModel):
     hashed_password: str
     is_active: bool = True
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class RetailConceptModel(BaseModel):
+    id: Optional[str] = None
+    property_id: str
+    name: str
+    format_type: str
+    positioning_strategy: str
+    target_audience: str
+    anchor_strategy: str
+    tenant_guidelines: str
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
