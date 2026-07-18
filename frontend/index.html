@@ -2391,96 +2391,96 @@ function renderConceptsContent(concepts) {
   const body = document.querySelector('.page-body');
   if (!body) return;
 
+  window._conceptsList = concepts;
+
   if (concepts.length === 0) {
     body.innerHTML = `
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
-        <h1 style="font-size:20px;font-weight:700;">Глобальные концепции</h1>
-        <button class="btn btn-primary btn-sm" onclick="openConceptModal()">+ Добавить концепцию</button>
+      <div class="empty-state">
+        <div class="empty-icon">❖</div>
+        <div class="empty-title">Нет концепций</div>
+        <div class="empty-sub">Вы еще не добавили ни одной глобальной концепции.</div>
       </div>
-      <div class="empty-state">Глобальных концепций еще нет.</div>`;
+    `;
     return;
   }
 
   const cardsHtml = concepts.map(c => `
-    <div class="card" style="margin-bottom:16px;">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;">
-        <div>
-          <h3 style="margin:0;font-size:18px;">${escHtml(c.name)}</h3>
-          <p style="color:var(--text-secondary);font-size:13px;margin-bottom:12px;">Формат: ${escHtml(c.format_type)}</p>
-        </div>
-        <div style="display:flex;gap:8px;">
-          <button class="btn btn-ghost btn-sm" onclick='openConceptModal(${JSON.stringify(c).replace(/'/g, "&apos;")})'>Изменить</button>
-          <button class="btn btn-ghost btn-sm" style="color:var(--danger)" onclick="deleteConcept('${c.id}')">Удалить</button>
-        </div>
+    <div class="property-card" onclick="openConceptModal('${c.id}')">
+      <div class="property-card-name">${escHtml(c.name)}</div>
+      <div class="property-card-address">${escHtml(c.format_type)}</div>
+      <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 8px;">
+        <strong>Целевая аудитория:</strong><br/>
+        <span style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;text-overflow:ellipsis;">${escHtml(c.target_audience || '-')}</span>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:12px;">
-        <div><strong>Стратегия позиционирования:</strong><br/>${escHtml(c.positioning_strategy || '-')}</div>
-        <div><strong>Целевая аудитория:</strong><br/>${escHtml(c.target_audience || '-')}</div>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
-        <div><strong>Якорная стратегия:</strong><br/>${escHtml(c.anchor_strategy || '-')}</div>
-        <div><strong>Гайдлайны по арендаторам:</strong><br/>${escHtml(c.tenant_guidelines || '-')}</div>
+      <div class="property-card-footer">
+        <div class="property-card-updated">Нажмите, чтобы изменить</div>
       </div>
     </div>
   `).join('');
 
   body.innerHTML = `
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
-      <h1 style="font-size:20px;font-weight:700;">Глобальные концепции</h1>
-      <button class="btn btn-primary btn-sm" onclick="openConceptModal()">+ Добавить концепцию</button>
-    </div>
-    <div class="concepts-list">
+    <div class="property-grid">
       ${cardsHtml}
     </div>
   `;
 }
 
-function openConceptModal(concept = null) {
-  const isEdit = !!concept;
+function openConceptModal(id = null) {
+  let c = null;
+  if (id && window._conceptsList) {
+    c = window._conceptsList.find(x => x.id === id);
+  }
+
+  const title = c ? 'Изменить концепцию' : 'Новая концепция';
+  const saveBtn = c ? 'Сохранить' : 'Добавить';
+
   const html = `
-    <div id="modal-backdrop" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:999;" onclick="closeModalOnBackdrop(event)">
-      <div class="modal" style="width:100%;max-width:600px;background:var(--bg-elevated);border-radius:var(--radius-lg);box-shadow:var(--shadow-xl);display:flex;flex-direction:column;max-height:90vh;">
-        <div style="padding:20px 24px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
-          <h2 style="margin:0;font-size:18px;font-weight:600">${isEdit ? 'Редактировать концепцию' : 'Новая концепция'}</h2>
-          <button onclick="closeModal()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text-secondary)">&times;</button>
+    <div class="modal-backdrop" id="modal-backdrop" onclick="closeModalOnBackdrop(event)">
+      <div class="modal">
+        <div class="modal-header">
+          <div class="modal-header-text">
+            <div class="modal-title">${title}</div>
+          </div>
+          <button class="modal-close" onclick="closeModal()">×</button>
         </div>
-        <div style="padding:24px;overflow-y:auto;display:flex;flex-direction:column;gap:16px;">
-          <input type="hidden" id="concept-id" value="${concept ? concept.id : ''}">
+        <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+          <input type="hidden" id="concept-id" value="${c ? c.id : ''}">
           
           <div class="form-group">
             <label class="form-label">Название концепции</label>
-            <input type="text" id="concept-name" class="input" placeholder="Например: Районный ТЦ" value="${concept ? escAttr(concept.name) : ''}">
+            <input type="text" id="concept-name" class="form-input" placeholder="Например: Районный ТЦ" value="${c ? escAttr(c.name) : ''}">
           </div>
           
-          <div class="form-group">
+          <div class="form-group" style="margin-top: 12px;">
             <label class="form-label">Тип формата</label>
-            <input type="text" id="concept-format" class="input" placeholder="Например: Neighborhood Center" value="${concept ? escAttr(concept.format_type) : ''}">
+            <input type="text" id="concept-format" class="form-input" placeholder="Например: Neighborhood Center" value="${c ? escAttr(c.format_type) : ''}">
           </div>
 
-          <div class="form-group">
+          <div class="form-group" style="margin-top: 12px;">
             <label class="form-label">Стратегия позиционирования</label>
-            <textarea id="concept-positioning" class="input" rows="3">${concept ? escHtml(concept.positioning_strategy) : ''}</textarea>
+            <textarea id="concept-positioning" class="form-textarea" rows="3">${c ? escHtml(c.positioning_strategy) : ''}</textarea>
           </div>
 
-          <div class="form-group">
+          <div class="form-group" style="margin-top: 12px;">
             <label class="form-label">Целевая аудитория</label>
-            <textarea id="concept-audience" class="input" rows="3">${concept ? escHtml(concept.target_audience) : ''}</textarea>
+            <textarea id="concept-audience" class="form-textarea" rows="3">${c ? escHtml(c.target_audience) : ''}</textarea>
           </div>
 
-          <div class="form-group">
+          <div class="form-group" style="margin-top: 12px;">
             <label class="form-label">Якорная стратегия</label>
-            <textarea id="concept-anchor" class="input" rows="3">${concept ? escHtml(concept.anchor_strategy) : ''}</textarea>
+            <textarea id="concept-anchor" class="form-textarea" rows="3">${c ? escHtml(c.anchor_strategy) : ''}</textarea>
           </div>
 
-          <div class="form-group">
+          <div class="form-group" style="margin-top: 12px;">
             <label class="form-label">Гайдлайны по арендаторам</label>
-            <textarea id="concept-tenant" class="input" rows="3">${concept ? escHtml(concept.tenant_guidelines) : ''}</textarea>
+            <textarea id="concept-tenant" class="form-textarea" rows="3">${c ? escHtml(c.tenant_guidelines) : ''}</textarea>
           </div>
 
         </div>
-        <div style="padding:16px 24px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:12px;background:var(--bg-surface);border-radius:0 0 var(--radius-lg) var(--radius-lg);">
+        <div class="modal-footer">
+          ${c ? `<button class="btn btn-danger" onclick="deleteConcept('${c.id}')" style="margin-right: auto;">Удалить</button>` : ''}
           <button class="btn btn-ghost" onclick="closeModal()">Отмена</button>
-          <button class="btn btn-primary" id="save-concept-btn" onclick="saveConcept()">Сохранить</button>
+          <button class="btn btn-primary" id="save-concept-btn" onclick="saveConcept()">${saveBtn}</button>
         </div>
       </div>
     </div>
