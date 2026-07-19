@@ -1626,7 +1626,6 @@ function renderDetailContent() {
       </div>
       <div style="display:flex;gap:8px;flex-shrink:0">
         <button class="btn btn-ghost btn-sm" onclick="openEditPropertyModal()">Изменить</button>
-        <button class="btn btn-primary btn-sm" onclick="openStepModal()">+ Начать этап</button>
         <button class="btn btn-outline btn-sm" onclick="downloadPresentation(${prop.id})">📊 Сгенерировать презентацию</button>
       </div>
     </div>
@@ -1668,14 +1667,14 @@ function renderDetailContent() {
       </div>
 
       <!-- Right column: conversations -->
-      <div id="conv-panel">
-        <div class="section-title" style="display:flex;justify-content:space-between">
+      <div id="conv-panel" style="display: flex; flex-direction: column;">
+        <div class="section-title">
           <span>Диалоги</span>
-          <button class="btn btn-ghost btn-sm" onclick="openStepModal()">+ Новый</button>
         </div>
-        <div id="conv-list-container">
+        <div id="conv-list-container" style="flex: 1;">
           <div class="page-loader" style="padding:24px"><div class="spinner"></div></div>
         </div>
+        <button class="btn btn-primary" style="width:100%; margin-top:16px; justify-content:center; padding:12px;" onclick="openStepModal()">+ Начать этап</button>
       </div>
     </div>`;
 
