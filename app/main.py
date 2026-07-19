@@ -749,6 +749,53 @@ def delete_retailer(
     db_fs.collection('retail_property_requirements').document(retailer_id).delete()
     return None
 
+@app.post("/retailers/{retailer_id}/auto-fill", response_model=RetailerUpdate, tags=["Retailers"])
+def auto_fill_retailer(
+    retailer_id: str,
+    current_user: UserModel = Depends(get_current_user),
+):
+    """Auto-fill retailer requirements using an AI agent."""
+    db_fs = get_firestore_db()
+    doc_ref = db_fs.collection('retail_property_requirements').document(retailer_id)
+    doc = doc_ref.get()
+    if not doc.exists:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Retailer not found.")
+    
+    data = doc.to_dict()
+    company = data.get("company", "")
+    brand = data.get("brand", "")
+    
+    prompt = f"""Find the commercial real estate property requirements for the retailer/brand: '{brand}' (company: {company}).
+Please search the web (e.g. franchising pages, official rent requirements pages) to find their typical commercial real estate requirements in Russia, such as:
+- Min and max area in square meters (area_sqm)
+- Min and max electrical power in kW (power_kw)
+- Min and max ceiling height in meters (ceilings_m)
+- Any other specific textual requirements (requirements)
+
+Fill in the JSON response using the specified schema. You must use the google_search tool to find accurate and up-to-date information."""
+
+    try:
+        from app.llm import _raw_client
+        from google.genai import types
+        import json
+        
+        response = _raw_client.models.generate_content(
+            model=settings.GEMINI_MODEL,
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                tools=[{"google_search": {}}],
+                response_mime_type="application/json",
+                response_schema=RetailerUpdate
+            )
+        )
+        
+        extracted_data = json.loads(response.text)
+        return extracted_data
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"AI Agent failed: {str(e)}")
+
 
 # ---------------------------------------------------------------------------
 # System Endpoints

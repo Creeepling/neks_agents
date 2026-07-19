@@ -1391,6 +1391,7 @@ function openRetailerModal(id = null) {
           </div>
         </div>
         <div class="modal-footer">
+          ${r ? `<button class="btn btn-secondary" id="auto-fill-btn" onclick="autoFillRetailer('${r.id}')" style="margin-right: 8px;">🔍 Искать с ИИ</button>` : ''}
           ${r ? `<button class="btn btn-danger" onclick="deleteRetailer('${r.id}')" style="margin-right: auto;">Удалить</button>` : ''}
           <button class="btn btn-ghost" onclick="closeModal()">Отмена</button>
           <button class="btn btn-primary" id="save-ret-btn" onclick="saveRetailer()">${saveBtn}</button>
@@ -1399,6 +1400,52 @@ function openRetailerModal(id = null) {
     </div>
   `;
   document.body.insertAdjacentHTML('beforeend', html);
+}
+
+async function autoFillRetailer(id) {
+  if (!id) return;
+  const btn = document.getElementById('auto-fill-btn');
+  const originalText = btn.innerHTML;
+  btn.innerHTML = '⏳ Ищем...';
+  btn.disabled = true;
+
+  try {
+    const res = await fetch('/retailers/' + id + '/auto-fill', {
+      method: 'POST'
+    });
+    
+    if (!res.ok) {
+      const err = await res.json();
+      alert('Ошибка при поиске: ' + (err.detail || res.statusText));
+      return;
+    }
+    
+    const data = await res.json();
+    
+    // Fill values if they exist
+    if (data.area_sqm) {
+      if (data.area_sqm.min !== null && data.area_sqm.min !== undefined) document.getElementById('ret_area_min').value = data.area_sqm.min;
+      if (data.area_sqm.max !== null && data.area_sqm.max !== undefined) document.getElementById('ret_area_max').value = data.area_sqm.max;
+    }
+    if (data.power_kw) {
+      if (data.power_kw.min !== null && data.power_kw.min !== undefined) document.getElementById('ret_power_min').value = data.power_kw.min;
+      if (data.power_kw.max !== null && data.power_kw.max !== undefined) document.getElementById('ret_power_max').value = data.power_kw.max;
+    }
+    if (data.ceilings_m) {
+      if (data.ceilings_m.min !== null && data.ceilings_m.min !== undefined) document.getElementById('ret_ceilings_min').value = data.ceilings_m.min;
+      if (data.ceilings_m.max !== null && data.ceilings_m.max !== undefined) document.getElementById('ret_ceilings_max').value = data.ceilings_m.max;
+    }
+    if (data.requirements) {
+      document.getElementById('ret_reqs').value = data.requirements;
+    }
+    
+  } catch (e) {
+    console.error(e);
+    alert('Ошибка сети или сервера');
+  } finally {
+    btn.innerHTML = originalText;
+    btn.disabled = false;
+  }
 }
 
 async function saveRetailer() {
