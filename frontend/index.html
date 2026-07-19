@@ -1649,6 +1649,7 @@ function renderDetailContent() {
             <span class="data-viewer-title">Текущие арендаторы</span>
             <div style="display:flex;gap:8px;">
               <button class="btn btn-ghost btn-sm" onclick="openEditPropertyModal()">Редактировать</button>
+              <button class="btn btn-secondary btn-sm" onclick="fetchTenantsFromAI('${prop.id}')" id="fetch-tenants-ai-btn">✨ Найти через AI</button>
               <button class="btn btn-primary btn-sm" onclick="fetchTenantsFrom2GIS('${prop.id}')" id="fetch-tenants-btn">Загрузить из 2GIS</button>
             </div>
           </div>
@@ -1928,6 +1929,28 @@ async function fetchTenantsFrom2GIS(id) {
     if (btn) {
       btn.disabled = false;
       btn.textContent = 'Загрузить из 2GIS';
+    }
+  }
+}
+
+async function fetchTenantsFromAI(id) {
+  const btn = document.getElementById('fetch-tenants-ai-btn');
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Анализируем...';
+  }
+  toast('Ищем арендаторов через AI...', 'info');
+  try {
+    const res = await API.post(`/properties/${id}/fetch_tenants_ai`, {});
+    State.currentProperty = res;
+    toast('AI успешно нашел арендаторов!', 'success');
+    renderDetailContent();
+  } catch (err) {
+    toast('Ошибка поиска AI: ' + err.message, 'error');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = '✨ Найти через AI';
     }
   }
 }

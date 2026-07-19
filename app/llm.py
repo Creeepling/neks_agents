@@ -496,3 +496,38 @@ def extract_structured_data(
     missing = [k for k, v in result_dict.items() if v is None]
 
     return extracted, missing
+
+# ---------------------------------------------------------------------------
+# AI Tenant Search
+# ---------------------------------------------------------------------------
+
+def fetch_tenants_with_ai(location: str) -> list[dict]:
+    """Use Gemini with Google Search to find current tenants for a given property location."""
+    class TenantItem(BaseModel):
+        name: str = Field(description="Название компании или бренда (например, Пятерочка, Zara, Cofix)")
+        categories: str = Field(default="", description="Категория или сфера деятельности (например, Супермаркет, Одежда, Кофейня)")
+        floor: str = Field(default="", description="Этаж, если известен (иначе пустая строка)")
+
+    class TenantsList(BaseModel):
+        tenants: list[TenantItem]
+
+    prompt = f"Найди текущих действующих коммерческих арендаторов (магазины, рестораны, услуги) по адресу: {location}. Используй встроенный Google Search, чтобы найти информацию на 2GIS, Яндекс.Картах, официальных сайтах или новостных порталах. Верни список арендаторов в строгом структурированном виде."
+
+    response = _raw_client.models.generate_content(
+        model=settings.GEMINI_MODEL,
+        contents=prompt,
+        config=types.GenerateContentConfig(
+            tools=[types.Tool(google_search=types.GoogleSearch())],
+            response_mime_type="application/json",
+            response_schema=TenantsList,
+            temperature=0.2,
+        ),
+    )
+    
+    import json
+    try:
+        data = json.loads(response.text)
+        return data.get("tenants", [])
+    except Exception as e:
+        print(f"Error parsing AI tenants response: {e}")
+        return []

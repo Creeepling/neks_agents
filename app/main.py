@@ -335,6 +335,55 @@ def fetch_building_tenants_endpoint(
     return prop
 
 
+@app.post("/properties/{property_id}/fetch_tenants_ai", response_model=PropertyResponse, tags=["Properties"])
+def fetch_building_tenants_ai_endpoint(
+    property_id: str,
+    current_user: UserModel = Depends(get_current_user),
+    repo: DataRepository = Depends(get_repository),
+):
+    """Fetch current tenants using AI + Google Search and save them."""
+    from app.llm import fetch_tenants_with_ai
+    
+    prop = repo.get_property_by_id_and_user(property_id, current_user.id)
+    if prop is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Property not found.")
+        
+    if not prop.address:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Property does not have an address set.")
+    
+    full_location = prop.address
+    city_name = (prop.data or {}).get("city_name", "").strip()
+    if city_name and city_name.lower() not in prop.address.lower():
+        full_location = f"{city_name}, {prop.address}"
+        
+    tenants_result = fetch_tenants_with_ai(full_location)
+    
+    if not tenants_result:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="AI не нашел арендаторов (или произошла ошибка).")
+        
+    new_data = dict(prop.data or {})
+    existing = new_data.get("current_tenants", [])
+    
+    if isinstance(existing, str):
+        existing_list = [{"name": "Старые данные", "categories": "", "floor": existing.strip()}] if existing.strip() else []
+    else:
+        existing_list = existing
+        
+    # Merge, keeping existing and appending new ones from AI only if name doesn't match
+    existing_names = {t.get("name", "").lower() for t in existing_list}
+    for t in tenants_result:
+        if t.get("name", "").lower() not in existing_names:
+            existing_list.append(t)
+            
+    new_data["current_tenants"] = existing_list
+        
+    prop.data = new_data
+    prop.updated_at = datetime.now(timezone.utc)
+    prop = repo.update_property(prop)
+        
+    return prop
+
+
 @app.get("/properties/{property_id}/slides", tags=["Properties"])
 def download_presentation(
     property_id: str,
