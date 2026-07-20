@@ -44,7 +44,7 @@ from app.database import get_repository, init_db
 from app.repository import DataRepository
 from google.cloud import firestore
 from app.models import ConversationModel, MessageModel, RealEstateObjectModel, UserModel, RetailConceptModel
-from app.llm import AGENTS_CONFIG, STEP_EXTRACTION_SCHEMAS, STEP_SYSTEM_PROMPTS, extract_structured_data, get_agent_reply
+from app.llm import AGENTS_CONFIG, STEP_EXTRACTION_SCHEMAS, STEP_SYSTEM_PROMPTS, extract_structured_data, get_agent_reply, reload_agents_config
 from app.schemas import (
     ChatResponse,
     CommitResponse,
@@ -843,6 +843,31 @@ def get_available_steps():
         })
     return steps
 
+class AgentsConfigUpdate(BaseModel):
+    content: str
+
+@app.get("/system/agents-config", tags=["System"])
+def get_agents_config():
+    """Return the raw contents of agents.yaml."""
+    config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "agents.yaml")
+    try:
+        with open(config_path, "r", encoding="utf-8") as f:
+            return {"content": f.read()}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to read agents.yaml: {str(e)}")
+
+@app.put("/system/agents-config", tags=["System"])
+def update_agents_config(payload: AgentsConfigUpdate):
+    """Update agents.yaml and reload configuration in memory."""
+    config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "agents.yaml")
+    try:
+        with open(config_path, "w", encoding="utf-8") as f:
+            f.write(payload.content)
+        # Reload configuration in memory
+        reload_agents_config()
+        return {"status": "success", "message": "Successfully updated agents.yaml"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to update agents.yaml: {str(e)}")
 
 # ---------------------------------------------------------------------------
 # Retail Object Concepts Routes

@@ -127,6 +127,20 @@ AGENTS_CONFIG = _load_agents_config()
 STEP_SYSTEM_PROMPTS: Dict[str, str] = {}
 STEP_EXTRACTION_SCHEMAS: Dict[str, type[BaseModel]] = {}
 
+def reload_agents_config():
+    global AGENTS_CONFIG, STEP_SYSTEM_PROMPTS, STEP_EXTRACTION_SCHEMAS
+    AGENTS_CONFIG.clear()
+    AGENTS_CONFIG.update(_load_agents_config())
+    
+    STEP_SYSTEM_PROMPTS.clear()
+    STEP_EXTRACTION_SCHEMAS.clear()
+    
+    for step_id, config in AGENTS_CONFIG.items():
+        STEP_SYSTEM_PROMPTS[step_id] = config.get("system_prompt", "")
+        schema_def = config.get("extraction_schema", {})
+        model_name = "".join(word.capitalize() for word in step_id.split("_")) + "Schema"
+        STEP_EXTRACTION_SCHEMAS[step_id] = _build_model(model_name, schema_def)
+
 def _build_model(name: str, schema_def: dict) -> type[BaseModel]:
     fields = {}
     for field_name, field_info in schema_def.items():
