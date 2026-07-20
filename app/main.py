@@ -28,6 +28,7 @@ from datetime import datetime, timezone
 from typing import Optional
 
 import os
+from pydantic import BaseModel
 from fastapi import Depends, FastAPI, HTTPException, Query, status, Request
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
