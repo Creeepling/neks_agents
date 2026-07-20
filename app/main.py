@@ -774,7 +774,11 @@ Please search the web (e.g. franchising pages, official rent requirements pages)
 - Any other specific textual requirements (requirements)
 
 Fill in the JSON response using the specified schema. You must use the google_search tool to find accurate and up-to-date information.
-CRITICAL: ALL text fields in the output (especially the `requirements` field) MUST be written in Russian."""
+
+CRITICAL INSTRUCTIONS:
+1. ANTI-HALLUCINATION: If you cannot find specific data for a field (e.g., power or area) from reliable sources, leave it as null. DO NOT guess or hallucinate numbers.
+2. If no specific textual requirements are found, leave the `requirements` field as null or write "Информация не найдена".
+3. ALL text fields in the output (especially the `requirements` field) MUST be written in Russian."""
 
     try:
         from app.llm import _raw_client
