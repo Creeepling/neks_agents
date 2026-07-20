@@ -749,21 +749,21 @@ def delete_retailer(
     db_fs.collection('retail_property_requirements').document(retailer_id).delete()
     return None
 
-@app.post("/retailers/{retailer_id}/auto-fill", response_model=RetailerUpdate, tags=["Retailers"])
+class AutoFillRequest(BaseModel):
+    company: str
+    brand: str
+
+@app.post("/retailers/auto-fill", response_model=RetailerUpdate, tags=["Retailers"])
 def auto_fill_retailer(
-    retailer_id: str,
+    request: AutoFillRequest,
     current_user: UserModel = Depends(get_current_user),
 ):
     """Auto-fill retailer requirements using an AI agent."""
-    db_fs = get_firestore_db()
-    doc_ref = db_fs.collection('retail_property_requirements').document(retailer_id)
-    doc = doc_ref.get()
-    if not doc.exists:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Retailer not found.")
+    company = request.company
+    brand = request.brand
     
-    data = doc.to_dict()
-    company = data.get("company", "")
-    brand = data.get("brand", "")
+    if not company or not brand:
+        raise HTTPException(status_code=400, detail="Company and brand are required for auto-fill.")
     
     prompt = f"""Find the commercial real estate property requirements for the retailer/brand: '{brand}' (company: {company}).
 Please search the web (e.g. franchising pages, official rent requirements pages) to find their typical commercial real estate requirements in Russia, such as:

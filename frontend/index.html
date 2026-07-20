@@ -1391,7 +1391,7 @@ function openRetailerModal(id = null) {
           </div>
         </div>
         <div class="modal-footer">
-          ${r ? `<button class="btn btn-secondary" id="auto-fill-btn" onclick="autoFillRetailer('${r.id}')" style="margin-right: 8px;">🔍 Искать с ИИ</button>` : ''}
+          <button class="btn btn-secondary" id="auto-fill-btn" onclick="autoFillRetailer()" style="margin-right: 8px;">🔍 Искать с ИИ</button>
           ${r ? `<button class="btn btn-danger" onclick="deleteRetailer('${r.id}')" style="margin-right: auto;">Удалить</button>` : ''}
           <button class="btn btn-ghost" onclick="closeModal()">Отмена</button>
           <button class="btn btn-primary" id="save-ret-btn" onclick="saveRetailer()">${saveBtn}</button>
@@ -1402,16 +1402,23 @@ function openRetailerModal(id = null) {
   document.body.insertAdjacentHTML('beforeend', html);
 }
 
-async function autoFillRetailer(id) {
-  if (!id) return;
+async function autoFillRetailer() {
+  const company = document.getElementById('ret_company').value.trim();
+  const brand = document.getElementById('ret_brand').value.trim();
+  if (!company || !brand) {
+    return toast('Компания и Бренд обязательны для ИИ поиска', 'error');
+  }
+
   const btn = document.getElementById('auto-fill-btn');
   const originalText = btn.innerHTML;
   btn.innerHTML = '⏳ Ищем...';
   btn.disabled = true;
 
   try {
-    const res = await fetch('/retailers/' + id + '/auto-fill', {
-      method: 'POST'
+    const res = await fetch('/retailers/auto-fill', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + State.token },
+      body: JSON.stringify({ company, brand })
     });
     
     if (!res.ok) {
