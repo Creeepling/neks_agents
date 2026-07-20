@@ -773,7 +773,8 @@ Please search the web (e.g. franchising pages, official rent requirements pages)
 - Min and max ceiling height in meters (ceilings_m)
 - Any other specific textual requirements (requirements)
 
-Fill in the JSON response using the specified schema. You must use the google_search tool to find accurate and up-to-date information."""
+Fill in the JSON response using the specified schema. You must use the google_search tool to find accurate and up-to-date information.
+CRITICAL: ALL text fields in the output (especially the `requirements` field) MUST be written in Russian."""
 
     try:
         from app.llm import _raw_client
