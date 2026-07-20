@@ -1184,7 +1184,7 @@ function openNewPropertyModal() {
         <button class="modal-close" onclick="closeModal()">×</button>
       </div>
       <form id="new-prop-form">
-        <div class="modal-body flex flex-col gap-3">
+        <div class="modal-body flex flex-col gap-3" style="max-height: 70vh; overflow-y: auto;">
           <div class="form-group">
             <label class="form-label">Название объекта</label>
             <input id="prop-name" class="form-input" type="text" placeholder="напр., Квартира на закате" required />
@@ -1832,7 +1832,7 @@ function openEditPropertyModal() {
         <button class="modal-close" onclick="closeModal()">×</button>
       </div>
       <form id="edit-prop-form">
-        <div class="modal-body flex flex-col gap-3">
+        <div class="modal-body flex flex-col gap-3" style="max-height: 70vh; overflow-y: auto;">
           <div class="form-group">
             <label class="form-label">Название объекта</label>
             <input id="edit-prop-name" class="form-input" type="text" value="${escAttr(prop.name)}" required />
