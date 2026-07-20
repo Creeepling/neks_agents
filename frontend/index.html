@@ -2630,6 +2630,7 @@ async function deleteConcept(id) {
   try {
     await API.delete(`/concepts/${id}`);
     toast('Концепция удалена', 'success');
+    closeModal();
     renderConcepts();
   } catch (err) {
     toast('Ошибка удаления: ' + err.message, 'error');
