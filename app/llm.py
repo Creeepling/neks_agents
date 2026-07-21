@@ -364,6 +364,25 @@ def get_agent_reply(
                         parts.append(types.Part.from_function_response(name=fc.name, response={"result": result}))
                     except Exception as e:
                         parts.append(types.Part.from_function_response(name=fc.name, response={"error": str(e)}))
+                        
+                elif fc.name == "append_extra_data_tool":
+                    args = fc.args
+                    text_to_append = args.get("text", "")
+                    try:
+                        new_data = dict(prop.data or {})
+                        existing_extra_data = new_data.get("extra_data", "")
+                        if existing_extra_data:
+                            new_data["extra_data"] = existing_extra_data + "\n" + text_to_append
+                        else:
+                            new_data["extra_data"] = text_to_append
+                        prop.data = new_data
+                        
+                        from datetime import datetime, timezone
+                        prop.updated_at = datetime.now(timezone.utc)
+                        repo.update_property(prop)
+                        parts.append(types.Part.from_function_response(name=fc.name, response={"result": "Successfully appended text to extra_data."}))
+                    except Exception as e:
+                        parts.append(types.Part.from_function_response(name=fc.name, response={"error": str(e)}))
             
             messages.append({"role": "user", "parts": parts})
             continue

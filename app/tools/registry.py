@@ -12,6 +12,14 @@ def twogis_maps_tool(location: str) -> str:
     """
     return search_twogis_businesses(location)
 
+def append_extra_data_tool(text: str) -> str:
+    """
+    Добавляет переданный текст в раздел 'extra_data' базы данных текущего объекта недвижимости.
+    Если там уже есть текст, новый текст добавляется в конец с новой строки.
+    Используй этот инструмент для сохранения промежуточных выводов или важных заметок об объекте.
+    """
+    pass
+
 def analyze_location_businesses_tool(city: str, location: str) -> str:
     """
     Единый инструмент для поиска организаций вокруг объекта с помощью 2GIS 
@@ -90,6 +98,7 @@ AVAILABLE_TOOLS = {
     "match_retail_requirements_tool": match_retail_requirements_tool,
     "twogis_maps_tool": twogis_maps_tool,
     "bulk_dadata_licenses_tool": bulk_dadata_licenses_tool,
+    "append_extra_data_tool": append_extra_data_tool,
 }
 
 TOOL_METADATA = [
@@ -98,7 +107,8 @@ TOOL_METADATA = [
     { "id": "twogis_maps_tool", "label": "Поиск в 2GIS", "desc": "Получение списка организаций по адресу" },
     { "id": "dadata_licenses", "label": "Проверка лицензий Dadata", "desc": "Поиск алкогольных/образовательных лицензий по ИНН/адресу" },
     { "id": "bulk_dadata_licenses_tool", "label": "Массовая проверка лицензий", "desc": "Автоматический запрос лицензий для найденных компаний" },
-    { "id": "match_retail_requirements_tool", "label": "Подбор арендаторов", "desc": "Поиск по площади (кв.м) и мощности (кВт) из внутренней БД" }
+    { "id": "match_retail_requirements_tool", "label": "Подбор арендаторов", "desc": "Поиск по площади (кв.м) и мощности (кВт) из внутренней БД" },
+    { "id": "append_extra_data_tool", "label": "Доп. Информация", "desc": "Сохраняет текст в БД объекта", "hidden": True }
     # To hide a tool from the frontend UI, you can either remove it from this list or add: "hidden": True
     # { "id": "secret_tool", "label": "Secret", "desc": "...", "hidden": True }
 ]
