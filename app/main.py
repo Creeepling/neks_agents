@@ -47,6 +47,7 @@ from app.repository import DataRepository
 from google.cloud import firestore
 from app.models import ConversationModel, MessageModel, RealEstateObjectModel, UserModel, RetailConceptModel
 from app.llm import AGENTS_CONFIG, STEP_EXTRACTION_SCHEMAS, STEP_SYSTEM_PROMPTS, extract_structured_data, get_agent_reply, reload_agents_config
+from app.tools.registry import TOOL_METADATA
 from app.schemas import (
     ChatResponse,
     CommitResponse,
@@ -770,15 +771,18 @@ def auto_fill_retailer(
     
     prompt = f"""Find the commercial real estate property requirements for the retailer/brand: '{brand}' (company: {company}).
 Please search the web (e.g. franchising pages, official rent requirements pages) to find their typical commercial real estate requirements in Russia, such as:
+- Retailer format (format), e.g. "Магазин у дома", "Супермаркет", "ПВЗ"
+- Whether the network is actively developing/expanding in Russia (is_developing: boolean)
 - Min and max area in square meters (area_sqm)
 - Min and max electrical power in kW (power_kw)
 - Min and max ceiling height in meters (ceilings_m)
+- Rent rates per sqm per month in RUB: min, avg, max (rent_rate)
 - Any other specific textual requirements (requirements)
 
 Fill in the JSON response using the specified schema. You must use the google_search tool to find accurate and up-to-date information.
 
 CRITICAL INSTRUCTIONS:
-1. ANTI-HALLUCINATION: If you cannot find specific data for a field (e.g., power or area) from reliable sources, leave it as null. DO NOT guess or hallucinate numbers.
+1. ANTI-HALLUCINATION: If you cannot find specific data for a field (e.g., power or area or rent_rate) from reliable sources, leave it as null. DO NOT guess or hallucinate numbers.
 2. If no specific textual requirements are found, leave the `requirements` field as null or write "Информация не найдена".
 3. ALL text fields in the output (especially the `requirements` field) MUST be written in Russian."""
 
@@ -844,6 +848,11 @@ def get_available_steps():
             "desc": config.get("description", "")
         })
     return steps
+
+@app.get("/system/tools", tags=["System"])
+def get_available_tools():
+    """Return the list of available tools from the registry."""
+    return [t for t in TOOL_METADATA if not t.get("hidden")]
 
 class AgentsConfigJSONUpdate(BaseModel):
     config: Dict[str, Any]

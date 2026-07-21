@@ -1141,8 +1141,12 @@ async function renderAgentsConfig(fetchFromServer = true) {
       'agents_config'
     );
     try {
-      const res = await API.get('/system/agents-config/json');
-      State.agentsConfig = res.config || {};
+      const [agentsRes, toolsRes] = await Promise.all([
+        API.get('/system/agents-config/json'),
+        API.get('/system/tools')
+      ]);
+      State.agentsConfig = agentsRes.config || {};
+      State.availableTools = toolsRes || [];
     } catch (err) {
       app.innerHTML = shellHtml(
         `<span class="crumb-active">Настройки агентов</span>`,
@@ -1154,14 +1158,7 @@ async function renderAgentsConfig(fetchFromServer = true) {
     }
   }
 
-  const AVAILABLE_TOOLS_DEF = [
-    { id: 'google_search', label: 'Google Search', desc: 'Поиск актуальной информации в интернете' },
-    { id: 'analyze_location_businesses', label: 'Анализ локации и бизнеса', desc: 'Поиск организаций (2GIS) + проверка лицензий (Dadata)' },
-    { id: 'twogis_maps_tool', label: 'Поиск в 2GIS', desc: 'Получение списка организаций по адресу' },
-    { id: 'dadata_licenses_tool', label: 'Проверка лицензий Dadata', desc: 'Поиск алкогольных/образовательных лицензий по ИНН/адресу' },
-    { id: 'bulk_dadata_licenses_tool', label: 'Массовая проверка лицензий', desc: 'Автоматический запрос лицензий для найденных компаний' },
-    { id: 'match_retail_requirements_tool', label: 'Подбор арендаторов', desc: 'Поиск по площади (кв.м) и мощности (кВт) из внутренней БД' }
-  ];
+  const AVAILABLE_TOOLS_DEF = State.availableTools || [];
 
   let bodyHtml = `
   <style>
@@ -1532,11 +1529,15 @@ async function renderRetailers() {
         <div class="property-grid">
           ${retailers.map(r => `
             <div class="property-card" onclick="openRetailerModal('${r.id}')">
-              <div class="property-card-name">${escHtml(r.company)} - ${escHtml(r.brand)}</div>
-              <div class="property-card-address">${escHtml(r.format)}</div>
-              <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 8px;">
+              <div class="property-card-name" style="display:flex; justify-content:space-between; align-items:center;">
+                <span>${escHtml(r.company)} - ${escHtml(r.brand)}</span>
+                ${r.is_developing !== false ? '<span style="font-size: 10px; background: rgba(16, 185, 129, 0.15); color: #10b981; padding: 2px 6px; border-radius: 4px;">🟢 Развивается</span>' : '<span style="font-size: 10px; background: rgba(156, 163, 175, 0.15); color: #9ca3af; padding: 2px 6px; border-radius: 4px;">⚪ Приостановлено</span>'}
+              </div>
+              <div class="property-card-address">${escHtml(r.format || 'Формат не указан')}</div>
+              <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 8px; line-height: 1.5;">
                 <strong>Площадь:</strong> ${r.area_sqm?.min || 0} - ${r.area_sqm?.max || '∞'} м²<br/>
-                <strong>Мощность:</strong> ${r.power_kw?.min || 0} - ${r.power_kw?.max || '∞'} кВт
+                <strong>Мощность:</strong> ${r.power_kw?.min || 0} - ${r.power_kw?.max || '∞'} кВт<br/>
+                <strong>Аренда (мин / ср / макс):</strong> ${r.rent_rate ? `${r.rent_rate.min !== null && r.rent_rate.min !== undefined ? r.rent_rate.min : 0} - ${r.rent_rate.avg !== null && r.rent_rate.avg !== undefined ? r.rent_rate.avg : '-'} - ${r.rent_rate.max !== null && r.rent_rate.max !== undefined ? r.rent_rate.max : '∞'}` : 'Не указана'} руб/м²/мес
               </div>
               <div class="property-card-footer">
                 <div class="property-card-updated">Нажмите, чтобы изменить</div>
@@ -1579,6 +1580,11 @@ function openRetailerModal(id = null) {
         <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
           <input type="hidden" id="retailer_id" value="${r ? r.id : ''}" />
           
+          <div class="form-group" style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+            <input type="checkbox" id="ret_is_developing" ${r && r.is_developing === false ? '' : 'checked'} style="width: 18px; height: 18px; cursor: pointer;" />
+            <label for="ret_is_developing" class="form-label" style="margin: 0; cursor: pointer;">Развивается (активно ищет помещения)</label>
+          </div>
+
           <div class="form-group">
             <label class="form-label">Компания</label>
             <input type="text" class="form-input" id="ret_company" value="${r ? escAttr(r.company) : ''}" placeholder="X5 Group" />
@@ -1589,7 +1595,7 @@ function openRetailerModal(id = null) {
           </div>
           <div class="form-group" style="margin-top: 12px;">
             <label class="form-label">Формат</label>
-            <input type="text" class="form-input" id="ret_format" value="${r ? escAttr(r.format) : ''}" placeholder="Супермаркет" />
+            <input type="text" class="form-input" id="ret_format" value="${r ? escAttr(r.format || '') : ''}" placeholder="Супермаркет / ПВЗ / Магазин у дома" />
           </div>
 
           <div style="display: flex; gap: 12px; margin-top: 12px;">
@@ -1622,6 +1628,21 @@ function openRetailerModal(id = null) {
             <div class="form-group" style="flex:1;">
               <label class="form-label">Потолки до (м)</label>
               <input type="number" step="0.1" class="form-input" id="ret_ceilings_max" value="${r && r.ceilings_m && r.ceilings_m.max !== null ? r.ceilings_m.max : ''}" />
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 12px; margin-top: 12px;">
+            <div class="form-group" style="flex:1;">
+              <label class="form-label">Аренда мин (руб/м²/мес)</label>
+              <input type="number" class="form-input" id="ret_rent_min" value="${r && r.rent_rate && r.rent_rate.min !== null && r.rent_rate.min !== undefined ? r.rent_rate.min : ''}" placeholder="1000" />
+            </div>
+            <div class="form-group" style="flex:1;">
+              <label class="form-label">Аренда ср (руб/м²/мес)</label>
+              <input type="number" class="form-input" id="ret_rent_avg" value="${r && r.rent_rate && r.rent_rate.avg !== null && r.rent_rate.avg !== undefined ? r.rent_rate.avg : ''}" placeholder="1800" />
+            </div>
+            <div class="form-group" style="flex:1;">
+              <label class="form-label">Аренда макс (руб/м²/мес)</label>
+              <input type="number" class="form-input" id="ret_rent_max" value="${r && r.rent_rate && r.rent_rate.max !== null && r.rent_rate.max !== undefined ? r.rent_rate.max : ''}" placeholder="3000" />
             </div>
           </div>
 
@@ -1670,6 +1691,8 @@ async function autoFillRetailer() {
     const data = await res.json();
     
     // Fill values if they exist
+    if (data.format) document.getElementById('ret_format').value = data.format;
+    if (data.is_developing !== undefined && data.is_developing !== null) document.getElementById('ret_is_developing').checked = !!data.is_developing;
     if (data.area_sqm) {
       if (data.area_sqm.min !== null && data.area_sqm.min !== undefined) document.getElementById('ret_area_min').value = data.area_sqm.min;
       if (data.area_sqm.max !== null && data.area_sqm.max !== undefined) document.getElementById('ret_area_max').value = data.area_sqm.max;
@@ -1681,6 +1704,11 @@ async function autoFillRetailer() {
     if (data.ceilings_m) {
       if (data.ceilings_m.min !== null && data.ceilings_m.min !== undefined) document.getElementById('ret_ceilings_min').value = data.ceilings_m.min;
       if (data.ceilings_m.max !== null && data.ceilings_m.max !== undefined) document.getElementById('ret_ceilings_max').value = data.ceilings_m.max;
+    }
+    if (data.rent_rate) {
+      if (data.rent_rate.min !== null && data.rent_rate.min !== undefined) document.getElementById('ret_rent_min').value = data.rent_rate.min;
+      if (data.rent_rate.avg !== null && data.rent_rate.avg !== undefined) document.getElementById('ret_rent_avg').value = data.rent_rate.avg;
+      if (data.rent_rate.max !== null && data.rent_rate.max !== undefined) document.getElementById('ret_rent_max').value = data.rent_rate.max;
     }
     if (data.requirements) {
       document.getElementById('ret_reqs').value = data.requirements;
@@ -1705,10 +1733,16 @@ async function saveRetailer() {
     company: document.getElementById('ret_company').value.trim(),
     brand: document.getElementById('ret_brand').value.trim(),
     format: document.getElementById('ret_format').value.trim(),
+    is_developing: document.getElementById('ret_is_developing').checked,
     requirements: document.getElementById('ret_reqs').value.trim(),
     area_sqm: { min: getNum(document.getElementById('ret_area_min').value), max: getNum(document.getElementById('ret_area_max').value) },
     power_kw: { min: getNum(document.getElementById('ret_power_min').value), max: getNum(document.getElementById('ret_power_max').value) },
-    ceilings_m: { min: getNum(document.getElementById('ret_ceilings_min').value), max: getNum(document.getElementById('ret_ceilings_max').value) }
+    ceilings_m: { min: getNum(document.getElementById('ret_ceilings_min').value), max: getNum(document.getElementById('ret_ceilings_max').value) },
+    rent_rate: {
+      min: getNum(document.getElementById('ret_rent_min').value),
+      avg: getNum(document.getElementById('ret_rent_avg').value),
+      max: getNum(document.getElementById('ret_rent_max').value)
+    }
   };
 
   if (!payload.company || !payload.brand) {

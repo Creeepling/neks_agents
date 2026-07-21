@@ -152,13 +152,20 @@ class RangeSchema(BaseModel):
     min: Optional[float] = None
     max: Optional[float] = None
 
+class RentRateSchema(BaseModel):
+    min: Optional[float] = None
+    avg: Optional[float] = None
+    max: Optional[float] = None
+
 class RetailerBase(BaseModel):
     company: str
     brand: str
-    format: str
+    format: Optional[str] = None
+    is_developing: Optional[bool] = True
     area_sqm: Optional[RangeSchema] = None
     power_kw: Optional[RangeSchema] = None
     ceilings_m: Optional[RangeSchema] = None
+    rent_rate: Optional[RentRateSchema] = None
     requirements: Optional[str] = None
 
 class RetailerCreate(RetailerBase):
@@ -168,9 +175,11 @@ class RetailerUpdate(BaseModel):
     company: Optional[str] = None
     brand: Optional[str] = None
     format: Optional[str] = None
+    is_developing: Optional[bool] = None
     area_sqm: Optional[RangeSchema] = None
     power_kw: Optional[RangeSchema] = None
     ceilings_m: Optional[RangeSchema] = None
+    rent_rate: Optional[RentRateSchema] = None
     requirements: Optional[str] = None
 
 class RetailerResponse(RetailerBase):
