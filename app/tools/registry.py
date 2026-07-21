@@ -108,7 +108,7 @@ TOOL_METADATA = [
     { "id": "dadata_licenses", "label": "Проверка лицензий Dadata", "desc": "Поиск алкогольных/образовательных лицензий по ИНН/адресу" },
     { "id": "bulk_dadata_licenses_tool", "label": "Массовая проверка лицензий", "desc": "Автоматический запрос лицензий для найденных компаний" },
     { "id": "match_retail_requirements_tool", "label": "Подбор арендаторов", "desc": "Поиск по площади (кв.м) и мощности (кВт) из внутренней БД" },
-    { "id": "append_extra_data_tool", "label": "Доп. Информация", "desc": "Сохраняет текст в БД объекта", "hidden": True }
+    { "id": "append_extra_data_tool", "label": "Доп. Информация", "desc": "Сохраняет текст в БД объекта" }
     # To hide a tool from the frontend UI, you can either remove it from this list or add: "hidden": True
     # { "id": "secret_tool", "label": "Secret", "desc": "...", "hidden": True }
 ]
