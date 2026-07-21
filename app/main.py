@@ -28,6 +28,8 @@ from datetime import datetime, timezone
 from typing import Optional
 
 import os
+import yaml
+from typing import Dict, Any
 from pydantic import BaseModel
 from fastapi import Depends, FastAPI, HTTPException, Query, status, Request
 from fastapi.responses import FileResponse
@@ -843,26 +845,37 @@ def get_available_steps():
         })
     return steps
 
-class AgentsConfigUpdate(BaseModel):
-    content: str
+class AgentsConfigJSONUpdate(BaseModel):
+    config: Dict[str, Any]
 
-@app.get("/system/agents-config", tags=["System"])
-def get_agents_config():
-    """Return the raw contents of agents.yaml."""
-    config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "agents.yaml")
+@app.get("/system/agents-config/json", tags=["System"])
+def get_agents_config_json():
+    """Return the parsed agents.yaml as JSON."""
+    base_dir = os.path.dirname(os.path.dirname(__file__))
+    config_path = os.path.join(base_dir, "agents.yaml")
+    example_path = os.path.join(base_dir, "agents.example.yaml")
+    
+    target_path = config_path if os.path.exists(config_path) else example_path
     try:
-        with open(config_path, "r", encoding="utf-8") as f:
-            return {"content": f.read()}
+        with open(target_path, "r", encoding="utf-8") as f:
+            data = yaml.safe_load(f) or {}
+            return {"config": data}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to read agents.yaml: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to read config: {str(e)}")
 
-@app.put("/system/agents-config", tags=["System"])
-def update_agents_config(payload: AgentsConfigUpdate):
-    """Update agents.yaml and reload configuration in memory."""
+@app.put("/system/agents-config/json", tags=["System"])
+def update_agents_config_json(payload: AgentsConfigJSONUpdate):
+    """Update agents.yaml from JSON payload and reload configuration."""
     config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "agents.yaml")
     try:
         with open(config_path, "w", encoding="utf-8") as f:
-            f.write(payload.content)
+            yaml.dump(
+                payload.config, 
+                f, 
+                allow_unicode=True, 
+                sort_keys=False, 
+                default_flow_style=False
+            )
         # Reload configuration in memory
         reload_agents_config()
         return {"status": "success", "message": "Successfully updated agents.yaml"}

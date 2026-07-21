@@ -113,8 +113,20 @@ _instructor_client = instructor.from_genai(client=_raw_client, use_async=False)
 # Dynamic Agent Configuration (Loaded from agents.yaml)
 # ---------------------------------------------------------------------------
 
+import shutil
+
 def _load_agents_config() -> dict:
-    config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "agents.yaml")
+    base_dir = os.path.dirname(os.path.dirname(__file__))
+    config_path = os.path.join(base_dir, "agents.yaml")
+    example_path = os.path.join(base_dir, "agents.example.yaml")
+    
+    if not os.path.exists(config_path) and os.path.exists(example_path):
+        try:
+            shutil.copy(example_path, config_path)
+            print(f"Created default configuration at {config_path}")
+        except Exception as e:
+            print(f"Warning: Could not create default configuration: {e}")
+
     try:
         with open(config_path, "r", encoding="utf-8") as f:
             return yaml.safe_load(f) or {}
