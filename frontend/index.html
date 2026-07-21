@@ -1154,6 +1154,15 @@ async function renderAgentsConfig(fetchFromServer = true) {
     }
   }
 
+  const AVAILABLE_TOOLS_DEF = [
+    { id: 'google_search', label: 'Google Search', desc: 'Поиск актуальной информации в интернете' },
+    { id: 'analyze_location_businesses', label: 'Анализ локации и бизнеса', desc: 'Поиск организаций (2GIS) + проверка лицензий (Dadata)' },
+    { id: 'twogis_maps_tool', label: 'Поиск в 2GIS', desc: 'Получение списка организаций по адресу' },
+    { id: 'dadata_licenses_tool', label: 'Проверка лицензий Dadata', desc: 'Поиск алкогольных/образовательных лицензий по ИНН/адресу' },
+    { id: 'bulk_dadata_licenses_tool', label: 'Массовая проверка лицензий', desc: 'Автоматический запрос лицензий для найденных компаний' },
+    { id: 'match_retail_requirements_tool', label: 'Подбор арендаторов', desc: 'Поиск по площади (кв.м) и мощности (кВт) из внутренней БД' }
+  ];
+
   let bodyHtml = `
   <style>
     .agent-accordion {
@@ -1246,8 +1255,27 @@ async function renderAgentsConfig(fetchFromServer = true) {
           <h3 style="margin-top: 0; margin-bottom: 1rem; font-size: 1rem; color: var(--text-secondary);">Инструменты и контекст</h3>
           <div class="flex flex-col gap-3">
             <div class="form-group">
-              <label class="form-label">Доступные инструменты (через запятую)</label>
-              <input class="form-input" type="text" value="${escHtml((agent.available_tools || []).join(', '))}" onchange="State.agentsConfig['${agentKey}'].available_tools = this.value.split(',').map(s=>s.trim()).filter(Boolean)" />
+              <label class="form-label">Доступные инструменты</label>
+              <div class="flex flex-col gap-2" style="background: var(--bg-card); padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--border-light);">
+                ${AVAILABLE_TOOLS_DEF.map(tool => {
+                  const isChecked = (agent.available_tools || []).includes(tool.id) ? 'checked' : '';
+                  return `
+                    <label style="display: flex; align-items: flex-start; gap: 8px; cursor: pointer; user-select: none;">
+                      <input type="checkbox" style="margin-top: 4px;" value="${tool.id}" ${isChecked} 
+                        onchange="
+                          State.agentsConfig['${agentKey}'].available_tools = State.agentsConfig['${agentKey}'].available_tools || [];
+                          const arr = State.agentsConfig['${agentKey}'].available_tools;
+                          if(this.checked) { if(!arr.includes(this.value)) arr.push(this.value); }
+                          else { const i = arr.indexOf(this.value); if(i>-1) arr.splice(i, 1); }
+                        " />
+                      <div style="display: flex; flex-direction: column;">
+                        <span style="font-weight: 500;">${tool.label} <span style="opacity: 0.5; font-family: monospace; font-size: 11px;">(${tool.id})</span></span>
+                        <span style="font-size: 12px; color: var(--text-secondary);">${tool.desc}</span>
+                      </div>
+                    </label>
+                  `;
+                }).join('')}
+              </div>
             </div>
             <div class="form-group">
               <label class="form-label">Обязательные поля (через запятую)</label>
