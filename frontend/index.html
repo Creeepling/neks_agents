@@ -1130,6 +1130,26 @@ window.deleteAgentStep = function(stepKey) {
   }
 };
 
+window.moveAgentStep = function(stepKey, direction) {
+  const keys = Object.keys(State.agentsConfig);
+  const idx = keys.indexOf(stepKey);
+  if (idx < 0) return;
+  if (direction === -1 && idx === 0) return;
+  if (direction === 1 && idx === keys.length - 1) return;
+  
+  const swapIdx = idx + direction;
+  const temp = keys[idx];
+  keys[idx] = keys[swapIdx];
+  keys[swapIdx] = temp;
+  
+  const newConfig = {};
+  for (const k of keys) {
+    newConfig[k] = State.agentsConfig[k];
+  }
+  State.agentsConfig = newConfig;
+  renderAgentsConfig(false);
+};
+
 async function renderAgentsConfig(fetchFromServer = true) {
   const app = document.getElementById('app');
   
@@ -1204,7 +1224,9 @@ async function renderAgentsConfig(fetchFromServer = true) {
   </style>
   <div class="flex flex-col gap-4" style="padding-bottom: 40px; max-width: 900px; margin: 0 auto;">`;
   
-  for (const [agentKey, agent] of Object.entries(State.agentsConfig)) {
+  const agentKeys = Object.keys(State.agentsConfig);
+  agentKeys.forEach((agentKey, idx) => {
+    const agent = State.agentsConfig[agentKey];
     bodyHtml += `
     <details class="agent-accordion">
       <summary>
@@ -1295,13 +1317,17 @@ async function renderAgentsConfig(fetchFromServer = true) {
           </div>
         </div>
 
-        <div style="display: flex; justify-content: flex-end; margin-top: 0.5rem;">
+        <div style="display: flex; justify-content: space-between; margin-top: 0.5rem; align-items: center;">
+          <div style="display: flex; gap: 8px;">
+            <button class="btn btn-sm" style="background: var(--bg-hover);" onclick="moveAgentStep('${agentKey}', -1)" ${idx === 0 ? 'disabled' : ''}>↑ Вверх</button>
+            <button class="btn btn-sm" style="background: var(--bg-hover);" onclick="moveAgentStep('${agentKey}', 1)" ${idx === agentKeys.length - 1 ? 'disabled' : ''}>↓ Вниз</button>
+          </div>
           <button class="btn btn-sm" style="background: var(--danger-dim); color: var(--danger);" onclick="deleteAgentStep('${agentKey}')">Удалить шаг</button>
         </div>
 
       </div>
     </details>`;
-  }
+  });
   
   bodyHtml += `
     <button class="btn btn-outline" style="align-self: center; margin-top: 1rem; border-style: dashed; padding: 10px 20px;" onclick="addAgentStep()">
