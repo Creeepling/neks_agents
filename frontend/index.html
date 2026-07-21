@@ -1103,77 +1103,147 @@ function shellHtml(breadcrumbs, topbarActions, bodyHtml, activeNav = 'dashboard'
 /* =============================================================================
    AGENTS CONFIG VIEW
 ============================================================================= */
-async function renderAgentsConfig() {
-  const app = document.getElementById('app');
-  app.innerHTML = shellHtml(
-    `<span class="crumb-active">Настройки агентов</span>`,
-    `<button class="btn btn-primary btn-sm" onclick="saveAgentsConfig()" id="btn-save-agents">Сохранить</button>`,
-    `<div class="page-loader"><div class="spinner"></div> Загрузка…</div>`,
-    'agents_config'
-  );
+window.addAgentStep = function() {
+  const stepKey = prompt("Введите уникальный ключ нового шага (например, step_6_custom):");
+  if (!stepKey) return;
+  if (State.agentsConfig[stepKey]) {
+    alert("Шаг с таким ключом уже существует!");
+    return;
+  }
+  State.agentsConfig[stepKey] = {
+    title: "Новый агент",
+    description: "",
+    system_prompt: "",
+    first_user_message: "",
+    available_tools: [],
+    required_fields: [],
+    injected_context: [],
+    extraction_schema: {}
+  };
+  renderAgentsConfig(false);
+};
 
-  try {
-    const res = await API.get('/system/agents-config/json');
-    State.agentsConfig = res.config || {};
-    
-    let bodyHtml = `<div class="flex flex-col gap-4" style="padding-bottom: 40px; max-width: 900px; margin: 0 auto;">`;
-    
-    for (const [agentKey, agent] of Object.entries(State.agentsConfig)) {
-      bodyHtml += `
-      <details class="card" style="padding: 1rem; border-radius: var(--radius-md); border: 1px solid var(--border-light); background: var(--bg-card); cursor: pointer;">
-        <summary style="font-size: 1.1rem; font-weight: 600; outline: none; user-select: none;">${escHtml(agentKey)} - ${escHtml(agent.title || '')}</summary>
-        <div class="flex flex-col gap-3" style="margin-top: 1rem; cursor: default;" onclick="event.stopPropagation()">
-          <div class="form-group">
-            <label class="form-label">Title</label>
-            <input class="form-input" type="text" value="${escHtml(agent.title || '')}" onchange="State.agentsConfig['${agentKey}'].title = this.value" />
-          </div>
-          <div class="form-group">
-            <label class="form-label">Description</label>
-            <textarea class="form-input" rows="2" onchange="State.agentsConfig['${agentKey}'].description = this.value">${escHtml(agent.description || '')}</textarea>
-          </div>
-          <div class="form-group">
-            <label class="form-label">System Prompt</label>
-            <textarea class="form-input" rows="6" style="font-family: monospace; font-size: 12px;" onchange="State.agentsConfig['${agentKey}'].system_prompt = this.value">${escHtml(agent.system_prompt || '')}</textarea>
-          </div>
-          <div class="form-group">
-            <label class="form-label">First User Message</label>
-            <textarea class="form-input" rows="6" style="font-family: monospace; font-size: 12px;" onchange="State.agentsConfig['${agentKey}'].first_user_message = this.value">${escHtml(agent.first_user_message || '')}</textarea>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Available Tools (comma separated)</label>
-            <input class="form-input" type="text" value="${escHtml((agent.available_tools || []).join(', '))}" onchange="State.agentsConfig['${agentKey}'].available_tools = this.value.split(',').map(s=>s.trim()).filter(Boolean)" />
-          </div>
-          <div class="form-group">
-            <label class="form-label">Required Fields (comma separated)</label>
-            <input class="form-input" type="text" value="${escHtml((agent.required_fields || []).join(', '))}" onchange="State.agentsConfig['${agentKey}'].required_fields = this.value.split(',').map(s=>s.trim()).filter(Boolean)" />
-          </div>
-          <div class="form-group">
-            <label class="form-label">Injected Context (comma separated)</label>
-            <input class="form-input" type="text" value="${escHtml((agent.injected_context || []).join(', '))}" onchange="State.agentsConfig['${agentKey}'].injected_context = this.value.split(',').map(s=>s.trim()).filter(Boolean)" />
-          </div>
-          <div class="form-group">
-            <label class="form-label">Extraction Schema (JSON)</label>
-            <textarea class="form-input" rows="10" style="font-family: monospace; font-size: 12px;" onchange="try { State.agentsConfig['${agentKey}'].extraction_schema = JSON.parse(this.value); this.style.borderColor = ''; } catch(e) { this.style.borderColor = 'red'; }">${escHtml(JSON.stringify(agent.extraction_schema || {}, null, 2))}</textarea>
-          </div>
-        </div>
-      </details>`;
-    }
-    bodyHtml += `</div>`;
-    
+window.deleteAgentStep = function(stepKey) {
+  if (confirm(`Вы уверены, что хотите удалить шаг "${stepKey}"?`)) {
+    delete State.agentsConfig[stepKey];
+    renderAgentsConfig(false);
+  }
+};
+
+async function renderAgentsConfig(fetchFromServer = true) {
+  const app = document.getElementById('app');
+  
+  if (fetchFromServer) {
     app.innerHTML = shellHtml(
       `<span class="crumb-active">Настройки агентов</span>`,
       `<button class="btn btn-primary btn-sm" onclick="saveAgentsConfig()" id="btn-save-agents">Сохранить</button>`,
-      bodyHtml,
+      `<div class="page-loader"><div class="spinner"></div> Загрузка…</div>`,
       'agents_config'
     );
-  } catch (err) {
-    app.innerHTML = shellHtml(
-      `<span class="crumb-active">Настройки агентов</span>`,
-      ``,
-      `<div class="empty-state">Ошибка загрузки конфигурации: ${escHtml(err.message)}</div>`,
-      'agents_config'
-    );
+    try {
+      const res = await API.get('/system/agents-config/json');
+      State.agentsConfig = res.config || {};
+    } catch (err) {
+      app.innerHTML = shellHtml(
+        `<span class="crumb-active">Настройки агентов</span>`,
+        ``,
+        `<div class="empty-state">Ошибка загрузки конфигурации: ${escHtml(err.message)}</div>`,
+        'agents_config'
+      );
+      return;
+    }
   }
+
+  let bodyHtml = `<div class="flex flex-col gap-4" style="padding-bottom: 40px; max-width: 900px; margin: 0 auto;">`;
+  
+  for (const [agentKey, agent] of Object.entries(State.agentsConfig)) {
+    bodyHtml += `
+    <details class="card" style="padding: 1rem; border-radius: var(--radius-md); border: 1px solid var(--border-light); background: var(--bg-card); cursor: pointer;">
+      <summary style="font-size: 1.1rem; font-weight: 600; outline: none; user-select: none; display: flex; justify-content: space-between; align-items: center;">
+        <span>${escHtml(agentKey)} - ${escHtml(agent.title || '')}</span>
+      </summary>
+      
+      <div class="flex flex-col gap-4" style="margin-top: 1rem; cursor: default;" onclick="event.stopPropagation()">
+        
+        <!-- BLOCK 1: Основная информация -->
+        <div style="background: var(--bg-body); padding: 1rem; border-radius: var(--radius-sm); border: 1px solid var(--border-light);">
+          <h3 style="margin-top: 0; margin-bottom: 1rem; font-size: 1rem; color: var(--text-secondary);">Основная информация</h3>
+          <div class="flex flex-col gap-3">
+            <div class="form-group">
+              <label class="form-label">Заголовок (Title)</label>
+              <input class="form-input" type="text" value="${escHtml(agent.title || '')}" onchange="State.agentsConfig['${agentKey}'].title = this.value; renderAgentsConfig(false);" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Описание (Description)</label>
+              <textarea class="form-input" rows="2" onchange="State.agentsConfig['${agentKey}'].description = this.value">${escHtml(agent.description || '')}</textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- BLOCK 2: Промпты -->
+        <div style="background: var(--bg-body); padding: 1rem; border-radius: var(--radius-sm); border: 1px solid var(--border-light);">
+          <h3 style="margin-top: 0; margin-bottom: 1rem; font-size: 1rem; color: var(--text-secondary);">Промпты</h3>
+          <div class="flex flex-col gap-3">
+            <div class="form-group">
+              <label class="form-label">Системный промпт (System Prompt)</label>
+              <textarea class="form-input" rows="6" style="font-family: monospace; font-size: 12px;" onchange="State.agentsConfig['${agentKey}'].system_prompt = this.value">${escHtml(agent.system_prompt || '')}</textarea>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Первое сообщение пользователя (First User Message)</label>
+              <textarea class="form-input" rows="6" style="font-family: monospace; font-size: 12px;" onchange="State.agentsConfig['${agentKey}'].first_user_message = this.value">${escHtml(agent.first_user_message || '')}</textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- BLOCK 3: Инструменты и контекст -->
+        <div style="background: var(--bg-body); padding: 1rem; border-radius: var(--radius-sm); border: 1px solid var(--border-light);">
+          <h3 style="margin-top: 0; margin-bottom: 1rem; font-size: 1rem; color: var(--text-secondary);">Инструменты и контекст</h3>
+          <div class="flex flex-col gap-3">
+            <div class="form-group">
+              <label class="form-label">Доступные инструменты (через запятую)</label>
+              <input class="form-input" type="text" value="${escHtml((agent.available_tools || []).join(', '))}" onchange="State.agentsConfig['${agentKey}'].available_tools = this.value.split(',').map(s=>s.trim()).filter(Boolean)" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Обязательные поля (через запятую)</label>
+              <input class="form-input" type="text" value="${escHtml((agent.required_fields || []).join(', '))}" onchange="State.agentsConfig['${agentKey}'].required_fields = this.value.split(',').map(s=>s.trim()).filter(Boolean)" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Внедряемый контекст (через запятую)</label>
+              <input class="form-input" type="text" value="${escHtml((agent.injected_context || []).join(', '))}" onchange="State.agentsConfig['${agentKey}'].injected_context = this.value.split(',').map(s=>s.trim()).filter(Boolean)" />
+            </div>
+          </div>
+        </div>
+
+        <!-- BLOCK 4: Схема извлечения -->
+        <div style="background: var(--bg-body); padding: 1rem; border-radius: var(--radius-sm); border: 1px solid var(--border-light);">
+          <h3 style="margin-top: 0; margin-bottom: 1rem; font-size: 1rem; color: var(--text-secondary);">Схема извлечения (Extraction Schema - JSON)</h3>
+          <div class="flex flex-col gap-3">
+            <div class="form-group">
+              <textarea class="form-input" rows="10" style="font-family: monospace; font-size: 12px;" onchange="try { State.agentsConfig['${agentKey}'].extraction_schema = JSON.parse(this.value); this.style.borderColor = ''; } catch(e) { this.style.borderColor = 'red'; }">${escHtml(JSON.stringify(agent.extraction_schema || {}, null, 2))}</textarea>
+            </div>
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; margin-top: 0.5rem;">
+          <button class="btn btn-sm" style="background: var(--danger-dim); color: var(--danger);" onclick="deleteAgentStep('${agentKey}')">Удалить шаг</button>
+        </div>
+
+      </div>
+    </details>`;
+  }
+  
+  bodyHtml += `
+    <button class="btn btn-outline" style="align-self: center; margin-top: 1rem; border-style: dashed; padding: 10px 20px;" onclick="addAgentStep()">
+      + Добавить новый шаг
+    </button>
+  </div>`;
+  
+  app.innerHTML = shellHtml(
+    `<span class="crumb-active">Настройки агентов</span>`,
+    `<button class="btn btn-primary btn-sm" onclick="saveAgentsConfig()" id="btn-save-agents">Сохранить</button>`,
+    bodyHtml,
+    'agents_config'
+  );
 }
 
 async function saveAgentsConfig() {
