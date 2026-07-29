@@ -24,7 +24,7 @@ from pydantic import BaseModel, Field, create_model
 
 from app.config import settings
 from app.models import ConversationModel as Conversation, MessageModel as Message
-from app.tools.registry import AVAILABLE_TOOLS
+from app.tools.registry import AVAILABLE_TOOLS, analyze_location_businesses_tool, match_retail_requirements_tool
 
 # ---------------------------------------------------------------------------
 # Client Setup
