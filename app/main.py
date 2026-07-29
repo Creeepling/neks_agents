@@ -878,7 +878,9 @@ def get_agents_config_json():
 @app.put("/system/agents-config/json", tags=["System"])
 def update_agents_config_json(payload: AgentsConfigJSONUpdate):
     """Update agents.yaml from JSON payload and reload configuration."""
-    config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "agents.yaml")
+    base_dir = os.path.dirname(os.path.dirname(__file__))
+    config_path = os.path.join(base_dir, "agents.yaml")
+    example_path = os.path.join(base_dir, "agents.example.yaml")
     try:
         with open(config_path, "w", encoding="utf-8") as f:
             yaml.dump(
@@ -888,9 +890,19 @@ def update_agents_config_json(payload: AgentsConfigJSONUpdate):
                 sort_keys=False, 
                 default_flow_style=False
             )
+            
+        with open(example_path, "w", encoding="utf-8") as f:
+            yaml.dump(
+                payload.config, 
+                f, 
+                allow_unicode=True, 
+                sort_keys=False, 
+                default_flow_style=False
+            )
+            
         # Reload configuration in memory
         reload_agents_config()
-        return {"status": "success", "message": "Successfully updated agents.yaml"}
+        return {"status": "success", "message": "Successfully updated agents.yaml and agents.example.yaml"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to update agents.yaml: {str(e)}")
 
