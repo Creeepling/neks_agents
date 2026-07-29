@@ -1352,6 +1352,10 @@ async function saveAgentsConfig() {
 
   try {
     await API.put('/system/agents-config/json', { config: State.agentsConfig });
+    const res = await fetch(`${API_BASE}/steps`);
+    if (res.ok) {
+      STEPS = await res.json();
+    }
     alert('Конфигурация успешно сохранена и перезагружена!');
   } catch (err) {
     alert('Ошибка при сохранении: ' + err.message);

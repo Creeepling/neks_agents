@@ -4,6 +4,7 @@ from app.config import settings
 from app.tools.twogis_maps import search_twogis_businesses, send_telegram_alert
 from app.tools.dadata_licenses import search_dadata_licenses, bulk_check_twogis_companies
 from app.tools.combined_tools import analyze_location_businesses
+from app.tools.cian_scraper import fetch_cian_commercial_listings
 
 def twogis_maps_tool(location: str) -> str:
     """
@@ -19,6 +20,12 @@ def append_extra_data_tool(text: str) -> str:
     Используй этот инструмент для сохранения промежуточных выводов или важных заметок об объекте.
     """
     pass
+
+def cian_commercial_listings_tool() -> str:
+    """
+    Парсит список предложений коммерческой недвижимости с ЦИАН.
+    """
+    return fetch_cian_commercial_listings()
 
 def analyze_location_businesses_tool(city: str, location: str) -> str:
     """
@@ -99,6 +106,7 @@ AVAILABLE_TOOLS = {
     "twogis_maps_tool": twogis_maps_tool,
     "bulk_dadata_licenses_tool": bulk_dadata_licenses_tool,
     "append_extra_data_tool": append_extra_data_tool,
+    "cian_commercial_listings_tool": cian_commercial_listings_tool,
 }
 
 TOOL_METADATA = [
@@ -108,7 +116,8 @@ TOOL_METADATA = [
     { "id": "dadata_licenses", "label": "Проверка лицензий Dadata", "desc": "Поиск алкогольных/образовательных лицензий по ИНН/адресу" },
     { "id": "bulk_dadata_licenses_tool", "label": "Массовая проверка лицензий", "desc": "Автоматический запрос лицензий для найденных компаний" },
     { "id": "match_retail_requirements_tool", "label": "Подбор арендаторов", "desc": "Поиск по площади (кв.м) и мощности (кВт) из внутренней БД" },
-    { "id": "append_extra_data_tool", "label": "Доп. Информация", "desc": "Сохраняет текст в БД объекта" }
+    { "id": "append_extra_data_tool", "label": "Доп. Информация", "desc": "Сохраняет текст в БД объекта" },
+    { "id": "cian_commercial_listings_tool", "label": "Парсинг ЦИАН (Коммерция)", "desc": "Получает список коммерческой недвижимости в аренду" }
     # To hide a tool from the frontend UI, you can either remove it from this list or add: "hidden": True
     # { "id": "secret_tool", "label": "Secret", "desc": "...", "hidden": True }
 ]

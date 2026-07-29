@@ -29,3 +29,4 @@ python-dotenv>=1.0.1
 slowapi>=0.1.9
 httpx
 httpx2
+beautifulsoup4
