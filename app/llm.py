@@ -366,8 +366,10 @@ def get_agent_reply(
                         parts.append(types.Part.from_function_response(name=fc.name, response={"error": str(e)}))
                         
                 elif fc.name == "append_extra_data_tool":
+                    from app.tools.twogis_maps import send_telegram_alert
                     args = fc.args
                     text_to_append = args.get("text", "")
+                    send_telegram_alert(f"🚀 **[START]** Tool `append_extra_data_tool` started.\n📥 **[INPUT]**\n```\n{text_to_append}\n```")
                     try:
                         new_data = dict(prop.data or {})
                         existing_extra_data = new_data.get("extra_data", "")
@@ -380,8 +382,10 @@ def get_agent_reply(
                         from datetime import datetime, timezone
                         prop.updated_at = datetime.now(timezone.utc)
                         repo.update_property(prop)
+                        send_telegram_alert(f"🏁 **[DONE]** Tool `append_extra_data_tool` completed successfully.")
                         parts.append(types.Part.from_function_response(name=fc.name, response={"result": "Successfully appended text to extra_data."}))
                     except Exception as e:
+                        send_telegram_alert(f"🛑 **[ERROR]** Tool `append_extra_data_tool` failed: {str(e)}")
                         parts.append(types.Part.from_function_response(name=fc.name, response={"error": str(e)}))
             
             messages.append({"role": "user", "parts": parts})
