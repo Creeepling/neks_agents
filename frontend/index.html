@@ -2718,13 +2718,24 @@ function exportAIResponses() {
     return;
   }
   
+  const conv = State.currentConversation;
+  const prop = State.currentProperty;
+  
+  const stepDef = STEPS.find(s => s.id === (conv?.current_step));
+  const stepLabel = stepDef ? stepDef.label : (conv?.current_step || 'dialogue');
+  const propName = prop?.address || prop?.id || 'object';
+  
+  const safePropName = propName.replace(/[^a-zA-Z0-9а-яА-ЯёЁ_\\-]/g, '_').substring(0, 50);
+  const safeStepLabel = stepLabel.replace(/[^a-zA-Z0-9а-яА-ЯёЁ_\\-]/g, '_').substring(0, 50);
+  const filename = `${safePropName}__${safeStepLabel}.txt`;
+  
   const textContent = msgs.map((m, i) => `--- Ответ ИИ ${i + 1} ---\n${m.content}\n`).join('\n');
   
   const blob = new Blob([textContent], { type: 'text/plain;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `AI_Responses_${State.currentConversation?.id || 'export'}.txt`;
+  a.download = filename;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
