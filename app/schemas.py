@@ -111,7 +111,7 @@ class MessageResponse(BaseModel):
 
 class ChatResponse(BaseModel):
     """Returned after the agent replies to a user message."""
-    agent_message: MessageResponse
+    agent_message: Optional[MessageResponse] = None
     conversation_id: str
 
 

@@ -577,9 +577,12 @@ def send_message(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found.")
 
     if conv.status == "completed":
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="This conversation is already completed. Start a new conversation to continue.",
+        # Save user message without triggering AI response
+        user_msg = MessageModel(conversation_id=conv.id, role="user", content=payload.content)
+        user_msg = repo.add_message(user_msg)
+        return ChatResponse(
+            agent_message=None,
+            conversation_id=conv.id,
         )
 
     # Fetch current property data to inject into the agent's context

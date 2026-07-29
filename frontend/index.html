@@ -2547,8 +2547,10 @@ async function renderChat() {
         </div>
         <div class="topbar-actions">
           ${conv.status === 'active'
-            ? `<button class="btn btn-ghost btn-sm" onclick="commitConversation()">📋 Сохранить результаты</button>`
-            : `<span style="color:var(--success);font-size:12px;font-weight:500">✓ Завершено</span>`}
+            ? `<button class="btn btn-ghost btn-sm" onclick="exportAIResponses()">📥 Экспорт ответов ИИ</button>
+               <button class="btn btn-ghost btn-sm" onclick="commitConversation()">📋 Сохранить результаты</button>`
+            : `<button class="btn btn-ghost btn-sm" onclick="exportAIResponses()">📥 Экспорт ответов ИИ</button>
+               <span style="color:var(--success);font-size:12px;font-weight:500">✓ Завершено</span>`}
         </div>
       </div>
 
@@ -2563,23 +2565,23 @@ async function renderChat() {
           <textarea
             id="chat-input"
             class="chat-textarea"
-            placeholder="${conv.status === 'completed' ? 'Этот диалог завершен.' : 'Введите ваше сообщение…'}"
-            ${conv.status === 'completed' ? 'disabled' : ''}
+            placeholder="Введите ваше сообщение…"
             rows="1"
             onkeydown="handleChatKey(event)"
             oninput="autoResize(this)"
           ></textarea>
-          <button class="btn btn-primary" id="send-btn" onclick="sendMessage()"
-            ${conv.status === 'completed' ? 'disabled' : ''}>
+          <button class="btn btn-primary" id="send-btn" onclick="sendMessage()">
             Send
           </button>
         </div>
         ${conv.status === 'active' ? `
         <div class="chat-actions">
+          <button class="btn btn-ghost btn-sm" onclick="exportAIResponses()">📥 Экспорт ответов ИИ</button>
           <button class="btn btn-ghost btn-sm" onclick="commitConversation()">📋 Сохранить результаты</button>
           <button class="btn btn-ghost btn-sm" onclick="navigate('detail')">← Назад к объекту</button>
         </div>` : `
         <div class="chat-actions">
+          <button class="btn btn-ghost btn-sm" onclick="exportAIResponses()">📥 Экспорт ответов ИИ</button>
           <button class="btn btn-ghost btn-sm" onclick="navigate('detail')">← Назад к объекту</button>
         </div>`}
       </div>
@@ -2660,7 +2662,7 @@ async function sendMessage() {
   const content = input.value.trim();
   if (!content) return;
   const conv = State.currentConversation;
-  if (!conv || conv.status === 'completed') return;
+  if (!conv) return;
 
   input.value = '';
   input.style.height = '';
@@ -2671,13 +2673,15 @@ async function sendMessage() {
   const optimistic = { role: 'user', content, created_at: new Date().toISOString() };
   State.messages.push(optimistic);
   renderMessages();
-  showTyping();
+  if (conv.status !== 'completed') {
+    showTyping();
+  }
 
   try {
     const data = await API.post(`/conversations/${conv.id}/message`, { content });
     if (data && data.agent_message) {
       State.messages.push(data.agent_message);
-    } else {
+    } else if (conv.status !== 'completed') {
       toast('Нет ответа от агента', 'error');
     }
   } catch (err) {
@@ -2705,8 +2709,29 @@ function autoResize(el) {
 }
 
 /* =============================================================================
-   COMMIT
+   COMMIT & EXPORT
 ============================================================================= */
+function exportAIResponses() {
+  const msgs = State.messages.filter(m => m.role === 'assistant');
+  if (msgs.length === 0) {
+    toast('Нет ответов от ИИ для экспорта', 'info');
+    return;
+  }
+  
+  const textContent = msgs.map((m, i) => `--- Ответ ИИ ${i + 1} ---\n${m.content}\n`).join('\n');
+  
+  const blob = new Blob([textContent], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `AI_Responses_${State.currentConversation?.id || 'export'}.txt`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+
 async function commitConversation() {
   const conv = State.currentConversation;
   if (!conv) return;
