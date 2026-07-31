@@ -950,6 +950,9 @@ function toast(msg, type = 'info') {
    ROUTER / RENDER
 ============================================================================= */
 function navigate(view, params = {}) {
+  if (State.view === 'chat' && view !== 'chat' && State.currentConversation && State.currentConversation.status === 'active') {
+    autoCommitConversation(State.currentConversation);
+  }
   State.view = view;
   Object.assign(State, params);
   render();
@@ -1475,6 +1478,16 @@ function openNewPropertyModal() {
             </div>
           </div>
           <div class="form-group">
+            <label class="form-label">Техническое состояние объекта (Technical condition)</label>
+            <select id="prop-technical-condition" class="form-input">
+              <option value="">Не указано</option>
+              <option value="Стандартное (Исправное). Дефекты отсутствуют. Объект полностью пригоден для эксплуатации, ремонт не требуется.">Стандартное (Исправное)</option>
+              <option value="Работоспособное. Есть незначительные дефекты (мелкие трещины, локальные сколы), которые не влияют на несущую способность и безопасность. Ремонт возможен, но не срочный — скорее профилактический.">Работоспособное</option>
+              <option value="Ограниченно-работоспособное. Выявлены нарушения, которые снижают уровень эксплуатации (например, протечки, коррозия отдельных элементов, проблемы с инженерными сетями). Здесь уже точно нужен ремонт — объём зависит от степени нарушений.">Ограниченно-работоспособное</option>
+              <option value="Аварийное. Значительные повреждения, создающие угрозу безопасности. Требуется немедленный капитальный ремонт или усиление, а в некоторых случаях — ограничение эксплуатации.">Аварийное</option>
+            </select>
+          </div>
+          <div class="form-group">
             <label class="form-label">Текущие арендаторы (необязательно)</label>
             <textarea id="prop-tenants" class="form-input" placeholder="Перечислите текущих арендаторов..."></textarea>
           </div>
@@ -1497,11 +1510,13 @@ function openNewPropertyModal() {
     const sqmStr = document.getElementById('prop-sqm').value.trim();
     const floorsStr = document.getElementById('prop-floors').value.trim();
     const tenants = document.getElementById('prop-tenants').value.trim();
+    const techCondition = document.getElementById('prop-technical-condition').value;
     
     const payload = { name, city, address };
     if (sqmStr) payload.square_meters = parseFloat(sqmStr);
     if (floorsStr) payload.floors = parseInt(floorsStr, 10);
     if (tenants) payload.current_tenants = tenants;
+    if (techCondition) payload.technical_condition = techCondition;
     
     const btn = document.getElementById('create-prop-btn');
     btn.disabled = true;
@@ -1899,6 +1914,7 @@ const DISPLAY_LABELS = {
   direct_competitors: 'Прямые конкуренты',
   square_meters: 'Площадь (кв.м)',
   floors: 'Количество этажей',
+  technical_condition: 'Техническое состояние объекта',
   best_use_recommendation: 'Best Use',
   main_problems: 'Основные проблемы',
   noi_loss_factors: 'Потери NOI',
@@ -2160,6 +2176,16 @@ function openEditPropertyModal() {
             </div>
           </div>
           <div class="form-group">
+            <label class="form-label">Техническое состояние объекта (Technical condition)</label>
+            <select id="edit-prop-technical-condition" class="form-input">
+              <option value="" ${!prop.data?.technical_condition ? 'selected' : ''}>Не указано</option>
+              <option value="Стандартное (Исправное). Дефекты отсутствуют. Объект полностью пригоден для эксплуатации, ремонт не требуется." ${prop.data?.technical_condition?.startsWith('Стандартное') || prop.data?.technical_condition?.startsWith('Standard') ? 'selected' : ''}>Стандартное (Исправное)</option>
+              <option value="Работоспособное. Есть незначительные дефекты (мелкие трещины, локальные сколы), которые не влияют на несущую способность и безопасность. Ремонт возможен, но не срочный — скорее профилактический." ${prop.data?.technical_condition?.startsWith('Работоспособное') || prop.data?.technical_condition?.startsWith('Operable') ? 'selected' : ''}>Работоспособное</option>
+              <option value="Ограниченно-работоспособное. Выявлены нарушения, которые снижают уровень эксплуатации (например, протечки, коррозия отдельных элементов, проблемы с инженерными сетями). Здесь уже точно нужен ремонт — объём зависит от степени нарушений." ${prop.data?.technical_condition?.startsWith('Ограниченно') || prop.data?.technical_condition?.startsWith('Limited') ? 'selected' : ''}>Ограниченно-работоспособное</option>
+              <option value="Аварийное. Значительные повреждения, создающие угрозу безопасности. Требуется немедленный капитальный ремонт или усиление, а в некоторых случаях — ограничение эксплуатации." ${prop.data?.technical_condition?.startsWith('Аварийное') || prop.data?.technical_condition?.startsWith('Emergency') ? 'selected' : ''}>Аварийное</option>
+            </select>
+          </div>
+          <div class="form-group">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
               <label class="form-label" style="margin:0;">Текущие арендаторы</label>
               <button type="button" class="btn btn-ghost btn-sm" onclick="addTenantRowUI()">+ Добавить</button>
@@ -2204,6 +2230,7 @@ function openEditPropertyModal() {
     const address = document.getElementById('edit-prop-address').value.trim();
     const sqmStr = document.getElementById('edit-prop-sqm').value.trim();
     const floorsStr = document.getElementById('edit-prop-floors').value.trim();
+    const techCondition = document.getElementById('edit-prop-technical-condition').value;
     
     const tenants = [];
     document.querySelectorAll('#edit-prop-tenants-list .tenant-row').forEach(row => {
@@ -2220,6 +2247,8 @@ function openEditPropertyModal() {
     if (city) payload.city = city;
     if (sqmStr) payload.square_meters = parseFloat(sqmStr);
     if (floorsStr) payload.floors = parseInt(floorsStr, 10);
+    if (techCondition) payload.technical_condition = techCondition;
+    else payload.technical_condition = null;
     payload.current_tenants = tenants;
 
     const btn = document.getElementById('edit-prop-btn');
@@ -2547,8 +2576,7 @@ async function renderChat() {
         </div>
         <div class="topbar-actions">
           ${conv.status === 'active'
-            ? `<button class="btn btn-ghost btn-sm" onclick="exportAIResponses()">📥 Экспорт ответов ИИ</button>
-               <button class="btn btn-ghost btn-sm" onclick="commitConversation()">📋 Сохранить результаты</button>`
+            ? `<button class="btn btn-ghost btn-sm" onclick="exportAIResponses()">📥 Экспорт ответов ИИ</button>`
             : `<button class="btn btn-ghost btn-sm" onclick="exportAIResponses()">📥 Экспорт ответов ИИ</button>
                <span style="color:var(--success);font-size:12px;font-weight:500">✓ Завершено</span>`}
         </div>
@@ -2577,7 +2605,6 @@ async function renderChat() {
         ${conv.status === 'active' ? `
         <div class="chat-actions">
           <button class="btn btn-ghost btn-sm" onclick="exportAIResponses()">📥 Экспорт ответов ИИ</button>
-          <button class="btn btn-ghost btn-sm" onclick="commitConversation()">📋 Сохранить результаты</button>
           <button class="btn btn-ghost btn-sm" onclick="navigate('detail')">← Назад к объекту</button>
         </div>` : `
         <div class="chat-actions">
@@ -2743,16 +2770,13 @@ function exportAIResponses() {
 }
 
 
-async function commitConversation() {
-  const conv = State.currentConversation;
-  if (!conv) return;
-  const btn = document.querySelector('[onclick="commitConversation()"]');
-  if (btn) { btn.disabled = true; btn.innerHTML = '<div class="spinner"></div> Сохранение...'; }
-
+async function autoCommitConversation(conv) {
+  if (!conv || conv.status !== 'active') return;
   try {
+    toast('Автосохранение результатов...', 'info');
     const result = await API.post(`/conversations/${conv.id}/commit`);
-    if (!result) { toast('Сохранение не вернуло данных', 'error'); return; }
-    toast('Результаты сохранены', 'success');
+    if (!result) { console.warn('Сохранение не вернуло данных'); return; }
+    toast('Результаты автосохранены', 'success');
 
     const updatedConv = await API.post(`/conversations/${conv.id}/complete`);
     if (updatedConv) {
@@ -2760,34 +2784,26 @@ async function commitConversation() {
       if (idx !== -1) State.conversations[idx] = updatedConv;
     }
     
-    // Refresh property data to fetch newly extracted info
     const prop = await API.get(`/properties/${conv.property_id}`);
-    if (prop) State.currentProperty = prop;
+    if (prop && State.currentProperty && State.currentProperty.id === prop.id) {
+      State.currentProperty = prop;
+    }
 
-    // Determine next step
     const currentIndex = STEPS.findIndex(s => s.id === conv.step_id);
     if (currentIndex !== -1 && currentIndex + 1 < STEPS.length) {
       const nextStep = STEPS[currentIndex + 1];
-      toast(`Переход к этапу: ${nextStep.label.split(':')[0]}`, 'info');
-      
       const newConv = await API.post('/conversations', { property_id: conv.property_id, step_id: nextStep.id });
       if (newConv) {
-        State.currentConversation = newConv;
         State.conversations.push(newConv);
-        renderChat();
       }
-    } else {
-      if (currentIndex === -1) {
-        toast('Устаревшая сессия завершена. Начните следующий этап вручную.', 'info');
-      } else {
-        toast('Все этапы завершены', 'success');
-      }
-      openProperty(conv.property_id);
+    }
+
+    if (State.view === 'detail') {
+      renderDetailContent();
     }
   } catch (err) {
-    toast('Ошибка сохранения: ' + err.message, 'error');
-  } finally {
-    if (btn) { btn.disabled = false; btn.textContent = '📋 Сохранить результаты'; }
+    console.error('Ошибка автосохранения:', err);
+    toast('Ошибка автосохранения: ' + err.message, 'error');
   }
 }
 
@@ -3022,6 +3038,25 @@ async function boot() {
   }
   render();
 }
+
+window.addEventListener('beforeunload', () => {
+  if (State.view === 'chat' && State.currentConversation && State.currentConversation.status === 'active') {
+    const token = State.token;
+    if (token) {
+      fetch(`${API_BASE}/conversations/${State.currentConversation.id}/commit`, {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token },
+        keepalive: true
+      });
+      fetch(`${API_BASE}/conversations/${State.currentConversation.id}/complete`, {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token },
+        keepalive: true
+      });
+    }
+  }
+});
+
 boot();
 </script>
 </body>
