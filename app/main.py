@@ -30,8 +30,10 @@ from typing import Optional
 import os
 import yaml
 from typing import Dict, Any
+import tempfile
+import uuid
 from pydantic import BaseModel
-from fastapi import Depends, FastAPI, HTTPException, Query, status, Request
+from fastapi import Depends, FastAPI, HTTPException, Query, status, Request, UploadFile, File
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
@@ -46,7 +48,7 @@ from app.database import get_repository, init_db
 from app.repository import DataRepository
 from google.cloud import firestore
 from app.models import ConversationModel, MessageModel, RealEstateObjectModel, UserModel, RetailConceptModel
-from app.llm import AGENTS_CONFIG, STEP_EXTRACTION_SCHEMAS, STEP_SYSTEM_PROMPTS, extract_structured_data, get_agent_reply, reload_agents_config
+from app.llm import AGENTS_CONFIG, STEP_EXTRACTION_SCHEMAS, STEP_SYSTEM_PROMPTS, extract_structured_data, get_agent_reply, reload_agents_config, summarize_document
 from app.tools.registry import TOOL_METADATA
 from app.schemas import (
     ChatResponse,
@@ -220,6 +222,8 @@ def create_property(
         prop.data["floors"] = payload.floors
     if payload.current_tenants is not None:
         prop.data["current_tenants"] = payload.current_tenants
+    if payload.technical_condition is not None:
+        prop.data["technical_condition"] = payload.technical_condition
     prop = repo.create_property(prop)
     return prop
 
@@ -266,6 +270,8 @@ def update_property(
         new_data["floors"] = payload.floors
     if payload.current_tenants is not None:
         new_data["current_tenants"] = payload.current_tenants
+    if payload.technical_condition is not None:
+        new_data["technical_condition"] = payload.technical_condition
         
     if payload.data is not None:
         new_data = {**new_data, **payload.data}
@@ -276,6 +282,73 @@ def update_property(
     prop = repo.update_property(prop)
     return prop
 
+@app.post("/properties/{property_id}/documents", response_model=PropertyResponse, tags=["Properties"])
+async def upload_document(
+    property_id: str,
+    file: UploadFile = File(...),
+    current_user: UserModel = Depends(get_current_user),
+    repo: DataRepository = Depends(get_repository),
+):
+    """Uploads a document, summarizes it, and adds the summary to the property."""
+    prop = repo.get_property_by_id_and_user(property_id, current_user.id)
+    if prop is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Property not found.")
+
+    # Save temp file
+    fd, path = tempfile.mkstemp(suffix=f"_{file.filename}")
+    try:
+        with os.fdopen(fd, 'wb') as f:
+            f.write(await file.read())
+            
+        summary = summarize_document(
+            file_path=path,
+            mime_type=file.content_type or "application/octet-stream",
+            display_name=file.filename
+        )
+    finally:
+        os.remove(path)
+        
+    new_data = dict(prop.data or {})
+    documents = new_data.get("documents", [])
+    
+    doc_id = str(uuid.uuid4())
+    documents.append({
+        "id": doc_id,
+        "name": file.filename,
+        "summary": summary,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+    
+    new_data["documents"] = documents
+    prop.data = new_data
+    prop.updated_at = datetime.now(timezone.utc)
+    prop = repo.update_property(prop)
+    
+    return prop
+
+@app.delete("/properties/{property_id}/documents/{doc_id}", response_model=PropertyResponse, tags=["Properties"])
+def delete_document(
+    property_id: str,
+    doc_id: str,
+    current_user: UserModel = Depends(get_current_user),
+    repo: DataRepository = Depends(get_repository),
+):
+    """Deletes a document summary from the property."""
+    prop = repo.get_property_by_id_and_user(property_id, current_user.id)
+    if prop is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Property not found.")
+
+    new_data = dict(prop.data or {})
+    documents = new_data.get("documents", [])
+    
+    filtered_docs = [d for d in documents if d.get("id") != doc_id]
+    
+    new_data["documents"] = filtered_docs
+    prop.data = new_data
+    prop.updated_at = datetime.now(timezone.utc)
+    prop = repo.update_property(prop)
+    
+    return prop
 
 @app.get("/properties/{property_id}/conversations", response_model=list[ConversationResponse], tags=["Properties"])
 def get_property_conversations(

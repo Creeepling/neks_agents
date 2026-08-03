@@ -365,6 +365,15 @@ def get_agent_reply(
                     except Exception as e:
                         parts.append(types.Part.from_function_response(name=fc.name, response={"error": str(e)}))
                         
+                elif fc.name == "fetch_ads_api_listings_tool":
+                    from app.tools.ads_api_scraper import fetch_ads_api_listings
+                    args = fc.args
+                    try:
+                        result = fetch_ads_api_listings(**args)
+                        parts.append(types.Part.from_function_response(name=fc.name, response={"result": result}))
+                    except Exception as e:
+                        parts.append(types.Part.from_function_response(name=fc.name, response={"error": str(e)}))
+                        
                 elif fc.name == "append_extra_data_tool":
                     from app.tools.twogis_maps import send_telegram_alert
                     args = fc.args
@@ -500,3 +509,35 @@ def fetch_tenants_with_ai(location: str) -> list[dict]:
     except Exception as e:
         print(f"Error parsing AI tenants response: {e}")
         return []
+
+# ---------------------------------------------------------------------------
+# Document Summarization
+# ---------------------------------------------------------------------------
+
+def summarize_document(file_path: str, mime_type: str, display_name: str) -> str:
+    """Uploads a file to Gemini, generates a summary in Russian, and cleans up."""
+    # Upload to Gemini
+    uploaded_file = _raw_client.files.upload(
+        file=file_path,
+        config={'mime_type': mime_type, 'display_name': display_name}
+    )
+    
+    prompt = (
+        "Проанализируй этот документ. Сделай подробное резюме "
+        "самой важной информации, которая может быть полезна для "
+        "анализа объекта недвижимости или коммерческой деятельности. "
+        "Ответ должен быть на русском языке."
+    )
+    
+    try:
+        response = _raw_client.models.generate_content(
+            model='gemini-1.5-pro',
+            contents=[uploaded_file, prompt]
+        )
+        return response.text
+    finally:
+        # Cleanup
+        try:
+            _raw_client.files.delete(name=uploaded_file.name)
+        except Exception as e:
+            print(f"Failed to delete file from Gemini: {e}")

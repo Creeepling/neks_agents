@@ -5,6 +5,7 @@ from app.tools.twogis_maps import search_twogis_businesses, send_telegram_alert
 from app.tools.dadata_licenses import search_dadata_licenses, bulk_check_twogis_companies
 from app.tools.combined_tools import analyze_location_businesses
 from app.tools.cian_scraper import fetch_cian_commercial_listings
+from app.tools.ads_api_scraper import fetch_ads_api_listings
 
 def twogis_maps_tool(location: str) -> str:
     """
@@ -26,6 +27,13 @@ def cian_commercial_listings_tool() -> str:
     Парсит список предложений коммерческой недвижимости с ЦИАН.
     """
     return fetch_cian_commercial_listings()
+
+def fetch_ads_api_listings_tool(address: str, city: str = "Москва") -> str:
+    """
+    Ищет объявления о недвижимости (коммерция, жилая) на Avito, Cian и других площадках 
+    по заданному адресу через интеграцию с ADS-API.RU.
+    """
+    return fetch_ads_api_listings(address, city)
 
 def analyze_location_businesses_tool(city: str, location: str) -> str:
     """
@@ -107,6 +115,7 @@ AVAILABLE_TOOLS = {
     "bulk_dadata_licenses_tool": bulk_dadata_licenses_tool,
     "append_extra_data_tool": append_extra_data_tool,
     "cian_commercial_listings_tool": cian_commercial_listings_tool,
+    "fetch_ads_api_listings_tool": fetch_ads_api_listings_tool,
 }
 
 TOOL_METADATA = [
@@ -117,7 +126,8 @@ TOOL_METADATA = [
     { "id": "bulk_dadata_licenses_tool", "label": "Массовая проверка лицензий", "desc": "Автоматический запрос лицензий для найденных компаний" },
     { "id": "match_retail_requirements_tool", "label": "Подбор арендаторов", "desc": "Поиск по площади (кв.м) и мощности (кВт) из внутренней БД" },
     { "id": "append_extra_data_tool", "label": "Доп. Информация", "desc": "Сохраняет текст в БД объекта" },
-    { "id": "cian_commercial_listings_tool", "label": "Парсинг ЦИАН (Коммерция)", "desc": "Получает список коммерческой недвижимости в аренду" }
+    { "id": "cian_commercial_listings_tool", "label": "Парсинг ЦИАН (Коммерция)", "desc": "Получает список коммерческой недвижимости в аренду" },
+    { "id": "fetch_ads_api_listings_tool", "label": "Парсинг Авито/Циан (ADS-API)", "desc": "Поиск объявлений по адресу (Avito, Cian, Юла и др.)" }
     # To hide a tool from the frontend UI, you can either remove it from this list or add: "hidden": True
     # { "id": "secret_tool", "label": "Secret", "desc": "...", "hidden": True }
 ]

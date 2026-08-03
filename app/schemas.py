@@ -42,6 +42,7 @@ class PropertyCreate(BaseModel):
     square_meters: Optional[float] = None
     floors: Optional[int] = None
     current_tenants: Optional[Any] = None
+    technical_condition: Optional[str] = None
 
 
 class PropertyUpdate(BaseModel):
@@ -51,6 +52,7 @@ class PropertyUpdate(BaseModel):
     square_meters: Optional[float] = None
     floors: Optional[int] = None
     current_tenants: Optional[Any] = None
+    technical_condition: Optional[str] = None
     data: Optional[Dict[str, Any]] = None
 
 

@@ -2039,6 +2039,34 @@ function renderDetailContent() {
             })()}</div>
           </div>
         </div>
+      <!-- Documents -->
+        <div class="data-viewer" style="margin-top:24px;">
+          <div class="data-viewer-header" style="display:flex;justify-content:space-between;align-items:center;">
+            <span class="data-viewer-title">Документы</span>
+            <div style="display:flex;gap:8px;">
+              <input type="file" id="doc-upload-input" style="display:none" onchange="handleDocumentUpload(event, '${prop.id}')" />
+              <button class="btn btn-primary btn-sm" onclick="document.getElementById('doc-upload-input').click()" id="upload-doc-btn">Загрузить документ</button>
+            </div>
+          </div>
+          <div class="data-viewer-body" style="padding:16px;">
+            <div style="font-size:13px;line-height:1.5;">${(function(){
+              const docs = data.documents || [];
+              if (docs.length > 0) {
+                return docs.map(d => `
+                  <div class="doc-row" style="margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 4px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                      <strong style="font-size: 14px;">${escHtml(d.name)}</strong>
+                      <button class="btn btn-danger btn-sm" style="padding: 2px 8px; font-size: 11px;" onclick="deleteDocument('${prop.id}', '${d.id}')">Удалить</button>
+                    </div>
+                    <div class="doc-summary" style="white-space: pre-wrap; margin-top: 8px;">${escHtml(d.summary)}</div>
+                  </div>
+                `).join('');
+              } else {
+                return 'Нет загруженных документов.';
+              }
+            })()}</div>
+          </div>
+        </div>
       </div>
 
       <!-- Right column: conversations -->
@@ -3058,6 +3086,71 @@ window.addEventListener('beforeunload', () => {
 });
 
 boot();
+// -----------------------------------------------------------------------------
+// Document Upload & Deletion
+// -----------------------------------------------------------------------------
+
+async function handleDocumentUpload(event, propId) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const btn = document.getElementById('upload-doc-btn');
+  const originalText = btn.textContent;
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner"></div> Загрузка...';
+
+  const formData = new FormData();
+  formData.append('file', file);
+
+  try {
+    const res = await fetch(`${API_BASE_URL}/properties/${propId}/documents`, {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + localStorage.getItem('access_token')
+      },
+      body: formData
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.detail || 'Upload failed');
+    }
+    const updatedProp = await res.json();
+    State.currentProperty = updatedProp;
+    toast('Документ успешно загружен и проанализирован', 'success');
+    renderDetailContent();
+  } catch (err) {
+    toast(err.message, 'error');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = originalText;
+    }
+    event.target.value = ''; // Reset input
+  }
+}
+
+async function deleteDocument(propId, docId) {
+  if (!confirm('Вы уверены, что хотите удалить этот документ и его резюме?')) return;
+  try {
+    const res = await fetch(`${API_BASE_URL}/properties/${propId}/documents/${docId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': 'Bearer ' + localStorage.getItem('access_token')
+      }
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.detail || 'Delete failed');
+    }
+    const updatedProp = await res.json();
+    State.currentProperty = updatedProp;
+    toast('Документ удален', 'success');
+    renderDetailContent();
+  } catch (err) {
+    toast(err.message, 'error');
+  }
+}
+
 </script>
 </body>
 </html>
