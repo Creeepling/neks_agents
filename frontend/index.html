@@ -3106,7 +3106,7 @@ async function handleDocumentUpload(event, propId) {
     const res = await fetch(`${API_BASE}/properties/${propId}/documents`, {
       method: 'POST',
       headers: {
-        'Authorization': 'Bearer ' + localStorage.getItem('access_token')
+        'Authorization': 'Bearer ' + localStorage.getItem('neks_token')
       },
       body: formData
     });
@@ -3135,7 +3135,7 @@ async function deleteDocument(propId, docId) {
     const res = await fetch(`${API_BASE}/properties/${propId}/documents/${docId}`, {
       method: 'DELETE',
       headers: {
-        'Authorization': 'Bearer ' + localStorage.getItem('access_token')
+        'Authorization': 'Bearer ' + localStorage.getItem('neks_token')
       }
     });
     if (!res.ok) {
