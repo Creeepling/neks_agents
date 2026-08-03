@@ -304,7 +304,7 @@ async def upload_document(
             summary = summarize_document(
                 file_path=path,
                 mime_type=file.content_type or "application/octet-stream",
-                display_name=file.filename or "document"
+                display_name=f"document_{uuid.uuid4().hex[:8]}"
             )
         finally:
             if os.path.exists(path):
