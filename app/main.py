@@ -296,7 +296,8 @@ async def upload_document(
 
     try:
         # Save temp file
-        fd, path = tempfile.mkstemp(suffix=f"_{file.filename}")
+        _, ext = os.path.splitext(file.filename or "")
+        fd, path = tempfile.mkstemp(suffix=ext.lower() or ".tmp")
         try:
             with os.fdopen(fd, 'wb') as f:
                 f.write(await file.read())
