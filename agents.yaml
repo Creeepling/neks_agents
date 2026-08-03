@@ -128,7 +128,7 @@ step_2_object_location:
 
 step_3_offers_analyzer:
   title: "Агент 3: Аналитик предложений (Cian & Avito)"
-  available_tools: ["google_search", "fetch_ads_api_listings_tool"]
+  available_tools: ["google_search", "fetch_market_listings_tool"]
   description: "Анализ предложений и цен на cian и avito в локации."
   first_user_message: |
     Проанализируй актуальные предложения и цены на коммерческую недвижимость в указанной локации с помощью поиска по площадкам Cian и Avito.

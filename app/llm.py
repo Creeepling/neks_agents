@@ -365,11 +365,11 @@ def get_agent_reply(
                     except Exception as e:
                         parts.append(types.Part.from_function_response(name=fc.name, response={"error": str(e)}))
                         
-                elif fc.name == "fetch_ads_api_listings_tool":
-                    from app.tools.ads_api_scraper import fetch_ads_api_listings
+                elif fc.name == "fetch_market_listings_tool":
+                    from app.tools.apify_scraper import fetch_market_listings
                     args = fc.args
                     try:
-                        result = fetch_ads_api_listings(**args)
+                        result = fetch_market_listings(**args)
                         parts.append(types.Part.from_function_response(name=fc.name, response={"result": result}))
                     except Exception as e:
                         parts.append(types.Part.from_function_response(name=fc.name, response={"error": str(e)}))
