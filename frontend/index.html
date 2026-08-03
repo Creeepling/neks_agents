@@ -950,9 +950,6 @@ function toast(msg, type = 'info') {
    ROUTER / RENDER
 ============================================================================= */
 function navigate(view, params = {}) {
-  if (State.view === 'chat' && view !== 'chat' && State.currentConversation && State.currentConversation.status === 'active') {
-    autoCommitConversation(State.currentConversation);
-  }
   State.view = view;
   Object.assign(State, params);
   render();
@@ -2619,7 +2616,8 @@ async function renderChat() {
         </div>
         <div class="topbar-actions">
           ${conv.status === 'active'
-            ? `<button class="btn btn-ghost btn-sm" onclick="exportAIResponses()">📥 Экспорт ответов ИИ</button>`
+            ? `<button class="btn btn-ghost btn-sm" onclick="exportAIResponses()">📥 Экспорт ответов ИИ</button>
+               <button class="btn btn-ghost btn-sm" onclick="commitConversation()">📋 Сохранить результаты</button>`
             : `<button class="btn btn-ghost btn-sm" onclick="exportAIResponses()">📥 Экспорт ответов ИИ</button>
                <span style="color:var(--success);font-size:12px;font-weight:500">✓ Завершено</span>`}
         </div>
@@ -2648,6 +2646,7 @@ async function renderChat() {
         ${conv.status === 'active' ? `
         <div class="chat-actions">
           <button class="btn btn-ghost btn-sm" onclick="exportAIResponses()">📥 Экспорт ответов ИИ</button>
+          <button class="btn btn-ghost btn-sm" onclick="commitConversation()">📋 Сохранить результаты</button>
           <button class="btn btn-ghost btn-sm" onclick="navigate('detail')">← Назад к объекту</button>
         </div>` : `
         <div class="chat-actions">
@@ -2813,13 +2812,16 @@ function exportAIResponses() {
 }
 
 
-async function autoCommitConversation(conv) {
-  if (!conv || conv.status !== 'active') return;
+async function commitConversation() {
+  const conv = State.currentConversation;
+  if (!conv) return;
+  const btn = document.querySelector('[onclick="commitConversation()"]');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<div class="spinner"></div> Сохранение...'; }
+
   try {
-    toast('Автосохранение результатов...', 'info');
     const result = await API.post(`/conversations/${conv.id}/commit`);
-    if (!result) { console.warn('Сохранение не вернуло данных'); return; }
-    toast('Результаты автосохранены', 'success');
+    if (!result) { toast('Сохранение не вернуло данных', 'error'); return; }
+    toast('Результаты сохранены', 'success');
 
     const updatedConv = await API.post(`/conversations/${conv.id}/complete`);
     if (updatedConv) {
@@ -2827,26 +2829,34 @@ async function autoCommitConversation(conv) {
       if (idx !== -1) State.conversations[idx] = updatedConv;
     }
     
+    // Refresh property data to fetch newly extracted info
     const prop = await API.get(`/properties/${conv.property_id}`);
-    if (prop && State.currentProperty && State.currentProperty.id === prop.id) {
-      State.currentProperty = prop;
-    }
+    if (prop) State.currentProperty = prop;
 
+    // Determine next step
     const currentIndex = STEPS.findIndex(s => s.id === conv.step_id);
     if (currentIndex !== -1 && currentIndex + 1 < STEPS.length) {
       const nextStep = STEPS[currentIndex + 1];
+      toast(`Переход к этапу: ${nextStep.label.split(':')[0]}`, 'info');
+      
       const newConv = await API.post('/conversations', { property_id: conv.property_id, step_id: nextStep.id });
       if (newConv) {
+        State.currentConversation = newConv;
         State.conversations.push(newConv);
+        renderChat();
       }
-    }
-
-    if (State.view === 'detail') {
-      renderDetailContent();
+    } else {
+      if (currentIndex === -1) {
+        toast('Устаревшая сессия завершена. Начните следующий этап вручную.', 'info');
+      } else {
+        toast('Все этапы завершены', 'success');
+      }
+      openProperty(conv.property_id);
     }
   } catch (err) {
-    console.error('Ошибка автосохранения:', err);
-    toast('Ошибка автосохранения: ' + err.message, 'error');
+    toast('Ошибка сохранения: ' + err.message, 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '📋 Сохранить результаты'; }
   }
 }
 
