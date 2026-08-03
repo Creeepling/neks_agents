@@ -1227,7 +1227,24 @@ async function renderAgentsConfig(fetchFromServer = true) {
   </style>
   <div class="flex flex-col gap-4" style="padding-bottom: 40px; max-width: 900px; margin: 0 auto;">`;
   
-  const agentKeys = Object.keys(State.agentsConfig);
+  if (!State.agentsConfig['document_summarizer']) {
+    State.agentsConfig['document_summarizer'] = {
+      system_prompt: "Проанализируй этот документ. Сделай подробное резюме самой важной информации, которая может быть полезна для анализа объекта недвижимости или коммерческой деятельности. Ответ должен быть на русском языке."
+    };
+  }
+
+  bodyHtml += `
+    <div style="background: var(--bg-card); border: 1px solid var(--border-light); border-radius: var(--radius-md); padding: 16px; margin-bottom: 8px;">
+      <h2 style="margin-top: 0; font-size: 1.1rem; color: var(--text-main); margin-bottom: 8px;">Анализатор документов</h2>
+      <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 16px;">Промпт, который используется для генерации резюме при загрузке новых документов.</p>
+      <div class="form-group mb-0">
+        <label class="form-label">Системный Промпт</label>
+        <textarea class="form-textarea" rows="4" onchange="State.agentsConfig['document_summarizer'].system_prompt = this.value; renderAgentsConfig(false);" style="resize:vertical;">${escHtml(State.agentsConfig['document_summarizer'].system_prompt || '')}</textarea>
+      </div>
+    </div>
+  `;
+  
+  const agentKeys = Object.keys(State.agentsConfig).filter(k => k !== 'document_summarizer');
   agentKeys.forEach((agentKey, idx) => {
     const agent = State.agentsConfig[agentKey];
     bodyHtml += `

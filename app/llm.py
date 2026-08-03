@@ -528,12 +528,13 @@ def summarize_document(file_path: str, mime_type: str, display_name: str) -> str
         time.sleep(2)
         uploaded_file = _raw_client.files.get(name=uploaded_file.name)
         
-    prompt = (
+    default_prompt = (
         "Проанализируй этот документ. Сделай подробное резюме "
         "самой важной информации, которая может быть полезна для "
         "анализа объекта недвижимости или коммерческой деятельности. "
         "Ответ должен быть на русском языке."
     )
+    prompt = AGENTS_CONFIG.get("document_summarizer", {}).get("system_prompt") or default_prompt
     
     try:
         response = _raw_client.models.generate_content(
