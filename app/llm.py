@@ -537,7 +537,7 @@ def summarize_document(file_path: str, mime_type: str, display_name: str) -> str
     
     try:
         response = _raw_client.models.generate_content(
-            model='gemini-1.5-pro',
+            model=settings.GEMINI_MODEL,
             contents=[uploaded_file, prompt]
         )
         return response.text
