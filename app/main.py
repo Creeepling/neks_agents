@@ -294,37 +294,43 @@ async def upload_document(
     if prop is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Property not found.")
 
-    # Save temp file
-    fd, path = tempfile.mkstemp(suffix=f"_{file.filename}")
     try:
-        with os.fdopen(fd, 'wb') as f:
-            f.write(await file.read())
+        # Save temp file
+        fd, path = tempfile.mkstemp(suffix=f"_{file.filename}")
+        try:
+            with os.fdopen(fd, 'wb') as f:
+                f.write(await file.read())
+                
+            summary = summarize_document(
+                file_path=path,
+                mime_type=file.content_type or "application/octet-stream",
+                display_name=file.filename or "document"
+            )
+        finally:
+            if os.path.exists(path):
+                os.remove(path)
             
-        summary = summarize_document(
-            file_path=path,
-            mime_type=file.content_type or "application/octet-stream",
-            display_name=file.filename
-        )
-    finally:
-        os.remove(path)
+        new_data = dict(prop.data or {})
+        documents = new_data.get("documents", [])
         
-    new_data = dict(prop.data or {})
-    documents = new_data.get("documents", [])
-    
-    doc_id = str(uuid.uuid4())
-    documents.append({
-        "id": doc_id,
-        "name": file.filename,
-        "summary": summary,
-        "created_at": datetime.now(timezone.utc).isoformat()
-    })
-    
-    new_data["documents"] = documents
-    prop.data = new_data
-    prop.updated_at = datetime.now(timezone.utc)
-    prop = repo.update_property(prop)
-    
-    return prop
+        doc_id = str(uuid.uuid4())
+        documents.append({
+            "id": doc_id,
+            "name": file.filename,
+            "summary": summary,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        })
+        
+        new_data["documents"] = documents
+        prop.data = new_data
+        prop.updated_at = datetime.now(timezone.utc)
+        prop = repo.update_property(prop)
+        
+        return prop
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=400, detail=f"Upload failed: {str(e)}")
 
 @app.delete("/properties/{property_id}/documents/{doc_id}", response_model=PropertyResponse, tags=["Properties"])
 def delete_document(

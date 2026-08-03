@@ -522,6 +522,12 @@ def summarize_document(file_path: str, mime_type: str, display_name: str) -> str
         config={'mime_type': mime_type, 'display_name': display_name}
     )
     
+    import time
+    # Wait for processing if necessary
+    while getattr(uploaded_file, 'state', None) and getattr(uploaded_file.state, 'name', '') == 'PROCESSING':
+        time.sleep(2)
+        uploaded_file = _raw_client.files.get(name=uploaded_file.name)
+        
     prompt = (
         "Проанализируй этот документ. Сделай подробное резюме "
         "самой важной информации, которая может быть полезна для "
