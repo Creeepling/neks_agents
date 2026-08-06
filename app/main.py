@@ -357,6 +357,51 @@ def delete_document(
     
     return prop
 
+@app.post("/properties/{property_id}/cian_offers", response_model=PropertyResponse, tags=["Properties"])
+async def upload_cian_offers(
+    property_id: str,
+    file: UploadFile = File(...),
+    current_user: UserModel = Depends(get_current_user),
+    repo: DataRepository = Depends(get_repository),
+):
+    """Uploads a CIAN excel file and parses it to JSON."""
+    import pandas as pd
+    import math
+    prop = repo.get_property_by_id_and_user(property_id, current_user.id)
+    if prop is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Property not found.")
+
+    try:
+        _, ext = os.path.splitext(file.filename or "")
+        fd, path = tempfile.mkstemp(suffix=ext.lower() or ".tmp")
+        try:
+            with os.fdopen(fd, 'wb') as f:
+                f.write(await file.read())
+            
+            df = pd.read_excel(path)
+            df = df.where(pd.notnull(df), None)
+            records = df.to_dict("records")
+            
+            cleaned = []
+            for r in records:
+                cleaned.append({k: (None if isinstance(v, float) and math.isnan(v) else v) for k, v in r.items()})
+            
+            new_data = dict(prop.data or {})
+            new_data["cian_offers"] = cleaned
+            
+            prop.data = new_data
+            prop.updated_at = datetime.now(timezone.utc)
+            prop = repo.update_property(prop)
+            
+            return prop
+        finally:
+            if os.path.exists(path):
+                os.remove(path)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=400, detail=f"Upload failed: {str(e)}")
+
 @app.get("/properties/{property_id}/conversations", response_model=list[ConversationResponse], tags=["Properties"])
 def get_property_conversations(
     property_id: str,

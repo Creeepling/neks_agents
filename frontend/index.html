@@ -2058,6 +2058,8 @@ function renderDetailContent() {
             <div style="display:flex;gap:8px;">
               <input type="file" id="doc-upload-input" style="display:none" onchange="handleDocumentUpload(event, '${prop.id}')" />
               <button class="btn btn-primary btn-sm" onclick="document.getElementById('doc-upload-input').click()" id="upload-doc-btn">Загрузить документ</button>
+              <input type="file" id="cian-upload-input" style="display:none" accept=".xlsx" onchange="handleCianUpload(event, '${prop.id}')" />
+              <button class="btn btn-secondary btn-sm" onclick="document.getElementById('cian-upload-input').click()" id="upload-cian-btn">Загрузить CIAN offers</button>
             </div>
           </div>
           <div class="data-viewer-body" style="padding:16px;">
@@ -3114,6 +3116,44 @@ boot();
 // -----------------------------------------------------------------------------
 // Document Upload & Deletion
 // -----------------------------------------------------------------------------
+
+async function handleCianUpload(event, propId) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const btn = document.getElementById('upload-cian-btn');
+  const originalText = btn.textContent;
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner"></div> Загрузка...';
+
+  const formData = new FormData();
+  formData.append('file', file);
+
+  try {
+    const res = await fetch(`${API_BASE}/properties/${propId}/cian_offers`, {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + localStorage.getItem('neks_token')
+      },
+      body: formData
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.detail || 'Upload failed');
+    }
+    const updatedProp = await res.json();
+    State.currentProperty = updatedProp;
+    toast('CIAN данные успешно загружены', 'success');
+    renderDetailContent();
+  } catch (e) {
+    console.error(e);
+    toast(e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = originalText;
+    event.target.value = '';
+  }
+}
 
 async function handleDocumentUpload(event, propId) {
   const file = event.target.files[0];

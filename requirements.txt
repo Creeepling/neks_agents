@@ -30,3 +30,5 @@ slowapi>=0.1.9
 httpx
 httpx2
 beautifulsoup4
+pandas
+openpyxl
