@@ -11,50 +11,62 @@ def fetch_market_listings(address: str, city: str = "Москва") -> str:
     
     if not settings.APIFY_API_TOKEN:
         error_msg = "APIFY_API_TOKEN is not configured in environment variables."
-        send_telegram_alert(f"🛑 **[ERROR]** {error_msg}")
-        return json.dumps({"error": error_msg}, ensure_ascii=False)
+    try:
+        from apify_client import ApifyClient
+    except ImportError:
+        err = json.dumps({"error": "apify-client is not installed. Run pip install apify-client"}, ensure_ascii=False)
+        send_telegram_alert(f"🛑 **[ERROR]**\n```json\n{err}\n```")
+        return err
 
-    # Note: Replace 'ACTOR_ID' with the actual Apify Actor ID you wish to use (e.g., 'some-dev/avito-scraper').
-    # You can find actors at https://apify.com/store
-    actor_id = "your-chosen-actor-id" 
+    import urllib.parse
     
-    # run-sync-get-dataset-items runs the actor synchronously and returns the output dataset.
-    url = f"https://api.apify.com/v2/acts/{actor_id}/run-sync-get-dataset-items"
+    actor_id = "km2oo0mCahDBKPOa6" 
     
-    # This payload depends on the specific Actor's input schema.
-    # Typically they accept a 'searchUrl' or 'query'
+    client = ApifyClient(settings.APIFY_API_TOKEN)
+    
+    # URL encode the address for the Avito query string
+    quoted_address = urllib.parse.quote_plus(address)
+    
+    # Map city to a basic slug (Avito usually uses transliteration, defaulting to moskva for testing)
+    city_slug = "moskva" if "москва" in city.lower() else city.lower()
+    search_url = f"https://www.avito.ru/{city_slug}/kommercheskaya_nedvizhimost?q={quoted_address}"
+
     payload = {
-        "query": f"{city} {address}",
-        "maxItems": 10
-    }
-    
-    params = {
-        "token": settings.APIFY_API_TOKEN
+        "mode": "search",
+        "regions": [city_slug],
+        "category": "kommercheskaya_nedvizhimost",
+        "dealType": "sdam", # "sdam" = rent, "prodam" = sale
+        "sortBy": "default",
+        "ownerOnly": False,
+        "urls": [
+            search_url
+        ],
+        "maxListings": 10,
+        "fetchDetails": False,
+        "incrementalMode": False,
+        "emitUnchanged": False,
+        "emitExpired": False,
+        "proxy": {
+            "useApifyProxy": True,
+            "apifyProxyGroups": [
+                "RESIDENTIAL"
+            ]
+        },
+        "maxNotifyListings": 50
     }
     
     try:
-        # Note: Scrapers can take time, timeout is set to 60s
-        response = httpx.post(url, params=params, json=payload, timeout=60.0)
+        # call() blocks and waits for the run to finish (handles long-polling automatically)
+        run = client.actor(actor_id).call(run_input=payload)
         
-        if response.status_code != 200 and response.status_code != 201:
-            err = json.dumps({"error": f"HTTP {response.status_code} Error: {response.text[:200]}"}, ensure_ascii=False)
-            send_telegram_alert(f"🛑 **[ERROR]**\n```json\n{err}\n```")
-            return err
-            
-        data = response.json()
+        # Fetch the results from the dataset
+        items = client.dataset(run["defaultDatasetId"] if isinstance(run, dict) else run["id"] if isinstance(run, dict) else getattr(run, "defaultDatasetId", getattr(run, "id", None))).list_items().items
         
-        # Apify run-sync-get-dataset-items returns an array of results directly
-        listings = data if isinstance(data, list) else [data]
-            
-        out = json.dumps(listings[:10], ensure_ascii=False, indent=2)
-        send_telegram_alert(f"📤 **[OUTPUT]**\nFound {len(listings)} listings.\n```json\n{out[:3000]}...\n```" if len(out) > 3000 else f"📤 **[OUTPUT]**\nFound {len(listings)} listings.\n```json\n{out}\n```")
+        out = json.dumps(items[:10], ensure_ascii=False, indent=2)
+        send_telegram_alert(f"📤 **[OUTPUT]**\nFound {len(items)} listings.\n```json\n{out[:3000]}...\n```" if len(out) > 3000 else f"📤 **[OUTPUT]**\nFound {len(items)} listings.\n```json\n{out}\n```")
         send_telegram_alert(f"🏁 **[DONE]** Tool `fetch_market_listings` completed.")
         return out
         
-    except httpx.HTTPStatusError as e:
-        err = json.dumps({"error": f"HTTP {e.response.status_code} Error: {e.response.text[:200]}"}, ensure_ascii=False)
-        send_telegram_alert(f"🛑 **[ERROR]**\n```json\n{err}\n```")
-        return err
     except Exception as e:
         err = json.dumps({"error": str(e)}, ensure_ascii=False)
         send_telegram_alert(f"🛑 **[ERROR]**\n```json\n{err}\n```")

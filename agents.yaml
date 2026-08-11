@@ -129,6 +129,7 @@ step_2_object_location:
 step_3_offers_analyzer:
   title: "Агент 3: Аналитик предложений (Cian & Avito)"
   available_tools: ["google_search", "fetch_market_listings_tool"]
+  injected_context: ["cian_offers"]
   description: "Анализ предложений и цен на cian и avito в локации."
   first_user_message: |
     Проанализируй актуальные предложения и цены на коммерческую недвижимость в указанной локации с помощью поиска по площадкам Cian и Avito.
@@ -269,3 +270,10 @@ step_5_tenant_mix:
           comprehensive_tenant_strategy:
             type: "string"
             description: "Максимально подробное описание стратегии арендаторов, включая обоснования, комментарии по форматам, рекомендации по площади и ставкам, без сокращений. Пиши развернуто."
+
+egrn_extractor:
+  title: "EGRN Extractor"
+  description: "Извлечение данных из выписки ЕГРН."
+  system_prompt: |
+    Проанализируй эту выписку из ЕГРН. Извлеки ключевые данные, такие как кадастровый номер, площадь, текущие собственники и наличие обременений.
+    Ответ должен быть на русском языке.

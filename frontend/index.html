@@ -1229,8 +1229,13 @@ async function renderAgentsConfig(fetchFromServer = true) {
       system_prompt: "Проанализируй этот документ. Сделай подробное резюме самой важной информации, которая может быть полезна для анализа объекта недвижимости или коммерческой деятельности. Ответ должен быть на русском языке."
     };
   }
+  if (!State.agentsConfig['egrn_extractor']) {
+    State.agentsConfig['egrn_extractor'] = {
+      system_prompt: "Проанализируй эту выписку из ЕГРН. Извлеки ключевые данные, такие как кадастровый номер, площадь, текущие собственники и наличие обременений. Ответ должен быть на русском языке."
+    };
+  }
 
-  const agentKeys = Object.keys(State.agentsConfig).filter(k => k !== 'document_summarizer');
+  const agentKeys = Object.keys(State.agentsConfig).filter(k => k !== 'document_summarizer' && k !== 'egrn_extractor');
   agentKeys.forEach((agentKey, idx) => {
     const agent = State.agentsConfig[agentKey];
     bodyHtml += `
@@ -1340,12 +1345,22 @@ async function renderAgentsConfig(fetchFromServer = true) {
       + Добавить новый шаг
     </button>
     
+    
     <div style="background: var(--bg-card); border: 1px solid var(--border-light); border-radius: var(--radius-md); padding: 16px; margin-top: 24px;">
       <h2 style="margin-top: 0; font-size: 1.1rem; color: var(--text-main); margin-bottom: 8px;">Анализатор документов</h2>
       <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 16px;">Промпт, который используется для генерации резюме при загрузке новых документов.</p>
       <div class="form-group mb-0">
         <label class="form-label">Системный Промпт</label>
         <textarea class="form-textarea" rows="4" onchange="State.agentsConfig['document_summarizer'].system_prompt = this.value; renderAgentsConfig(false);" style="resize:vertical;">${escHtml(State.agentsConfig['document_summarizer'].system_prompt || '')}</textarea>
+      </div>
+    </div>
+
+    <div style="background: var(--bg-card); border: 1px solid var(--border-light); border-radius: var(--radius-md); padding: 16px; margin-top: 24px;">
+      <h2 style="margin-top: 0; font-size: 1.1rem; color: var(--text-main); margin-bottom: 8px;">Анализатор выписок ЕГРН</h2>
+      <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 16px;">Промпт, который используется для извлечения данных из выписок ЕГРН.</p>
+      <div class="form-group mb-0">
+        <label class="form-label">Системный Промпт</label>
+        <textarea class="form-textarea" rows="4" onchange="State.agentsConfig['egrn_extractor'].system_prompt = this.value; renderAgentsConfig(false);" style="resize:vertical;">${escHtml(State.agentsConfig['egrn_extractor'].system_prompt || '')}</textarea>
       </div>
     </div>
   </div>`;
@@ -2077,6 +2092,35 @@ function renderDetailContent() {
                 `).join('');
               } else {
                 return 'Нет загруженных документов.';
+              }
+            })()}</div>
+          </div>
+        </div>
+
+      <!-- EGRN Extracts -->
+        <div class="data-viewer" style="margin-top:24px;">
+          <div class="data-viewer-header" style="display:flex;justify-content:space-between;align-items:center;">
+            <span class="data-viewer-title">Выписки из ЕГРН</span>
+            <div style="display:flex;gap:8px;">
+              <input type="file" id="egrn-upload-input" style="display:none" onchange="handleEgrnUpload(event, '${prop.id}')" />
+              <button class="btn btn-primary btn-sm" onclick="document.getElementById('egrn-upload-input').click()" id="upload-egrn-btn">Загрузить выписку из ЕГРН</button>
+            </div>
+          </div>
+          <div class="data-viewer-body" style="padding:16px;">
+            <div style="font-size:13px;line-height:1.5;">${(function(){
+              const extracts = data.egrn_extracts || [];
+              if (extracts.length > 0) {
+                return extracts.map(d => `
+                  <div class="doc-row" style="margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 4px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                      <strong style="font-size: 14px;">${escHtml(d.name)}</strong>
+                      <button class="btn btn-danger btn-sm" style="padding: 2px 8px; font-size: 11px;" onclick="deleteEgrnExtract('${prop.id}', '${d.id}')">Удалить</button>
+                    </div>
+                    <div class="doc-summary" style="white-space: pre-wrap; margin-top: 8px;">${escHtml(d.summary)}</div>
+                  </div>
+                `).join('');
+              } else {
+                return 'Нет загруженных выписок из ЕГРН.';
               }
             })()}</div>
           </div>
@@ -3215,6 +3259,68 @@ async function deleteDocument(propId, docId) {
     toast(err.message, 'error');
   }
 }
+
+async function handleEgrnUpload(event, propId) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const btn = document.getElementById('upload-egrn-btn');
+  const originalText = btn.textContent;
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner"></div> Загрузка...';
+
+  const formData = new FormData();
+  formData.append('file', file);
+
+  try {
+    const res = await fetch(`${API_BASE}/properties/${propId}/egrn_extracts`, {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + localStorage.getItem('neks_token')
+      },
+      body: formData
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.detail || 'Upload failed');
+    }
+    const updatedProp = await res.json();
+    State.currentProperty = updatedProp;
+    toast('Выписка ЕГРН успешно загружена и проанализирована', 'success');
+    renderDetailContent();
+  } catch (err) {
+    toast(err.message, 'error');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = originalText;
+    }
+    event.target.value = ''; // Reset input
+  }
+}
+
+async function deleteEgrnExtract(propId, docId) {
+  if (!confirm('Вы уверены, что хотите удалить эту выписку из ЕГРН?')) return;
+  try {
+    const res = await fetch(`${API_BASE}/properties/${propId}/egrn_extracts/${docId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': 'Bearer ' + localStorage.getItem('neks_token')
+      }
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.detail || 'Delete failed');
+    }
+    const updatedProp = await res.json();
+    State.currentProperty = updatedProp;
+    toast('Выписка удалена', 'success');
+    renderDetailContent();
+  } catch (err) {
+    toast(err.message, 'error');
+  }
+}
+
 
 </script>
 </body>

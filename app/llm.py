@@ -153,8 +153,28 @@ def fetch_concepts_context(repo: Any, property_id: str) -> str:
         lines.append(f"Гайдлайны по арендаторам: {c.tenant_guidelines}\n")
     return "\n".join(lines)
 
+def fetch_offers_context(repo: Any, property_id: str) -> str:
+    if not repo or not property_id:
+        return ""
+    offers = repo.get_offers_for_property(property_id)
+    if not offers:
+        return ""
+    
+    lines = ["--- Рыночные предложения (CIAN) ---"]
+    for o in offers:
+        data = o.data
+        lines.append(f"Название: {data.title}")
+        lines.append(f"Тип: {data.offer_type}, Цена: {data.price}, Площадь: {data.area_sqm} кв.м, Цена за кв.м: {data.price_per_sqm}")
+        lines.append(f"Состояние: {data.condition}, Мощность: {data.power_kw} кВт")
+        lines.append(f"Плюсы: {', '.join(data.key_advantages)}")
+        lines.append(f"Минусы: {', '.join(data.key_disadvantages)}")
+        lines.append(f"Резюме: {data.summary}")
+        lines.append(f"Ссылка: {data.url}\n")
+    return "\n".join(lines)
+
 CONTEXT_FETCHERS = {
     "retail_concepts": fetch_concepts_context,
+    "cian_offers": fetch_offers_context,
 }
 
 
@@ -535,6 +555,39 @@ def summarize_document(file_path: str, mime_type: str, display_name: str) -> str
         "Ответ должен быть на русском языке."
     )
     prompt = AGENTS_CONFIG.get("document_summarizer", {}).get("system_prompt") or default_prompt
+    
+    try:
+        response = _raw_client.models.generate_content(
+            model=settings.GEMINI_MODEL,
+            contents=[uploaded_file, prompt]
+        )
+        return response.text
+    finally:
+        # Cleanup
+        try:
+            _raw_client.files.delete(name=uploaded_file.name)
+        except Exception as e:
+            print(f"Failed to delete file from Gemini: {e}")
+
+def process_egrn_document(file_path: str, mime_type: str, display_name: str) -> str:
+    """Uploads a file to Gemini, extracts EGRN data, and cleans up."""
+    # Upload to Gemini
+    uploaded_file = _raw_client.files.upload(
+        file=file_path,
+        config={'mime_type': mime_type, 'display_name': display_name}
+    )
+    
+    import time
+    # Wait for processing if necessary
+    while getattr(uploaded_file, 'state', None) and getattr(uploaded_file.state, 'name', '') == 'PROCESSING':
+        time.sleep(2)
+        uploaded_file = _raw_client.files.get(name=uploaded_file.name)
+        
+    default_prompt = (
+        "Проанализируй эту выписку из ЕГРН. Извлеки ключевые данные, такие как кадастровый номер, площадь, текущие собственники и наличие обременений. "
+        "Ответ должен быть на русском языке."
+    )
+    prompt = AGENTS_CONFIG.get("egrn_extractor", {}).get("system_prompt") or default_prompt
     
     try:
         response = _raw_client.models.generate_content(

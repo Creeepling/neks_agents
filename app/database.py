@@ -1,7 +1,7 @@
 from typing import Optional, List
 from google.cloud import firestore
 from app.config import settings
-from app.models import UserModel, RealEstateObjectModel, ConversationModel, MessageModel, RetailConceptModel
+from app.models import UserModel, RealEstateObjectModel, ConversationModel, MessageModel, RetailConceptModel, MarketOfferModel
 from app.repository import DataRepository
 
 class FirestoreRepository(DataRepository):
@@ -84,8 +84,7 @@ class FirestoreRepository(DataRepository):
     def delete_property(self, property_id: str, user_id: str) -> bool:
         doc = self.properties_col.document(property_id).get()
         if doc.exists and doc.to_dict().get("user_id") == user_id:
-            # Note: in Firestore, deleting a document doesn't delete subcollections.
-            # But we don't have subcollections on properties right now.
+            self.delete_offers_for_property(property_id)
             self.properties_col.document(property_id).delete()
             return True
         return False
@@ -194,6 +193,31 @@ class FirestoreRepository(DataRepository):
             self.concepts_col.document(concept_id).delete()
             return True
         return False
+
+    def get_offers_for_property(self, property_id: str) -> List[MarketOfferModel]:
+        docs = self.properties_col.document(property_id).collection("offers").stream()
+        offers = []
+        for doc in docs:
+            data = doc.to_dict()
+            data["id"] = doc.id
+            offers.append(MarketOfferModel(**data))
+        return sorted(offers, key=lambda o: o.created_at)
+
+    def create_offer(self, offer: MarketOfferModel) -> MarketOfferModel:
+        doc_ref = self.properties_col.document(offer.property_id).collection("offers").document()
+        data = offer.model_dump(exclude={"id"})
+        doc_ref.set(data)
+        offer.id = doc_ref.id
+        return offer
+
+    def delete_offers_for_property(self, property_id: str) -> bool:
+        offers = self.properties_col.document(property_id).collection("offers").stream()
+        deleted = False
+        for offer in offers:
+            offer.reference.delete()
+            deleted = True
+        return deleted
+
 
 # Global instance
 repo_instance = FirestoreRepository()
