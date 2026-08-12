@@ -6,6 +6,7 @@ from app.tools.dadata_licenses import search_dadata_licenses, bulk_check_twogis_
 from app.tools.combined_tools import analyze_location_businesses
 from app.tools.cian_scraper import fetch_cian_commercial_listings
 from app.tools.apify_scraper import fetch_market_listings
+from app.tools.financial_calculator import calculate_tenant_mix_financials_tool
 
 def twogis_maps_tool(location: str) -> str:
     """
@@ -106,6 +107,13 @@ def match_retail_requirements_tool(area_sqm: float, power_kw: float) -> str:
         send_telegram_alert(f"🏁 **[DONE]** Tool `match_retail_requirements_tool` finished with error.")
         return err
 
+def calculate_tenant_mix_financials(tenants_list: str, total_sqm: float, total_capex: float) -> str:
+    """
+    Рассчитывает финансовую модель (доходы и расходы) для tenant mix с помощью LLM.
+    Распределяет площадь и CAPEX между арендаторами и возвращает расчеты в виде JSON таблиц (месячные показатели).
+    """
+    return calculate_tenant_mix_financials_tool(tenants_list, total_sqm, total_capex)
+
 AVAILABLE_TOOLS = {
     "google_search": {"google_search": {}},
     "dadata_licenses": dadata_licenses_tool,
@@ -116,6 +124,7 @@ AVAILABLE_TOOLS = {
     "append_extra_data_tool": append_extra_data_tool,
     "cian_commercial_listings_tool": cian_commercial_listings_tool,
     "fetch_market_listings_tool": fetch_market_listings_tool,
+    "calculate_tenant_mix_financials_tool": calculate_tenant_mix_financials,
 }
 
 TOOL_METADATA = [
@@ -127,7 +136,8 @@ TOOL_METADATA = [
     { "id": "match_retail_requirements_tool", "label": "Подбор арендаторов", "desc": "Поиск по площади (кв.м) и мощности (кВт) из внутренней БД" },
     { "id": "append_extra_data_tool", "label": "Доп. Информация", "desc": "Сохраняет текст в БД объекта" },
     { "id": "cian_commercial_listings_tool", "label": "Парсинг ЦИАН (Коммерция)", "desc": "Получает список коммерческой недвижимости в аренду" },
-    { "id": "fetch_market_listings_tool", "label": "Парсинг Авито/Циан (Apify)", "desc": "Поиск объявлений по адресу (Avito, Cian, Юла и др.)" }
+    { "id": "fetch_market_listings_tool", "label": "Парсинг Авито/Циан (Apify)", "desc": "Поиск объявлений по адресу (Avito, Cian, Юла и др.)" },
+    { "id": "calculate_tenant_mix_financials_tool", "label": "Калькулятор Tenant Mix", "desc": "Распределение площади/CAPEX и расчет доходов (LLM)" }
     # To hide a tool from the frontend UI, you can either remove it from this list or add: "hidden": True
     # { "id": "secret_tool", "label": "Secret", "desc": "...", "hidden": True }
 ]

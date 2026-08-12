@@ -228,7 +228,7 @@ step_4_concept_developer:
 
 step_5_tenant_mix:
   title: "Агент 5: Tenant mix builder"
-  available_tools: ["google_search", "match_retail_requirements_tool"]
+  available_tools: ["google_search", "match_retail_requirements_tool", "calculate_tenant_mix_financials_tool"]
   description: "Подбор оптимального состава арендаторов для утвержденной концепции."
   first_user_message: |
     Основываясь на утвержденных концепциях объекта, разработай идеальный состав арендаторов (Tenant Mix) для каждой концепции.
