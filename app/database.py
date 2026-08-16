@@ -16,6 +16,16 @@ class FirestoreRepository(DataRepository):
         self.properties_col = self.db.collection("properties")
         self.conversations_col = self.db.collection("conversations")
         self.concepts_col = self.db.collection("retail_concepts")
+        self.system_col = self.db.collection("system_config")
+
+    def get_agents_config(self) -> Optional[dict]:
+        doc = self.system_col.document("agents").get()
+        if doc.exists:
+            return doc.to_dict().get("config")
+        return None
+
+    def save_agents_config(self, config: dict) -> None:
+        self.system_col.document("agents").set({"config": config})
 
     def get_user_by_username(self, username: str) -> Optional[UserModel]:
         docs = self.users_col.where("username", "==", username).limit(1).stream()

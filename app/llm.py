@@ -43,22 +43,31 @@ _instructor_client = instructor.from_genai(client=_raw_client, use_async=False)
 import shutil
 
 def _load_agents_config() -> dict:
+    try:
+        from app.database import repo_instance
+        config = repo_instance.get_agents_config()
+        if config is not None:
+            return config
+    except Exception as e:
+        print(f"Warning: Could not load agents config from Firestore: {e}")
+
+    # Fallback to agents.example.yaml
     base_dir = os.path.dirname(os.path.dirname(__file__))
-    config_path = os.path.join(base_dir, "agents.yaml")
     example_path = os.path.join(base_dir, "agents.example.yaml")
     
-    if not os.path.exists(config_path) and os.path.exists(example_path):
-        try:
-            shutil.copy(example_path, config_path)
-            print(f"Created default configuration at {config_path}")
-        except Exception as e:
-            print(f"Warning: Could not create default configuration: {e}")
-
     try:
-        with open(config_path, "r", encoding="utf-8") as f:
-            return yaml.safe_load(f) or {}
+        with open(example_path, "r", encoding="utf-8") as f:
+            data = yaml.safe_load(f) or {}
+            if data:
+                try:
+                    from app.database import repo_instance
+                    repo_instance.save_agents_config(data)
+                    print("Saved default agents config to Firestore.")
+                except Exception as db_e:
+                    print(f"Warning: Could not save default config to Firestore: {db_e}")
+            return data
     except Exception as e:
-        print(f"Warning: Could not load agents.yaml: {e}")
+        print(f"Warning: Could not load agents.example.yaml: {e}")
         return {}
 
 AGENTS_CONFIG = _load_agents_config()

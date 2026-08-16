@@ -1072,49 +1072,30 @@ class AgentsConfigJSONUpdate(BaseModel):
 
 @app.get("/system/agents-config/json", tags=["System"])
 def get_agents_config_json():
-    """Return the parsed agents.yaml as JSON."""
-    base_dir = os.path.dirname(os.path.dirname(__file__))
-    config_path = os.path.join(base_dir, "agents.yaml")
-    example_path = os.path.join(base_dir, "agents.example.yaml")
-    
-    target_path = config_path if os.path.exists(config_path) else example_path
+    """Return the parsed agents configuration from Firestore as JSON."""
+    from app.database import repo_instance
     try:
-        with open(target_path, "r", encoding="utf-8") as f:
-            data = yaml.safe_load(f) or {}
-            return {"config": data}
+        data = repo_instance.get_agents_config()
+        if not data:
+            # Fallback for UI if DB empty
+            from app.llm import _load_agents_config
+            data = _load_agents_config()
+        return {"config": data or {}}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to read config: {str(e)}")
 
 @app.put("/system/agents-config/json", tags=["System"])
 def update_agents_config_json(payload: AgentsConfigJSONUpdate):
-    """Update agents.yaml from JSON payload and reload configuration."""
-    base_dir = os.path.dirname(os.path.dirname(__file__))
-    config_path = os.path.join(base_dir, "agents.yaml")
-    example_path = os.path.join(base_dir, "agents.example.yaml")
+    """Update agents configuration in Firestore and reload it."""
+    from app.database import repo_instance
+    from app.llm import reload_agents_config
     try:
-        with open(config_path, "w", encoding="utf-8") as f:
-            yaml.dump(
-                payload.config, 
-                f, 
-                allow_unicode=True, 
-                sort_keys=False, 
-                default_flow_style=False
-            )
-            
-        with open(example_path, "w", encoding="utf-8") as f:
-            yaml.dump(
-                payload.config, 
-                f, 
-                allow_unicode=True, 
-                sort_keys=False, 
-                default_flow_style=False
-            )
-            
+        repo_instance.save_agents_config(payload.config)
         # Reload configuration in memory
         reload_agents_config()
-        return {"status": "success", "message": "Successfully updated agents.yaml and agents.example.yaml"}
+        return {"status": "success"}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to update agents.yaml: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to update config: {str(e)}")
 
 # ---------------------------------------------------------------------------
 # Retail Object Concepts Routes

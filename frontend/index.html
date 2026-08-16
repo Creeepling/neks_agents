@@ -2075,6 +2075,7 @@ function renderDetailContent() {
               <button class="btn btn-primary btn-sm" onclick="document.getElementById('doc-upload-input').click()" id="upload-doc-btn">Загрузить документ</button>
               <input type="file" id="cian-upload-input" style="display:none" accept=".xlsx" onchange="handleCianUpload(event, '${prop.id}')" />
               <button class="btn btn-secondary btn-sm" onclick="document.getElementById('cian-upload-input').click()" id="upload-cian-btn">Загрузить CIAN offers</button>
+              <button class="btn btn-ghost btn-sm" id="open-cian-search-btn" onclick="(function(){ const addr = ${JSON.stringify(prop.address || '')}; if (!addr) { alert('Адрес объекта не указан.'); return; } const url = 'https://www.cian.ru/cat.php?deal_type=rent&engine_version=2&offer_type=commercial&text=' + encodeURIComponent(addr); window.open(url, '_blank', 'noopener,noreferrer'); })()">🔍 CIAN поиск</button>
             </div>
           </div>
           <div class="data-viewer-body" style="padding:16px;">
