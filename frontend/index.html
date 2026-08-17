@@ -2075,7 +2075,6 @@ function renderDetailContent() {
               <button class="btn btn-primary btn-sm" onclick="document.getElementById('doc-upload-input').click()" id="upload-doc-btn">Загрузить документ</button>
               <input type="file" id="cian-upload-input" style="display:none" accept=".xlsx" onchange="handleCianUpload(event, '${prop.id}')" />
               <button class="btn btn-secondary btn-sm" onclick="document.getElementById('cian-upload-input').click()" id="upload-cian-btn">Загрузить CIAN offers</button>
-              <button class="btn btn-ghost btn-sm" id="open-cian-search-btn" onclick="(function(){ const addr = ${JSON.stringify(prop.address || '')}; if (!addr) { alert('Адрес объекта не указан.'); return; } const url = 'https://www.cian.ru/cat.php?deal_type=rent&engine_version=2&offer_type=commercial&text=' + encodeURIComponent(addr); window.open(url, '_blank', 'noopener,noreferrer'); })()">🔍 CIAN поиск</button>
             </div>
           </div>
           <div class="data-viewer-body" style="padding:16px;">
@@ -2111,11 +2110,16 @@ function renderDetailContent() {
             if (st && st.status === 'processing') {
               return `<div style="padding:12px 16px;background:var(--surface-2,#1e2030);border-bottom:1px solid var(--border-color);display:flex;align-items:center;gap:10px;font-size:13px;">
                 <div class="spinner" style="width:14px;height:14px;border-width:2px;"></div>
-                <span>Обработка предложений AI… <strong>${st.completed || 0} / ${st.total || '?'}</strong></span>
+                <span style="flex:1;">Обработка предложений AI… <strong>${st.completed || 0} / ${st.total || '?'}</strong></span>
+                <button class="btn btn-danger btn-sm" style="padding:3px 10px;font-size:11px;" onclick="cancelCianProcessing('${prop.id}')">⏹ Остановить</button>
               </div>`;
+            }
+            if (st && st.status === 'cancelled') {
+              return `<div style="padding:8px 16px;background:var(--surface-2,#1e2030);border-bottom:1px solid var(--border-color);font-size:12px;color:var(--text-secondary);">⏹ Обработка остановлена вручную (завершено ${st.completed || 0} из ${st.total || '?'}).</div>`;
             }
             return '';
           })()}
+
           <div class="data-viewer-body" style="padding:0;" id="cian-offers-body-${prop.id}">
             <div style="padding:16px;font-size:13px;color:var(--text-secondary);">Загрузка…</div>
           </div>
@@ -2174,7 +2178,28 @@ function toggleExpand(btn) {
   btn.textContent = content.classList.contains('expanded') ? 'Свернуть' : 'Развернуть';
 }
 
+async function cancelCianProcessing(propId) {
+  try {
+    const res = await fetch(`${API_BASE}/properties/${propId}/cian_offers/cancel`, {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + localStorage.getItem('neks_token') }
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      toast(err.detail || 'Не удалось остановить обработку', 'error');
+    } else {
+      toast('Сигнал остановки отправлен', 'success');
+      const updatedProp = await res.json();
+      State.currentProperty = updatedProp;
+      renderDetailContent();
+    }
+  } catch (e) {
+    toast(e.message, 'error');
+  }
+}
+
 async function loadCianOffers(propId) {
+
   const container = document.getElementById(`cian-offers-body-${propId}`);
   if (!container) return;
 

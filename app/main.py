@@ -510,8 +510,32 @@ def get_cian_offers(
     ]
 
 
+@app.post("/properties/{property_id}/cian_offers/cancel", response_model=PropertyResponse, tags=["Properties"])
+def cancel_cian_processing(
+    property_id: str,
+    current_user: UserModel = Depends(get_current_user),
+    repo: DataRepository = Depends(get_repository),
+):
+    """Signal the background CIAN processor to stop after the current offer finishes."""
+    prop = repo.get_property_by_id_and_user(property_id, current_user.id)
+    if prop is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Property not found.")
+
+    current_data = dict(prop.data or {})
+    status_obj = current_data.get("cian_processing_status", {})
+    if not status_obj or status_obj.get("status") != "processing":
+        raise HTTPException(status_code=400, detail="No active CIAN processing job to cancel.")
+
+    status_obj["cancel"] = True
+    current_data["cian_processing_status"] = status_obj
+    prop.data = current_data
+    prop.updated_at = datetime.now(timezone.utc)
+    prop = repo.update_property(prop)
+    return prop
+
 
 @app.get("/properties/{property_id}/conversations", response_model=list[ConversationResponse], tags=["Properties"])
+
 def get_property_conversations(
     property_id: str,
     current_user: UserModel = Depends(get_current_user),
