@@ -2098,7 +2098,30 @@ function renderDetailContent() {
           </div>
         </div>
 
-      <!-- EGRN Extracts -->
+      <!-- CIAN Offers -->
+        <div class="data-viewer" style="margin-top:24px;">
+          <div class="data-viewer-header" style="display:flex;justify-content:space-between;align-items:center;">
+            <span class="data-viewer-title">Предложения CIAN</span>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <span id="cian-offers-count" style="font-size:12px;color:var(--text-secondary);"></span>
+            </div>
+          </div>
+          ${(function(){
+            const st = data.cian_processing_status;
+            if (st && st.status === 'processing') {
+              return `<div style="padding:12px 16px;background:var(--surface-2,#1e2030);border-bottom:1px solid var(--border-color);display:flex;align-items:center;gap:10px;font-size:13px;">
+                <div class="spinner" style="width:14px;height:14px;border-width:2px;"></div>
+                <span>Обработка предложений AI… <strong>${st.completed || 0} / ${st.total || '?'}</strong></span>
+              </div>`;
+            }
+            return '';
+          })()}
+          <div class="data-viewer-body" style="padding:0;" id="cian-offers-body-${prop.id}">
+            <div style="padding:16px;font-size:13px;color:var(--text-secondary);">Загрузка…</div>
+          </div>
+        </div>
+
+
         <div class="data-viewer" style="margin-top:24px;">
           <div class="data-viewer-header" style="display:flex;justify-content:space-between;align-items:center;">
             <span class="data-viewer-title">Выписки из ЕГРН</span>
@@ -2141,6 +2164,7 @@ function renderDetailContent() {
     </div>`;
 
   loadДиалоги(prop.id);
+  loadCianOffers(prop.id);
   setTimeout(applyExpandButtons, 50); // delay to let DOM render
 }
 
@@ -2148,6 +2172,71 @@ function toggleExpand(btn) {
   const content = btn.previousElementSibling;
   content.classList.toggle('expanded');
   btn.textContent = content.classList.contains('expanded') ? 'Свернуть' : 'Развернуть';
+}
+
+async function loadCianOffers(propId) {
+  const container = document.getElementById(`cian-offers-body-${propId}`);
+  if (!container) return;
+
+  try {
+    const offers = await API.get(`/properties/${propId}/cian_offers`);
+    if (!offers) {
+      container.innerHTML = `<div style="padding:16px;font-size:13px;color:var(--text-secondary);">Не удалось загрузить предложения.</div>`;
+      return;
+    }
+
+    const countEl = document.getElementById('cian-offers-count');
+    if (countEl) countEl.textContent = offers.length ? `${offers.length} предл.` : '';
+
+    if (offers.length === 0) {
+      container.innerHTML = `<div style="padding:16px;font-size:13px;color:var(--text-secondary);">Нет обработанных предложений. Загрузите XLSX файл из CIAN.</div>`;
+      return;
+    }
+
+    // Build a table
+    const rows = offers.map(o => {
+      const price    = o.price      != null ? Number(o.price).toLocaleString('ru-RU') + ' ₽'       : '—';
+      const priceM2  = o.price_per_sqm != null ? Number(o.price_per_sqm).toLocaleString('ru-RU') + ' ₽/м²' : '—';
+      const area     = o.area_sqm   != null ? Number(o.area_sqm).toLocaleString('ru-RU') + ' м²'   : '—';
+      const floor    = o.floor      || '—';
+      const cond     = o.condition  || '—';
+      const power    = o.power_kw   != null ? o.power_kw + ' кВт' : '—';
+      const pros     = (o.key_advantages   || []).map(x => `<li>${escHtml(x)}</li>`).join('');
+      const cons     = (o.key_disadvantages || []).map(x => `<li>${escHtml(x)}</li>`).join('');
+      const titleHtml = o.url
+        ? `<a href="${escHtml(o.url)}" target="_blank" rel="noopener noreferrer" style="color:var(--accent,#6c8fff);text-decoration:none;font-weight:600;">${escHtml(o.title || o.url)}</a>`
+        : `<span style="font-weight:600;">${escHtml(o.title || 'Без названия')}</span>`;
+
+      return `
+        <div style="padding:16px;border-bottom:1px solid var(--border-color);">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">
+            <div style="flex:1;min-width:0;">${titleHtml}</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;flex-shrink:0;">
+              <span style="background:var(--surface-2,#1e2030);border:1px solid var(--border-color);border-radius:6px;padding:3px 8px;font-size:12px;font-weight:700;">${price}</span>
+              <span style="background:var(--surface-2,#1e2030);border:1px solid var(--border-color);border-radius:6px;padding:3px 8px;font-size:12px;">${priceM2}</span>
+            </div>
+          </div>
+          <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:8px;font-size:12px;color:var(--text-secondary);">
+            <span>📐 ${area}</span>
+            <span>🏢 Этаж: ${escHtml(floor)}</span>
+            <span>🔧 ${escHtml(cond)}</span>
+            ${o.power_kw != null ? `<span>⚡ ${power}</span>` : ''}
+            <span style="color:var(--text-tertiary,#888);">${escHtml(o.offer_type || '')}</span>
+          </div>
+          ${o.summary ? `<div style="margin-top:8px;font-size:13px;line-height:1.5;color:var(--text-primary);">${escHtml(o.summary)}</div>` : ''}
+          <div style="display:flex;gap:24px;margin-top:8px;font-size:12px;flex-wrap:wrap;">
+            ${pros ? `<div><span style="color:#4caf87;font-weight:600;">✓ Плюсы</span><ul style="margin:4px 0 0 16px;padding:0;color:var(--text-secondary);">${pros}</ul></div>` : ''}
+            ${cons ? `<div><span style="color:#e05a5a;font-weight:600;">✗ Минусы</span><ul style="margin:4px 0 0 16px;padding:0;color:var(--text-secondary);">${cons}</ul></div>` : ''}
+          </div>
+        </div>`;
+    }).join('');
+
+    container.innerHTML = rows;
+  } catch (e) {
+    console.error('loadCianOffers error:', e);
+    const container2 = document.getElementById(`cian-offers-body-${propId}`);
+    if (container2) container2.innerHTML = `<div style="padding:16px;font-size:13px;color:var(--text-secondary);">Ошибка загрузки: ${escHtml(e.message)}</div>`;
+  }
 }
 
 function applyExpandButtons() {

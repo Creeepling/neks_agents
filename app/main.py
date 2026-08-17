@@ -487,6 +487,30 @@ async def upload_cian_offers(
         traceback.print_exc()
         raise HTTPException(status_code=400, detail=f"Upload failed: {str(e)}")
 
+
+@app.get("/properties/{property_id}/cian_offers", tags=["Properties"])
+def get_cian_offers(
+    property_id: str,
+    current_user: UserModel = Depends(get_current_user),
+    repo: DataRepository = Depends(get_repository),
+):
+    """Return all analyzed CIAN market offers for a property."""
+    prop = repo.get_property_by_id_and_user(property_id, current_user.id)
+    if prop is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Property not found.")
+
+    offers = repo.get_offers_for_property(property_id)
+    return [
+        {
+            "id": o.id,
+            "created_at": o.created_at,
+            **o.data.model_dump(),
+        }
+        for o in offers
+    ]
+
+
+
 @app.get("/properties/{property_id}/conversations", response_model=list[ConversationResponse], tags=["Properties"])
 def get_property_conversations(
     property_id: str,
