@@ -1120,35 +1120,33 @@ window.addAgentStep = function() {
     injected_context: [],
     extraction_schema: {}
   };
-  if (!Array.isArray(State.agentsConfig._order)) State.agentsConfig._order = [];
-  State.agentsConfig._order.push(stepKey);
   renderAgentsConfig(false);
 };
 
 window.deleteAgentStep = function(stepKey) {
   if (confirm(`Вы уверены, что хотите удалить шаг "${stepKey}"?`)) {
     delete State.agentsConfig[stepKey];
-    if (Array.isArray(State.agentsConfig._order)) {
-      State.agentsConfig._order = State.agentsConfig._order.filter(k => k !== stepKey);
-    }
     renderAgentsConfig(false);
   }
 };
 
 window.moveAgentStep = function(stepKey, direction) {
-  const NON_AGENT_KEYS = ['document_summarizer', 'egrn_extractor', 'cian_processor', '_order'];
-  const agentKeys = [...(State.agentsConfig._order || Object.keys(State.agentsConfig).filter(k => !NON_AGENT_KEYS.includes(k)))];
-  const idx = agentKeys.indexOf(stepKey);
+  const keys = Object.keys(State.agentsConfig);
+  const idx = keys.indexOf(stepKey);
   if (idx < 0) return;
   if (direction === -1 && idx === 0) return;
-  if (direction === 1 && idx === agentKeys.length - 1) return;
+  if (direction === 1 && idx === keys.length - 1) return;
   
   const swapIdx = idx + direction;
-  const temp = agentKeys[idx];
-  agentKeys[idx] = agentKeys[swapIdx];
-  agentKeys[swapIdx] = temp;
+  const temp = keys[idx];
+  keys[idx] = keys[swapIdx];
+  keys[swapIdx] = temp;
   
-  State.agentsConfig._order = agentKeys;
+  const newConfig = {};
+  for (const k of keys) {
+    newConfig[k] = State.agentsConfig[k];
+  }
+  State.agentsConfig = newConfig;
   renderAgentsConfig(false);
 };
 
@@ -1181,44 +1179,6 @@ async function renderAgentsConfig(fetchFromServer = true) {
   }
 
   const AVAILABLE_TOOLS_DEF = State.availableTools || [];
-  const NON_AGENT_KEYS = ['document_summarizer', 'egrn_extractor', 'cian_processor', '_order'];
-
-  // Initialize non-agent services if missing
-  if (!State.agentsConfig['document_summarizer']) {
-    State.agentsConfig['document_summarizer'] = {
-      system_prompt: "Проанализируй этот документ. Сделай подробное резюме самой важной информации, которая может быть полезна для анализа объекта недвижимости или коммерческой деятельности. Ответ должен быть на русском языке."
-    };
-  }
-  if (!State.agentsConfig['egrn_extractor']) {
-    State.agentsConfig['egrn_extractor'] = {
-      system_prompt: "Проанализируй эту выписку из ЕГРН. Извлеки ключевые данные, такие как кадастровый номер, площадь, текущие собственники и наличие обременений. Ответ должен быть на русском языке."
-    };
-  }
-  if (!State.agentsConfig['cian_processor']) {
-    State.agentsConfig['cian_processor'] = {
-      system_prompt: "You are a real estate data analyst. Please read the following raw row data from a real estate scraping tool (like CIAN or Avito). Clean and extract the data into the requested structured format."
-    };
-  }
-
-  // Determine ordered agent keys
-  const allKeys = Object.keys(State.agentsConfig);
-  let agentKeys = [];
-  if (Array.isArray(State.agentsConfig._order)) {
-    agentKeys = State.agentsConfig._order.filter(k => !NON_AGENT_KEYS.includes(k) && State.agentsConfig[k]);
-    allKeys.forEach(k => {
-      if (!NON_AGENT_KEYS.includes(k) && !agentKeys.includes(k)) {
-        agentKeys.push(k);
-      }
-    });
-  } else {
-    agentKeys = allKeys.filter(k => !NON_AGENT_KEYS.includes(k));
-    agentKeys.sort((a, b) => {
-      const numA = (a.match(/\d+/) || [9999])[0];
-      const numB = (b.match(/\d+/) || [9999])[0];
-      return Number(numA) - Number(numB);
-    });
-  }
-  State.agentsConfig._order = agentKeys;
 
   let bodyHtml = `
   <style>
@@ -1262,16 +1222,25 @@ async function renderAgentsConfig(fetchFromServer = true) {
       background: var(--bg-card);
     }
   </style>
-  <div class="flex flex-col gap-4" style="padding-bottom: 40px; max-width: 900px; margin: 0 auto;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-      <div>
-        <h2 style="margin: 0; font-size: 1.25rem; color: var(--text-main);">Шаги исследования (Агенты)</h2>
-        <p style="margin: 4px 0 0 0; font-size: 13px; color: var(--text-secondary);">Порядок агентов определяет последовательность шагов в диалогах.</p>
-      </div>
-    </div>`;
+  <div class="flex flex-col gap-4" style="padding-bottom: 40px; max-width: 900px; margin: 0 auto;">`;
+  
+  if (!State.agentsConfig['document_summarizer']) {
+    State.agentsConfig['document_summarizer'] = {
+      system_prompt: "Проанализируй этот документ. Сделай подробное резюме самой важной информации, которая может быть полезна для анализа объекта недвижимости или коммерческой деятельности. Ответ должен быть на русском языке."
+    };
+  }
+  if (!State.agentsConfig['egrn_extractor']) {
+    State.agentsConfig['egrn_extractor'] = {
+      system_prompt: "Проанализируй эту выписку из ЕГРН. Извлеки ключевые данные, такие как кадастровый номер, площадь, текущие собственники и наличие обременений. Ответ должен быть на русском языке."
+    };
+  }
 
+  const agentKeys = Object.keys(State.agentsConfig).filter(k => {
+    const isHardcodedSystem = ['document_summarizer', 'egrn_extractor', 'cian_processor'].includes(k);
+    return !isHardcodedSystem && !State.agentsConfig[k].hidden;
+  });
   agentKeys.forEach((agentKey, idx) => {
-    const agent = State.agentsConfig[agentKey] || {};
+    const agent = State.agentsConfig[agentKey];
     bodyHtml += `
     <details class="agent-accordion">
       <summary>
@@ -1375,51 +1344,26 @@ async function renderAgentsConfig(fetchFromServer = true) {
   });
   
   bodyHtml += `
-    <button class="btn btn-outline" style="align-self: center; margin-top: 0.5rem; border-style: dashed; padding: 10px 20px;" onclick="addAgentStep()">
+    <button class="btn btn-outline" style="align-self: center; margin-top: 1rem; border-style: dashed; padding: 10px 20px;" onclick="addAgentStep()">
       + Добавить новый шаг
     </button>
     
-    <div style="margin-top: 32px; border-top: 1px solid var(--border-light); padding-top: 24px;">
-      <h2 style="margin: 0 0 4px 0; font-size: 1.25rem; color: var(--text-main);">Системные сервисы (Неагентные системы)</h2>
-      <p style="margin: 0 0 16px 0; font-size: 13px; color: var(--text-secondary);">Промпты для фоновых обработчиков загружаемых документов, выписок и рыночных предложений.</p>
-    </div>
-
-    <!-- 1. Анализатор документов -->
-    <div style="background: var(--bg-card); border: 1px solid var(--border-light); border-radius: var(--radius-md); padding: 16px;">
-      <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
-        <span class="badge badge-neutral" style="font-family: monospace; font-size: 0.8rem;">document_summarizer</span>
-        <h3 style="margin: 0; font-size: 1rem; color: var(--text-main);">Анализатор документов</h3>
-      </div>
-      <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px;">Промпт, используемый для генерации резюме при загрузке новых файлов документов.</p>
+    
+    <div style="background: var(--bg-card); border: 1px solid var(--border-light); border-radius: var(--radius-md); padding: 16px; margin-top: 24px;">
+      <h2 style="margin-top: 0; font-size: 1.1rem; color: var(--text-main); margin-bottom: 8px;">Анализатор документов</h2>
+      <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 16px;">Промпт, который используется для генерации резюме при загрузке новых документов.</p>
       <div class="form-group mb-0">
-        <label class="form-label">Системный промпт</label>
+        <label class="form-label">Системный Промпт</label>
         <textarea class="form-textarea" rows="4" onchange="State.agentsConfig['document_summarizer'].system_prompt = this.value; renderAgentsConfig(false);" style="resize:vertical;">${escHtml(State.agentsConfig['document_summarizer'].system_prompt || '')}</textarea>
       </div>
     </div>
 
-    <!-- 2. Анализатор выписок ЕГРН -->
-    <div style="background: var(--bg-card); border: 1px solid var(--border-light); border-radius: var(--radius-md); padding: 16px;">
-      <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
-        <span class="badge badge-neutral" style="font-family: monospace; font-size: 0.8rem;">egrn_extractor</span>
-        <h3 style="margin: 0; font-size: 1rem; color: var(--text-main);">Анализатор выписок ЕГРН</h3>
-      </div>
-      <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px;">Промпт, используемый для извлечения структурированных данных из выписок ЕГРН.</p>
+    <div style="background: var(--bg-card); border: 1px solid var(--border-light); border-radius: var(--radius-md); padding: 16px; margin-top: 24px;">
+      <h2 style="margin-top: 0; font-size: 1.1rem; color: var(--text-main); margin-bottom: 8px;">Анализатор выписок ЕГРН</h2>
+      <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 16px;">Промпт, который используется для извлечения данных из выписок ЕГРН.</p>
       <div class="form-group mb-0">
-        <label class="form-label">Системный промпт</label>
+        <label class="form-label">Системный Промпт</label>
         <textarea class="form-textarea" rows="4" onchange="State.agentsConfig['egrn_extractor'].system_prompt = this.value; renderAgentsConfig(false);" style="resize:vertical;">${escHtml(State.agentsConfig['egrn_extractor'].system_prompt || '')}</textarea>
-      </div>
-    </div>
-
-    <!-- 3. Анализатор CIAN / предложений рынка -->
-    <div style="background: var(--bg-card); border: 1px solid var(--border-light); border-radius: var(--radius-md); padding: 16px;">
-      <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
-        <span class="badge badge-neutral" style="font-family: monospace; font-size: 0.8rem;">cian_processor</span>
-        <h3 style="margin: 0; font-size: 1rem; color: var(--text-main);">Анализатор предложений CIAN</h3>
-      </div>
-      <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px;">Промпт, используемый для очистки и извлечения параметров предложений при загрузке Excel-таблиц CIAN.</p>
-      <div class="form-group mb-0">
-        <label class="form-label">Системный промпт</label>
-        <textarea class="form-textarea" rows="4" onchange="State.agentsConfig['cian_processor'].system_prompt = this.value; renderAgentsConfig(false);" style="resize:vertical;">${escHtml(State.agentsConfig['cian_processor'].system_prompt || '')}</textarea>
       </div>
     </div>
   </div>`;
@@ -1431,7 +1375,6 @@ async function renderAgentsConfig(fetchFromServer = true) {
     'agents_config'
   );
 }
-
 
 async function saveAgentsConfig() {
   if (!State.agentsConfig) return;

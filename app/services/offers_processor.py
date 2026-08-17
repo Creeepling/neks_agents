@@ -38,32 +38,15 @@ def process_and_summarize_offers(property_id: str, repo: Any, raw_offers: List[D
             return  # property deleted, stop silently
 
         try:
-            custom_prompt_tmpl = ""
-            try:
-                from app.llm import AGENTS_CONFIG
-                custom_prompt_tmpl = AGENTS_CONFIG.get("cian_processor", {}).get("system_prompt", "").strip()
-            except Exception:
-                pass
-
-            if custom_prompt_tmpl:
-                prompt = (
-                    f"{custom_prompt_tmpl}\n\n"
-                    f"--- RAW DATA ---\n"
-                    f"{json.dumps(raw_offer, ensure_ascii=False, default=str)}\n\n"
-                    f"If any requested fields are missing, make your best guess or leave them empty. "
-                    f"Always respond with the JSON schema."
-                )
-            else:
-                prompt = (
-                    f"You are a real estate data analyst. Please read the following raw row data "
-                    f"from a real estate scraping tool (like CIAN or Avito). Clean and extract the data "
-                    f"into the requested structured format.\n\n"
-                    f"--- RAW DATA ---\n"
-                    f"{json.dumps(raw_offer, ensure_ascii=False, default=str)}\n\n"
-                    f"If any requested fields are missing, make your best guess or leave them empty. "
-                    f"Always respond with the JSON schema."
-                )
-
+            prompt = (
+                f"You are a real estate data analyst. Please read the following raw row data "
+                f"from a real estate scraping tool (like CIAN or Avito). Clean and extract the data "
+                f"into the requested structured format.\n\n"
+                f"--- RAW DATA ---\n"
+                f"{json.dumps(raw_offer, ensure_ascii=False, default=str)}\n\n"
+                f"If any requested fields are missing, make your best guess or leave them empty. "
+                f"Always respond with the JSON schema."
+            )
 
             analyzed_data: AnalyzedOfferSchema = instructor_client.chat.completions.create(
                 model=settings.GEMINI_MODEL,
