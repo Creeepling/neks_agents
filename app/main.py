@@ -1107,8 +1107,11 @@ def seed_concepts():
 def get_available_steps():
     """Return the list of available agent steps from agents.yaml, excluding hidden utility agents."""
     steps = []
+    # Hardcoded list of system utilities that should never be selectable steps
+    system_agents = {"document_summarizer", "egrn_extractor", "cian_processor"}
+    
     for step_id, config in AGENTS_CONFIG.items():
-        if config.get("hidden"):
+        if step_id in system_agents or config.get("hidden"):
             continue
         steps.append({
             "id": step_id,
