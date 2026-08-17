@@ -7,5 +7,5 @@ from app.tools.twogis_maps import search_twogis_businesses
 from app.config import settings
 
 print(f"API KEY: {settings.TWOGIS_API_KEY}")
-result = search_twogis_businesses("Москва, Тверская улица", "кафе")
+result = search_twogis_businesses("Москва, Тверская улица")
 print(result)

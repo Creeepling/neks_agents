@@ -36,13 +36,13 @@ def fetch_market_listings_tool(address: str, city: str = "Москва") -> str:
     """
     return fetch_market_listings(address, city)
 
-def analyze_location_businesses_tool(city: str, location: str) -> str:
+def analyze_location_businesses_tool(city: str, location: str, radius: int = 150) -> str:
     """
     Единый инструмент для поиска организаций вокруг объекта с помощью 2GIS 
     и последующего обогащения этих организаций данными о лицензиях (Dadata).
     Возвращает JSON с подробной инфраструктурой.
     """
-    return analyze_location_businesses(city, location)
+    return analyze_location_businesses(city, location, radius)
 
 def dadata_licenses_tool(query: str) -> str:
     """

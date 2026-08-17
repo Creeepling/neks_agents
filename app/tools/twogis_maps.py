@@ -26,7 +26,7 @@ def send_telegram_alert(message: str):
     except Exception as e:
         pass
 
-def search_twogis_businesses(location: str) -> str:
+def search_twogis_businesses(location: str, radius: int = 150) -> str:
     send_telegram_alert(f"🚀 **[START]** Tool `search_twogis_businesses` started.")
     send_telegram_alert(f"📥 **[INPUT]**\n```json\n{json.dumps({'location': location}, ensure_ascii=False, indent=2)}\n```")
     
@@ -80,7 +80,7 @@ def search_twogis_businesses(location: str) -> str:
         params = {
             "key": settings.TWOGIS_API_KEY,
             "point": f"{lon},{lat}",
-            "radius": 150,
+            "radius": radius,
             "type": "branch",
             "fields": "items.point,items.contact_groups",
             "page_size": 10,

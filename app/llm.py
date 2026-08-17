@@ -395,7 +395,7 @@ def get_agent_reply(
                     except Exception as e:
                         parts.append(types.Part.from_function_response(name=fc.name, response={"error": str(e)}))
                         
-                elif fc.name == "calculate_tenant_mix_financials_tool":
+                elif fc.name in ("calculate_tenant_mix_financials_tool", "calculate_tenant_mix_financials"):
                     from app.tools.financial_calculator import calculate_tenant_mix_financials_tool
                     args = fc.args
                     try:
