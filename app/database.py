@@ -21,11 +21,26 @@ class FirestoreRepository(DataRepository):
     def get_agents_config(self) -> Optional[dict]:
         doc = self.system_col.document("agents").get()
         if doc.exists:
-            return doc.to_dict().get("config")
+            data = doc.to_dict()
+            config = data.get("config")
+            if config:
+                order = data.get("config_order")
+                if order:
+                    # Rebuild dict in the exact order saved
+                    ordered_config = {k: config[k] for k in order if k in config}
+                    # Append any stragglers that weren't in the order list
+                    for k in config:
+                        if k not in ordered_config:
+                            ordered_config[k] = config[k]
+                    return ordered_config
+                return config
         return None
 
     def save_agents_config(self, config: dict) -> None:
-        self.system_col.document("agents").set({"config": config})
+        self.system_col.document("agents").set({
+            "config": config,
+            "config_order": list(config.keys())
+        })
 
     def get_user_by_username(self, username: str) -> Optional[UserModel]:
         docs = self.users_col.where("username", "==", username).limit(1).stream()

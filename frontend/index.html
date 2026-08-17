@@ -1131,19 +1131,30 @@ window.deleteAgentStep = function(stepKey) {
 };
 
 window.moveAgentStep = function(stepKey, direction) {
-  const keys = Object.keys(State.agentsConfig);
-  const idx = keys.indexOf(stepKey);
-  if (idx < 0) return;
-  if (direction === -1 && idx === 0) return;
-  if (direction === 1 && idx === keys.length - 1) return;
+  const allKeys = Object.keys(State.agentsConfig);
+  const visibleKeys = allKeys.filter(k => {
+    const isSystem = ['document_summarizer', 'egrn_extractor', 'cian_processor'].includes(k);
+    return !isSystem && !State.agentsConfig[k].hidden;
+  });
+
+  const vIdx = visibleKeys.indexOf(stepKey);
+  if (vIdx < 0) return;
+  if (direction === -1 && vIdx === 0) return;
+  if (direction === 1 && vIdx === visibleKeys.length - 1) return;
   
-  const swapIdx = idx + direction;
-  const temp = keys[idx];
-  keys[idx] = keys[swapIdx];
-  keys[swapIdx] = temp;
+  // Find the actual key we are visually swapping with
+  const targetKey = visibleKeys[vIdx + direction];
+  
+  // Swap them in the master list
+  const idx1 = allKeys.indexOf(stepKey);
+  const idx2 = allKeys.indexOf(targetKey);
+  
+  const temp = allKeys[idx1];
+  allKeys[idx1] = allKeys[idx2];
+  allKeys[idx2] = temp;
   
   const newConfig = {};
-  for (const k of keys) {
+  for (const k of allKeys) {
     newConfig[k] = State.agentsConfig[k];
   }
   State.agentsConfig = newConfig;
