@@ -2574,9 +2574,27 @@ async function downloadPresentation(id) {
 ============================================================================= */
 let _selectedStep = null;
 
-function openStepModal() {
+async function openStepModal() {
+  // STEPS may be empty if the /steps fetch failed at boot (e.g. cold start).
+  // Attempt a reload before showing the modal.
+  if (!STEPS || STEPS.length === 0) {
+    try {
+      const res = await fetch(`${API_BASE}/steps`);
+      if (res.ok) {
+        STEPS = await res.json();
+      }
+    } catch (e) {
+      console.error('Failed to reload steps', e);
+    }
+    if (!STEPS || STEPS.length === 0) {
+      toast('Не удалось загрузить этапы с сервера. Проверьте соединение и попробуйте снова.', 'error');
+      return;
+    }
+  }
+
   _selectedStep = STEPS[0].id;
-  const stepOptions = STEPS.map((s, i) => `
+  const stepOptions = STEPS.map((s, i) =>
+ `
     <div class="step-option ${i === 0 ? 'selected' : ''}" id="step-opt-${s.id}" onclick="selectStep('${s.id}')">
       <div class="step-option-radio"></div>
       <div>
