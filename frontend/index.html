@@ -1441,8 +1441,9 @@ function renderDashboardContent() {
 
 function propertyCard(p) {
   const data = p.data || {};
-  const keys = Object.keys(data);
-  const fieldCount = keys.length;
+  const HIDDEN_CARD_KEYS = new Set(['cian_processing_status']);
+  const fieldCount = Object.keys(data).filter(k => !HIDDEN_CARD_KEYS.has(k)).length;
+
   const updated = p.updated_at ? relTime(p.updated_at) : 'никогда';
 
   return `
@@ -2005,11 +2006,13 @@ function renderDetailContent() {
   if (crumbActive) crumbActive.textContent = prop.name;
 
   const data = prop.data || {};
-  const dataKeys = Object.keys(data);
+  const HIDDEN_DATA_KEYS = new Set(['cian_processing_status']);
+  const dataKeys = Object.keys(data).filter(k => !HIDDEN_DATA_KEYS.has(k));
 
   const dataViewerRows = dataKeys.length === 0
     ? `<div class="data-empty">Данные еще не сохранены. Начните диалог, чтобы начать исследование.</div>`
     : dataKeys.map(k => {
+
         return `<div class="data-row">
           <div class="data-key" style="font-weight:600;">${escHtml(DISPLAY_LABELS[k] || String(k))}</div>
           <div class="data-value-wrapper" style="width: 100%;">
