@@ -1105,9 +1105,11 @@ def seed_concepts():
 
 @app.get("/steps", tags=["System"])
 def get_available_steps():
-    """Return the list of available agent steps from agents.yaml."""
+    """Return the list of available agent steps from agents.yaml, excluding hidden utility agents."""
     steps = []
     for step_id, config in AGENTS_CONFIG.items():
+        if config.get("hidden"):
+            continue
         steps.append({
             "id": step_id,
             "label": config.get("title", step_id),
