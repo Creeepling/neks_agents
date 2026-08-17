@@ -510,24 +510,29 @@ def get_cian_offers(
     ]
 
 
-@app.post("/properties/{property_id}/cian_offers/cancel", response_model=PropertyResponse, tags=["Properties"])
-def cancel_cian_processing(
+@app.post("/properties/{property_id}/cian_offers/clear", response_model=PropertyResponse, tags=["Properties"])
+def clear_cian_offers(
     property_id: str,
     current_user: UserModel = Depends(get_current_user),
     repo: DataRepository = Depends(get_repository),
 ):
-    """Signal the background CIAN processor to stop after the current offer finishes."""
+    """Delete all stored CIAN offers for a property and reset processing status.
+    Also signals any live background processor to stop on its next iteration."""
     prop = repo.get_property_by_id_and_user(property_id, current_user.id)
     if prop is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Property not found.")
 
+    # Delete all stored offers from DB
+    repo.delete_offers_for_property(property_id)
+
+    # Reset status — also set cancel flag so any live processor thread stops cleanly
     current_data = dict(prop.data or {})
     status_obj = current_data.get("cian_processing_status", {})
-    if not status_obj or status_obj.get("status") != "processing":
-        raise HTTPException(status_code=400, detail="No active CIAN processing job to cancel.")
-
-    status_obj["cancel"] = True
-    current_data["cian_processing_status"] = status_obj
+    if status_obj and status_obj.get("status") == "processing":
+        # Signal the processor to stop if it's still running
+        current_data["cian_processing_status"] = {**status_obj, "cancel": True, "status": "cleared"}
+    else:
+        current_data["cian_processing_status"] = None
     prop.data = current_data
     prop.updated_at = datetime.now(timezone.utc)
     prop = repo.update_property(prop)

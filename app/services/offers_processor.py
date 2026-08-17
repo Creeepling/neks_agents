@@ -32,17 +32,8 @@ def process_and_summarize_offers(property_id: str, repo: Any, raw_offers: List[D
         prop = repo.get_property_by_id(property_id)
         if prop:
             status_obj = (prop.data or {}).get("cian_processing_status", {})
-            if status_obj.get("cancel"):
-                current_data = dict(prop.data or {})
-                current_data["cian_processing_status"] = {
-                    **status_obj,
-                    "status": "cancelled",
-                    "cancel": False,
-                }
-                prop.data = current_data
-                prop.updated_at = datetime.now(timezone.utc)
-                repo.update_property(prop)
-                return
+            if status_obj.get("cancel") or status_obj.get("status") in ("cleared", "cancelled"):
+                return  # Status already written by the clear endpoint; just exit
         else:
             return  # property deleted, stop silently
 

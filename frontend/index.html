@@ -2103,27 +2103,24 @@ function renderDetailContent() {
             <span class="data-viewer-title">Предложения CIAN</span>
             <div style="display:flex;gap:8px;align-items:center;">
               <span id="cian-offers-count" style="font-size:12px;color:var(--text-secondary);"></span>
+              <button class="btn btn-danger btn-sm" style="padding:3px 10px;font-size:11px;" onclick="clearCianOffers('${prop.id}')">🗑 Очистить</button>
             </div>
           </div>
           ${(function(){
             const st = data.cian_processing_status;
             if (st && st.status === 'processing') {
-              return `<div style="padding:12px 16px;background:var(--surface-2,#1e2030);border-bottom:1px solid var(--border-color);display:flex;align-items:center;gap:10px;font-size:13px;">
+              return `<div style="padding:10px 16px;background:var(--surface-2,#1e2030);border-bottom:1px solid var(--border-color);display:flex;align-items:center;gap:10px;font-size:13px;">
                 <div class="spinner" style="width:14px;height:14px;border-width:2px;"></div>
-                <span style="flex:1;">Обработка предложений AI… <strong>${st.completed || 0} / ${st.total || '?'}</strong></span>
-                <button class="btn btn-danger btn-sm" style="padding:3px 10px;font-size:11px;" onclick="cancelCianProcessing('${prop.id}')">⏹ Остановить</button>
+                <span>Обработка предложений AI… <strong>${st.completed || 0} / ${st.total || '?'}</strong></span>
               </div>`;
-            }
-            if (st && st.status === 'cancelled') {
-              return `<div style="padding:8px 16px;background:var(--surface-2,#1e2030);border-bottom:1px solid var(--border-color);font-size:12px;color:var(--text-secondary);">⏹ Обработка остановлена вручную (завершено ${st.completed || 0} из ${st.total || '?'}).</div>`;
             }
             return '';
           })()}
-
           <div class="data-viewer-body" style="padding:0;" id="cian-offers-body-${prop.id}">
             <div style="padding:16px;font-size:13px;color:var(--text-secondary);">Загрузка…</div>
           </div>
         </div>
+
 
 
         <div class="data-viewer" style="margin-top:24px;">
@@ -2178,17 +2175,18 @@ function toggleExpand(btn) {
   btn.textContent = content.classList.contains('expanded') ? 'Свернуть' : 'Развернуть';
 }
 
-async function cancelCianProcessing(propId) {
+async function clearCianOffers(propId) {
+  if (!confirm('Удалить все предложения CIAN для этого объекта? Действие необратимо.')) return;
   try {
-    const res = await fetch(`${API_BASE}/properties/${propId}/cian_offers/cancel`, {
+    const res = await fetch(`${API_BASE}/properties/${propId}/cian_offers/clear`, {
       method: 'POST',
       headers: { 'Authorization': 'Bearer ' + localStorage.getItem('neks_token') }
     });
     if (!res.ok) {
       const err = await res.json();
-      toast(err.detail || 'Не удалось остановить обработку', 'error');
+      toast(err.detail || 'Не удалось очистить предложения', 'error');
     } else {
-      toast('Сигнал остановки отправлен', 'success');
+      toast('Предложения CIAN очищены', 'success');
       const updatedProp = await res.json();
       State.currentProperty = updatedProp;
       renderDetailContent();
