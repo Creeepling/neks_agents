@@ -275,7 +275,22 @@ egrn_extractor:
   hidden: true
   title: "EGRN Extractor"
   description: "Извлечение данных из выписки ЕГРН."
-
   system_prompt: |
     Проанализируй эту выписку из ЕГРН. Извлеки ключевые данные, такие как кадастровый номер, площадь, текущие собственники и наличие обременений.
     Ответ должен быть на русском языке.
+
+document_summarizer:
+  hidden: true
+  title: "Document Summarizer"
+  description: "Анализ и составление резюме загруженных документов."
+  system_prompt: |
+    Проанализируй этот документ. Сделай подробное резюме самой важной информации, которая может быть полезна для анализа объекта недвижимости или коммерческой деятельности.
+    Ответ должен быть на русском языке.
+
+cian_processor:
+  hidden: true
+  title: "CIAN Offers Processor"
+  description: "Очистка и структурирование объявлений CIAN."
+  system_prompt: |
+    You are a real estate data analyst. Please read the following raw row data from a real estate scraping tool (like CIAN or Avito). Clean and extract the data into the requested structured format.
+

@@ -42,12 +42,49 @@ _instructor_client = instructor.from_genai(client=_raw_client, use_async=False)
 
 import shutil
 
+NON_AGENT_SYSTEM_KEYS = {"document_summarizer", "egrn_extractor", "cian_processor", "_order"}
+
+def _normalize_config_order(config: dict) -> dict:
+    if not config:
+        return {}
+    
+    order = config.get("_order")
+    agent_keys = [k for k in config.keys() if k not in NON_AGENT_SYSTEM_KEYS]
+    
+    import re
+    def natural_step_sort(k):
+        m = re.search(r"(\d+)", k)
+        return (int(m.group(1)) if m else 9999, k)
+    
+    if not order or not isinstance(order, list):
+        order = sorted(agent_keys, key=natural_step_sort)
+    else:
+        # Keep valid keys in order and append any new agent keys
+        valid_order = [k for k in order if k in agent_keys]
+        for k in sorted(agent_keys, key=natural_step_sort):
+            if k not in valid_order:
+                valid_order.append(k)
+        order = valid_order
+
+    config["_order"] = order
+    
+    # Rebuild dict with ordered keys first, then non-agent systems
+    ordered_dict = {"_order": order}
+    for k in order:
+        if k in config:
+            ordered_dict[k] = config[k]
+    for k, v in config.items():
+        if k not in ordered_dict:
+            ordered_dict[k] = v
+            
+    return ordered_dict
+
 def _load_agents_config() -> dict:
     try:
         from app.database import repo_instance
         config = repo_instance.get_agents_config()
         if config:  # treat empty dict same as None — fall through to YAML
-            return config
+            return _normalize_config_order(config)
     except Exception as e:
         print(f"Warning: Could not load agents config from Firestore: {e}")
 
@@ -59,19 +96,21 @@ def _load_agents_config() -> dict:
             with open(yaml_path, "r", encoding="utf-8") as f:
                 data = yaml.safe_load(f) or {}
             if data:
+                normalized = _normalize_config_order(data)
                 try:
                     from app.database import repo_instance
-                    repo_instance.save_agents_config(data)
+                    repo_instance.save_agents_config(normalized)
                     print(f"Saved agents config from {filename} to Firestore.")
                 except Exception as db_e:
                     print(f"Warning: Could not save config to Firestore: {db_e}")
-                return data
+                return normalized
         except Exception as e:
             print(f"Warning: Could not load {filename}: {e}")
 
     return {}
 
 AGENTS_CONFIG = _load_agents_config()
+
 
 STEP_SYSTEM_PROMPTS: Dict[str, str] = {}
 STEP_EXTRACTION_SCHEMAS: Dict[str, type[BaseModel]] = {}

@@ -1105,22 +1105,28 @@ def seed_concepts():
 
 @app.get("/steps", tags=["System"])
 def get_available_steps():
-    """Return the list of available agent steps from agents.yaml, excluding hidden utility agents."""
-    import re
+    """Return the list of available agent steps from AGENTS_CONFIG in their configured order, excluding non-agent systems."""
+    from app.llm import NON_AGENT_SYSTEM_KEYS
+    order = AGENTS_CONFIG.get("_order") or []
+    
+    agent_step_ids = [
+        k for k in AGENTS_CONFIG.keys()
+        if k not in NON_AGENT_SYSTEM_KEYS and not AGENTS_CONFIG[k].get("hidden")
+    ]
+    
+    ordered_ids = [k for k in order if k in agent_step_ids]
+    for k in agent_step_ids:
+        if k not in ordered_ids:
+            ordered_ids.append(k)
+            
     steps = []
-    for step_id, config in AGENTS_CONFIG.items():
-        if config.get("hidden"):
-            continue
+    for step_id in ordered_ids:
+        config = AGENTS_CONFIG.get(step_id, {})
         steps.append({
             "id": step_id,
             "label": config.get("title", step_id),
             "desc": config.get("description", "")
         })
-    # Sort by the leading integer in the step ID (step_1_..., step_2_..., etc.)
-    def step_order(s):
-        m = re.search(r"(\d+)", s["id"])
-        return int(m.group(1)) if m else 9999
-    steps.sort(key=step_order)
     return steps
 
 @app.get("/system/tools", tags=["System"])
@@ -1135,13 +1141,15 @@ class AgentsConfigJSONUpdate(BaseModel):
 def get_agents_config_json():
     """Return the parsed agents configuration from Firestore as JSON."""
     from app.database import repo_instance
+    from app.llm import _normalize_config_order
     try:
         data = repo_instance.get_agents_config()
         if not data:
             # Fallback for UI if DB empty
             from app.llm import _load_agents_config
             data = _load_agents_config()
-        return {"config": data or {}}
+        normalized = _normalize_config_order(data or {})
+        return {"config": normalized}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to read config: {str(e)}")
 
@@ -1149,14 +1157,16 @@ def get_agents_config_json():
 def update_agents_config_json(payload: AgentsConfigJSONUpdate):
     """Update agents configuration in Firestore and reload it."""
     from app.database import repo_instance
-    from app.llm import reload_agents_config
+    from app.llm import reload_agents_config, _normalize_config_order
     try:
-        repo_instance.save_agents_config(payload.config)
+        normalized = _normalize_config_order(payload.config)
+        repo_instance.save_agents_config(normalized)
         # Reload configuration in memory
         reload_agents_config()
         return {"status": "success"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to update config: {str(e)}")
+
 
 # ---------------------------------------------------------------------------
 # Retail Object Concepts Routes
