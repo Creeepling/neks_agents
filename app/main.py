@@ -1106,6 +1106,7 @@ def seed_concepts():
 @app.get("/steps", tags=["System"])
 def get_available_steps():
     """Return the list of available agent steps from agents.yaml, excluding hidden utility agents."""
+    import re
     steps = []
     for step_id, config in AGENTS_CONFIG.items():
         if config.get("hidden"):
@@ -1115,6 +1116,11 @@ def get_available_steps():
             "label": config.get("title", step_id),
             "desc": config.get("description", "")
         })
+    # Sort by the leading integer in the step ID (step_1_..., step_2_..., etc.)
+    def step_order(s):
+        m = re.search(r"(\d+)", s["id"])
+        return int(m.group(1)) if m else 9999
+    steps.sort(key=step_order)
     return steps
 
 @app.get("/system/tools", tags=["System"])
