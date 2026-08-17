@@ -46,29 +46,30 @@ def _load_agents_config() -> dict:
     try:
         from app.database import repo_instance
         config = repo_instance.get_agents_config()
-        if config is not None:
+        if config:  # treat empty dict same as None — fall through to YAML
             return config
     except Exception as e:
         print(f"Warning: Could not load agents config from Firestore: {e}")
 
-    # Fallback to agents.example.yaml
+    # Fallback: try agents.yaml first, then agents.example.yaml
     base_dir = os.path.dirname(os.path.dirname(__file__))
-    example_path = os.path.join(base_dir, "agents.example.yaml")
-    
-    try:
-        with open(example_path, "r", encoding="utf-8") as f:
-            data = yaml.safe_load(f) or {}
+    for filename in ("agents.yaml", "agents.example.yaml"):
+        yaml_path = os.path.join(base_dir, filename)
+        try:
+            with open(yaml_path, "r", encoding="utf-8") as f:
+                data = yaml.safe_load(f) or {}
             if data:
                 try:
                     from app.database import repo_instance
                     repo_instance.save_agents_config(data)
-                    print("Saved default agents config to Firestore.")
+                    print(f"Saved agents config from {filename} to Firestore.")
                 except Exception as db_e:
-                    print(f"Warning: Could not save default config to Firestore: {db_e}")
-            return data
-    except Exception as e:
-        print(f"Warning: Could not load agents.example.yaml: {e}")
-        return {}
+                    print(f"Warning: Could not save config to Firestore: {db_e}")
+                return data
+        except Exception as e:
+            print(f"Warning: Could not load {filename}: {e}")
+
+    return {}
 
 AGENTS_CONFIG = _load_agents_config()
 
