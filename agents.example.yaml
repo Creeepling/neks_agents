@@ -20,7 +20,7 @@ step_0_technical_data:
   extraction_schema:
     cadastral_number:
       type: "string"
-      description: "Кадастровый номер объекта (если найден)"
+      description: "Кадастровый номер объекта или квартала (если найден, укажи, какой)"
     metro_accessibility:
       type: "string"
       description: "Ближайшие станции метро и расстояние до них"
