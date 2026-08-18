@@ -22,7 +22,7 @@ class Settings(BaseSettings):
 
     # --- LLM ---
     GEMINI_API_KEY: Optional[str] = None
-    GEMINI_MODEL: str = "gemini-3-flash-preview"
+    GEMINI_MODEL: str = "gemini-3.7-flash"
     
     DADATA_API_KEY: Optional[str] = None
     TWOGIS_API_KEY: Optional[str] = None
