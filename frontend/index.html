@@ -1510,7 +1510,7 @@ function getStepFields(stepId) {
 ============================================================================= */
 function openNewPropertyModal() {
   const html = `
-  <div class="modal-backdrop" id="modal-backdrop" onclick="closeModalOnBackdrop(event)">
+  <div class="modal-backdrop" id="modal-backdrop" onmousedown="handleModalMousedown(event)" onmouseup="handleModalMouseup(event)">
     <div class="modal">
       <div class="modal-header">
         <div class="modal-header-text">
@@ -1680,7 +1680,7 @@ function openRetailerModal(id = null) {
   const saveBtn = r ? 'Сохранить' : 'Добавить';
 
   const html = `
-    <div class="modal-backdrop" id="modal-backdrop" onclick="closeModalOnBackdrop(event)">
+    <div class="modal-backdrop" id="modal-backdrop" onmousedown="handleModalMousedown(event)" onmouseup="handleModalMouseup(event)">
       <div class="modal">
         <div class="modal-header">
           <div class="modal-header-text">
@@ -2479,7 +2479,7 @@ function openEditPropertyModal() {
   const prop = State.currentProperty;
   if (!prop) return;
   const html = `
-  <div class="modal-backdrop" id="modal-backdrop" onclick="closeModalOnBackdrop(event)">
+  <div class="modal-backdrop" id="modal-backdrop" onmousedown="handleModalMousedown(event)" onmouseup="handleModalMouseup(event)">
     <div class="modal">
       <div class="modal-header">
         <div class="modal-header-text">
@@ -2738,7 +2738,7 @@ async function openStepModal() {
     </div>`).join('');
 
   const html = `
-  <div class="modal-backdrop" id="modal-backdrop" onclick="closeModalOnBackdrop(event)">
+  <div class="modal-backdrop" id="modal-backdrop" onmousedown="handleModalMousedown(event)" onmouseup="handleModalMouseup(event)">
     <div class="modal">
       <div class="modal-header">
         <div class="modal-header-text">
@@ -2799,7 +2799,7 @@ function openValidationWarningModal(missingFields, stepId, propId) {
   const pills = missingFields.map(f => `<span class="missing-field-pill">${escHtml(f)}</span>`).join('');
 
   const html = `
-  <div class="modal-backdrop" id="modal-backdrop" onclick="closeModalOnBackdrop(event)">
+  <div class="modal-backdrop" id="modal-backdrop" onmousedown="handleModalMousedown(event)" onmouseup="handleModalMouseup(event)">
     <div class="modal">
       <div class="modal-header">
         <div class="modal-header-text">
@@ -3185,8 +3185,15 @@ function closeModal() {
   if (el) el.remove();
 }
 
-function closeModalOnBackdrop(e) {
-  if (e.target.id === 'modal-backdrop') closeModal();
+let _modalMouseDownTarget = null;
+function handleModalMousedown(e) {
+  _modalMouseDownTarget = e.target;
+}
+function handleModalMouseup(e) {
+  if (_modalMouseDownTarget === e.target && e.target.id === 'modal-backdrop') {
+    closeModal();
+  }
+  _modalMouseDownTarget = null;
 }
 
 /* =============================================================================
@@ -3257,7 +3264,7 @@ function openConceptModal(id = null) {
   const saveBtn = c ? 'Сохранить' : 'Добавить';
 
   const html = `
-    <div class="modal-backdrop" id="modal-backdrop" onclick="closeModalOnBackdrop(event)">
+    <div class="modal-backdrop" id="modal-backdrop" onmousedown="handleModalMousedown(event)" onmouseup="handleModalMouseup(event)">
       <div class="modal">
         <div class="modal-header">
           <div class="modal-header-text">
