@@ -125,6 +125,7 @@ def extract_technical_data(query: str, silent: bool = False) -> str:
         extracted = {
             "query": query,
             "standardized_address": address.get("result", ""),
+            "postal_code": address.get("postal_code", ""),
             "cadastral_number": address.get("cadnum", ""),
             "metro_stations": address.get("metro", []),
             "tax_office": address.get("tax_office", ""),

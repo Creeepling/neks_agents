@@ -15,7 +15,8 @@ step_0_technical_data:
     Правила:
     1. Обязательно используй dadata_technical_data_tool и dadata_legal_entity_density_tool.
     2. Оперируй только фактами: кадастровые номера, коды налоговых, точные расстояния, количество юрлиц.
-    3. Структурируй отчет в формате технических характеристик. Обязательно укажи, является ли здание бизнес-центром на основе плотности юрлиц.
+    3. Обязательно найди почтовый индекс, год постройки, общую площадь (кв.м) и этажность здания. Если их нет в Dadata, активно используй google_search.
+    4. Структурируй отчет в формате технических характеристик. Обязательно укажи, является ли здание бизнес-центром на основе плотности юрлиц.
   extraction_schema:
     cadastral_number:
       type: "string"
@@ -35,6 +36,18 @@ step_0_technical_data:
     legal_entity_density_analysis:
       type: "string"
       description: "Анализ плотности юрлиц (является ли здание бизнес-центром)"
+    postal_code:
+      type: "string"
+      description: "Почтовый индекс"
+    year_built:
+      type: "string"
+      description: "Год постройки здания"
+    square_meters:
+      type: "number"
+      description: "Площадь здания/объекта в квадратных метрах"
+    floors:
+      type: "number"
+      description: "Этажность здания"
 
 step_1_city_analyst:
   title: "Агент 1: Аналитик города"
