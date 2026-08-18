@@ -1155,6 +1155,27 @@ def update_agents_config_json(payload: AgentsConfigJSONUpdate):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to update config: {str(e)}")
 
+@app.post("/system/agents-config/reset", tags=["System"])
+def reset_agents_config():
+    """Reset agents configuration to the example yaml and save to Firestore."""
+    import os
+    import yaml
+    from app.database import repo_instance
+    from app.llm import reload_agents_config
+
+    try:
+        base_dir = os.path.dirname(os.path.dirname(__file__))
+        yaml_path = os.path.join(base_dir, "agents.example.yaml")
+        with open(yaml_path, "r", encoding="utf-8") as f:
+            data = yaml.safe_load(f) or {}
+        
+        repo_instance.save_agents_config(data)
+        reload_agents_config()
+        
+        return {"status": "success", "message": "Config reset from example"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to reset config: {str(e)}")
+
 # ---------------------------------------------------------------------------
 # Retail Object Concepts Routes
 # ---------------------------------------------------------------------------

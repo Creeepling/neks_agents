@@ -1381,7 +1381,10 @@ async function renderAgentsConfig(fetchFromServer = true) {
   
   app.innerHTML = shellHtml(
     `<span class="crumb-active">Настройки агентов</span>`,
-    `<button class="btn btn-primary btn-sm" onclick="saveAgentsConfig()" id="btn-save-agents">Сохранить</button>`,
+    `<div class="flex gap-2">
+       <button class="btn btn-danger btn-sm" onclick="resetAgentsConfig()" id="btn-reset-agents">Сбросить до Default</button>
+       <button class="btn btn-primary btn-sm" onclick="saveAgentsConfig()" id="btn-save-agents">Сохранить</button>
+     </div>`,
     bodyHtml,
     'agents_config'
   );
@@ -1403,6 +1406,26 @@ async function saveAgentsConfig() {
     alert('Конфигурация успешно сохранена и перезагружена!');
   } catch (err) {
     alert('Ошибка при сохранении: ' + err.message);
+  } finally {
+    btn.textContent = originalText;
+    btn.disabled = false;
+  }
+}
+
+async function resetAgentsConfig() {
+  if (!confirm("Вы уверены? Текущие настройки агентов будут удалены, и будет загружена конфигурация по умолчанию (из файла example).")) return;
+  const btn = document.getElementById('btn-reset-agents');
+  const originalText = btn.textContent;
+  btn.textContent = 'Сброс...';
+  btn.disabled = true;
+
+  try {
+    await API.post('/system/agents-config/reset', {});
+    // Reload the config view
+    navigate('agents_config');
+    alert('Конфигурация успешно сброшена до заводских настроек!');
+  } catch (err) {
+    alert('Ошибка при сбросе: ' + err.message);
   } finally {
     btn.textContent = originalText;
     btn.disabled = false;
