@@ -1962,6 +1962,18 @@ async function refreshDetail() {
 }
 
 const DISPLAY_LABELS = {
+  cadastral_number: 'Кадастровый номер',
+  metro_accessibility: 'Доступность метро',
+  tax_and_admin_codes: 'Налоговые и админ. коды (ИФНС, ОКАТО)',
+  zoning_and_district: 'Район и округ',
+  coordinate_precision: 'Точность координат',
+  legal_entity_density_analysis: 'Анализ плотности юр. лиц',
+  macro_economic_trend: 'Макроэкономический тренд',
+  demographic_trend: 'Демографический тренд',
+  general_market_health: 'Состояние рынка',
+  financial_model_summary: 'Сводка финансовой модели',
+  capex_estimate: 'Оценка CAPEX',
+  roi_payback_period: 'ROI и окупаемость',
   current_tenants: 'Текущие арендаторы',
   city_name: 'Город',
   demographics_summary: 'Демография',
@@ -2034,6 +2046,29 @@ function formatDataValue(val) {
   return escHtml(String(val));
 }
 
+function switchDataTab(btn) {
+  const container = btn.closest('.data-viewer');
+  
+  // Reset all buttons
+  container.querySelectorAll('.tab-btn').forEach(b => {
+    b.classList.remove('active');
+    b.style.background = 'var(--bg-secondary)';
+    b.style.color = 'var(--text-primary)';
+  });
+  
+  // Set active button
+  btn.classList.add('active');
+  btn.style.background = 'var(--primary-color)';
+  btn.style.color = '#fff';
+  
+  // Hide all contents
+  container.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
+  
+  // Show target content
+  const targetId = btn.getAttribute('data-target');
+  container.querySelector('#' + targetId).style.display = 'block';
+}
+
 function renderDetailContent() {
   const prop = State.currentProperty;
   const body = document.querySelector('.page-body');
@@ -2047,18 +2082,74 @@ function renderDetailContent() {
   const HIDDEN_DATA_KEYS = new Set(['cian_processing_status']);
   const dataKeys = Object.keys(data).filter(k => !HIDDEN_DATA_KEYS.has(k));
 
-  const dataViewerRows = dataKeys.length === 0
-    ? `<div class="data-empty">Данные еще не сохранены. Начните диалог, чтобы начать исследование.</div>`
-    : dataKeys.map(k => {
+  const TAB_GROUPS = {
+    technical: {
+      label: 'Технические данные',
+      keys: new Set(['cadastral_number', 'metro_accessibility', 'tax_and_admin_codes', 'zoning_and_district', 'coordinate_precision', 'legal_entity_density_analysis'])
+    },
+    location: {
+      label: 'Город и Локация',
+      keys: new Set(['city_name', 'macro_economic_trend', 'demographic_trend', 'general_market_health', 'exact_location', 'micro_location_rating', 'infrastructure_quality', 'direct_competitors', 'square_meters', 'floors', 'demographics_summary', 'economy_summary', 'transport_logistics', 'retail_market', 'services_market', 'city_strengths_weaknesses', 'development_prospects'])
+    },
+    concepts: {
+      label: 'Концепции',
+      keys: new Set(['generated_concepts', 'finalized_concepts', 'best_use_recommendation', 'concept_name', 'concept_description', 'target_audience', 'anchor_tenants', 'service_functions', 'public_spaces', 'expected_noi_growth', 'required_investments', 'implementation_timeline', 'concept_errors', 'missing_functions', 'swot_analysis', 'main_problems'])
+    },
+    financials: {
+      label: 'Арендаторы и Финансы',
+      keys: new Set(['proposed_tenants', 'comprehensive_tenant_strategy', 'financial_model_summary', 'capex_estimate', 'roi_payback_period', 'average_rent_rate', 'average_sale_price', 'market_offers_summary', 'income_growth_potential', 'capitalization_potential', 'noi_loss_factors'])
+    }
+  };
 
-        return `<div class="data-row">
-          <div class="data-key" style="font-weight:600;">${escHtml(DISPLAY_LABELS[k] || String(k))}</div>
-          <div class="data-value-wrapper" style="width: 100%;">
-            <div class="data-value expandable-content">${formatDataValue(data[k])}</div>
-            <button class="expand-btn" onclick="toggleExpand(this)">Развернуть</button>
-          </div>
-        </div>`;
-      }).join('');
+  const groupedKeys = { technical: [], location: [], concepts: [], financials: [], other: [] };
+
+  dataKeys.forEach(k => {
+    let matched = false;
+    for (const [tabId, tabInfo] of Object.entries(TAB_GROUPS)) {
+      if (tabInfo.keys.has(k)) {
+        groupedKeys[tabId].push(k);
+        matched = true;
+        break;
+      }
+    }
+    if (!matched) groupedKeys.other.push(k);
+  });
+
+  const renderDataRow = (k) => {
+    return `<div class="data-row">
+      <div class="data-key" style="font-weight:600;">${escHtml(DISPLAY_LABELS[k] || String(k))}</div>
+      <div class="data-value-wrapper" style="width: 100%;">
+        <div class="data-value expandable-content">${formatDataValue(data[k])}</div>
+        <button class="expand-btn" onclick="toggleExpand(this)">Развернуть</button>
+      </div>
+    </div>`;
+  };
+
+  let tabButtonsHTML = '';
+  let tabContentsHTML = '';
+  const activeTabs = [];
+
+  if (groupedKeys.technical.length > 0) activeTabs.push({ id: 'technical', label: TAB_GROUPS.technical.label, keys: groupedKeys.technical });
+  if (groupedKeys.location.length > 0) activeTabs.push({ id: 'location', label: TAB_GROUPS.location.label, keys: groupedKeys.location });
+  if (groupedKeys.concepts.length > 0) activeTabs.push({ id: 'concepts', label: TAB_GROUPS.concepts.label, keys: groupedKeys.concepts });
+  if (groupedKeys.financials.length > 0) activeTabs.push({ id: 'financials', label: TAB_GROUPS.financials.label, keys: groupedKeys.financials });
+  if (groupedKeys.other.length > 0) activeTabs.push({ id: 'other', label: 'Прочее', keys: groupedKeys.other });
+
+  if (activeTabs.length === 0) {
+    tabContentsHTML = `<div class="data-empty">Данные еще не сохранены. Начните диалог, чтобы начать исследование.</div>`;
+  } else {
+    tabButtonsHTML = `<div class="tabs-list" style="display:flex; gap:8px; margin-bottom:16px; overflow-x:auto;">`;
+    activeTabs.forEach((tab, idx) => {
+      const isActive = idx === 0 ? 'active' : '';
+      const bg = idx === 0 ? 'var(--primary-color)' : 'var(--bg-secondary)';
+      const fg = idx === 0 ? '#fff' : 'var(--text-primary)';
+      tabButtonsHTML += `<button class="tab-btn ${isActive}" data-target="tab-${tab.id}" onclick="switchDataTab(this)" style="padding: 6px 12px; border-radius: 6px; border: none; background: ${bg}; color: ${fg}; font-size: 13px; font-weight: 500; cursor: pointer; white-space: nowrap;">${tab.label} (${tab.keys.length})</button>`;
+      tabContentsHTML += `<div id="tab-${tab.id}" class="tab-content" style="display: ${idx === 0 ? 'block' : 'none'};">
+        ${tab.keys.map(k => renderDataRow(k)).join('')}
+      </div>`;
+    });
+    tabButtonsHTML += `</div>`;
+  }
 
   body.innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;gap:12px">
@@ -2077,12 +2168,15 @@ function renderDetailContent() {
       <div>
         <div class="section-title">Сохраненные данные</div>
         <div class="data-viewer">
-          <div class="data-viewer-header">
-            <span class="data-viewer-title">Данные объекта</span>
-            <span class="badge badge-neutral">${dataKeys.length} полей</span>
+          <div class="data-viewer-header" style="flex-direction: column; align-items: stretch; gap: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span class="data-viewer-title">Данные объекта</span>
+              <span class="badge badge-neutral">${dataKeys.length} полей</span>
+            </div>
+            ${tabButtonsHTML}
           </div>
           <div class="data-viewer-body">
-            ${dataViewerRows}
+            ${tabContentsHTML}
           </div>
         </div>
         
