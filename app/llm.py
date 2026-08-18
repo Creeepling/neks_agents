@@ -435,6 +435,18 @@ def get_agent_reply(
                     except Exception as e:
                         send_telegram_alert(f"🛑 **[ERROR]** Tool `append_extra_data_tool` failed: {str(e)}")
                         parts.append(types.Part.from_function_response(name=fc.name, response={"error": str(e)}))
+                
+                else:
+                    # Dynamic tool execution fallback for any tool properly registered in AVAILABLE_TOOLS
+                    if fc.name in AVAILABLE_TOOLS and callable(AVAILABLE_TOOLS[fc.name]):
+                        args = fc.args
+                        try:
+                            result = AVAILABLE_TOOLS[fc.name](**args)
+                            parts.append(types.Part.from_function_response(name=fc.name, response={"result": result}))
+                        except Exception as e:
+                            parts.append(types.Part.from_function_response(name=fc.name, response={"error": str(e)}))
+                    else:
+                        parts.append(types.Part.from_function_response(name=fc.name, response={"error": f"Tool {fc.name} not implemented or not callable in registry."}))
             
             messages.append({"role": "user", "parts": parts})
             continue
