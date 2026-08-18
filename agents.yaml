@@ -177,7 +177,7 @@ step_2_object_location:
 
 step_3_offers_analyzer:
   title: "Агент 3: Аналитик предложений (Cian & Avito)"
-  available_tools: ["google_search", "fetch_market_listings_tool"]
+  available_tools: ["google_search"]
   injected_context: ["cian_offers"]
   description: "Анализ предложений и цен на cian и avito в локации."
   first_user_message: |
