@@ -1,5 +1,37 @@
 # Конфигурация Агентов
 
+step_0_technical_data:
+  title: "Агент 0: Технический сбор данных"
+  available_tools: ["dadata_technical_data_tool", "google_search"]
+  description: "Сбор точных технических и кадастровых данных об объекте."
+  first_user_message: |
+    Пользователь предоставил адрес. Сначала используй инструмент dadata_technical_data_tool для получения точных координат, кадастрового номера, расстояния до метро, налоговой (IFNS) и других административных кодов.
+    Затем используй Google Search (поиск), чтобы найти любую недостающую техническую информацию, если необходимо.
+    Подготовь сухой, четкий технический отчет об объекте.
+  required_fields: []
+  system_prompt: |
+    Ты — технический аналитик коммерческой недвижимости. Твоя единственная цель — собрать максимально точные кадастровые, административные и географические данные по объекту.
+    Правила:
+    1. Обязательно используй dadata_technical_data_tool.
+    2. Оперируй только фактами: кадастровые номера, коды налоговых, точные расстояния.
+    3. Структурируй отчет в формате технических характеристик.
+  extraction_schema:
+    cadastral_number:
+      type: "string"
+      description: "Кадастровый номер объекта (если найден)"
+    metro_accessibility:
+      type: "string"
+      description: "Ближайшие станции метро и расстояние до них"
+    tax_and_admin_codes:
+      type: "string"
+      description: "Коды налоговой (IFNS), OKATO, OKTMO"
+    zoning_and_district:
+      type: "string"
+      description: "Административный округ и район"
+    coordinate_precision:
+      type: "string"
+      description: "Точность координат (до здания, улицы, города)"
+
 step_1_city_analyst:
   title: "Агент 1: Аналитик города"
   available_tools: ["google_search"]

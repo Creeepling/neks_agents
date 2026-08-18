@@ -5,6 +5,7 @@ from app.tools.twogis_maps import search_twogis_businesses, send_telegram_alert
 from app.tools.dadata_licenses import search_dadata_licenses, bulk_check_twogis_companies
 from app.tools.combined_tools import analyze_location_businesses
 from app.tools.cian_scraper import fetch_cian_commercial_listings
+from app.tools.dadata_addresses import extract_technical_data
 from app.tools.apify_scraper import fetch_market_listings
 from app.tools.financial_calculator import calculate_tenant_mix_financials_tool
 
@@ -49,6 +50,13 @@ def dadata_licenses_tool(query: str) -> str:
     Ищет лицензии организации по ИНН, названию или адресу с помощью API Dadata.
     """
     return search_dadata_licenses(query)
+
+def dadata_technical_data_tool(query: str) -> str:
+    """
+    Получение точных технических и кадастровых данных об объекте по адресу с помощью Dadata.
+    Возвращает кадастровый номер, расстояние до метро, налоговую (IFNS) и другие административные коды.
+    """
+    return extract_technical_data(query)
 
 def bulk_dadata_licenses_tool() -> str:
     """
@@ -116,6 +124,7 @@ def calculate_tenant_mix_financials(tenants_list: str, total_sqm: float, total_c
 
 AVAILABLE_TOOLS = {
     "google_search": {"google_search": {}},
+    "dadata_technical_data_tool": dadata_technical_data_tool,
     "dadata_licenses": dadata_licenses_tool,
     "analyze_location_businesses": analyze_location_businesses_tool,
     "match_retail_requirements_tool": match_retail_requirements_tool,
@@ -129,6 +138,7 @@ AVAILABLE_TOOLS = {
 
 TOOL_METADATA = [
     { "id": "google_search", "label": "Google Search", "desc": "Поиск актуальной информации в интернете" },
+    { "id": "dadata_technical_data_tool", "label": "Технические данные Dadata", "desc": "Получение кадастрового номера и админ. кодов по адресу" },
     { "id": "analyze_location_businesses", "label": "Анализ локации и бизнеса", "desc": "Поиск организаций (2GIS) + проверка лицензий (Dadata)" },
     { "id": "twogis_maps_tool", "label": "Поиск в 2GIS", "desc": "Получение списка организаций по адресу" },
     { "id": "dadata_licenses", "label": "Проверка лицензий Dadata", "desc": "Поиск алкогольных/образовательных лицензий по ИНН/адресу" },
