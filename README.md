@@ -8,35 +8,37 @@
 [![Firestore](https://img.shields.io/badge/Google_Firestore-Native-red.svg)](https://cloud.google.com/firestore)
 [![Docker](https://img.shields.io/badge/Docker-Cloud_Run_Ready-blue.svg)](https://cloud.google.com/run)
 
+[🇷🇺 Читать на русском](README_RU.md)
+
 ---
 
 ## 📺 60–90s Demo Video
-> 🎥 **[Смотреть видеодемонстрацию платформы (Loom / YouTube) ↗](https://github.com/Creeepling/neks_agents)**  
-> *(Короткий разбор: запуск диалогового агента, работа гео-инструментов 2GIS/Dadata, фиксация структурированных данных и работа с карточкой объекта)*
+> 🎥 **[Watch Platform Demo (Loom / YouTube) ↗](https://github.com/Creeepling/neks_agents)**  
+> *(Walkthrough: conversational agent launch, 2GIS/DaData geospatial tool calling, structured data extraction, and property state management)*
 
 ---
 
-## 🎯 Какую бизнес-задачу решает проект
-Комплексный пред-инвестиционный аудит и разработка концепции коммерческой недвижимости (Best Use, аудит ограничений и лицензий, подбор пула арендаторов и финмоделирование) вручную занимают у аналитиков и брокеров **от 3 до 5 рабочих дней**. Процесс фрагментирован: данные собираются из десятков разрозненных источников (Росреестр, карты, классифайды, реестры лицензий), что ведет к потере контекста и ошибкам в расчетах.
+## 🎯 Business Problem Solved
+Commercial real estate pre-acquisition analysis and Highest & Best Use (HBU) concept modeling manually take **3 to 5 business days (24–40 analyst hours)**. The workflow is heavily fragmented across disparate registries (cadastral records, geospatial data, license registers, market listings), leading to lost context and error-prone assumptions.
 
-**Neks Agents** автоматизирует этот цикл через последовательный конвейер специализированных AI-агентов. Пользователь ведет предметный диалог с профильными цифровыми экспертами, а система гарантированно извлекает факты в единый типизированный профиль объекта без потери контекста.
-
----
-
-## 👨‍💻 Личный вклад и зона ответственности
-Проект полностью спроектирован и разработан мной с нуля:
-- **Архитектура бэкенда:** Разработал модульный асинхронный сервер на FastAPI (Python 3.12) с управлением сессиями и изоляцией данных пользователей.
-- **Оркестрация LLM & Structured Extraction:** Реализовал двухфазный пайплайн диалога и гарантированной фиксации данных (`/commit`) через библиотеку `instructor` и Pydantic-схемы (100% защита базы данных от галлюцинаций LLM).
-- **Интеграция инструментов (Tool Calling):** Написал Tool Registry с каскадным обогащением (2GIS Places API $\to$ Dadata ИНН/лицензии $\to$ парсеры классифайдов).
-- **Математический калькулятор и матчинг:** Разработал алгоритм предикатного сопоставления требований ритейлеров (кв.м, кВт) в NoSQL Firestore и финансовый расчет доходности/NOI.
-- **Инфраструктура и деплой:** Контейнеризировал сервис (multi-stage Docker) и настроил бессерверный деплой в Google Cloud Run с Cloud SQL/Firestore и Secret Manager.
-
-> ℹ️ **Примечание об авторстве коммитов в Git:**  
-> Все коммиты с именем `Neks Dev <dev@neks.local>` в истории репозитория являются моими личными коммитами, сделанными в локальной изолированной среде разработки проекта.
+**Neks Agents** automates this pipeline through a sequential multi-agent AI architecture. Users engage in domain-specific conversational sessions with autonomous AI specialists, while the platform deterministically extracts validated facts into a unified property knowledge graph without context loss.
 
 ---
 
-## 🏛 Архитектура системы
+## 👨‍💻 My Role & Key Contributions
+Designed and implemented the platform from scratch:
+- **Backend Architecture:** Built a modular asynchronous FastAPI (Python 3.12) server with session isolation and rate limiting.
+- **LLM Orchestration & Structured Extraction:** Designed a two-phase conversation and extraction pipeline (`/commit`) using `instructor` and Pydantic v2 (guaranteeing 100% type-safe JSON persistence without LLM hallucinations).
+- **Tool-Calling Ecosystem:** Implemented a unified Tool Registry integrating 2GIS Places API (infrastructure/POIs), DaData API (cadastral data, legal entity density, alcohol/medical licenses), and market scrapers.
+- **Retailer Matching & Financial Calculator:** Developed constraint-matching logic against a NoSQL Firestore database of retailer requirements (sqm, kW) and financial feasibility modeling (NOI, yield, payback).
+- **DevOps & Cloud Deployment:** Containerized with multi-stage Docker and deployed to Google Cloud Run with Firestore Native and Google Secret Manager.
+
+> ℹ️ **Note on Git Commit History:**  
+> All commits authored by `Neks Dev <dev@neks.local>` are my personal commits authored in my local development environment.
+
+---
+
+## 🏛 System Architecture
 
 ```mermaid
 flowchart LR
@@ -77,30 +79,30 @@ flowchart LR
 
 ---
 
-## ⚙️ Ключевые инженерные решения и почему они были выбраны
+## ⚙️ Key Engineering Decisions & Rationale
 
-1. **Двухфазный Commit (Two-Phase Data Extraction) вместо прямого JSON-чата:**  
-   *Почему:* Свободный диалог на естественном языке удобен пользователю, но непригоден для строгих БД. Использование `instructor` на этапе завершения шага гарантирует строгую Pydantic-валидацию (типы, enums, вложенные списки) без поломки схемы.
-2. **Декларативный конфигуратор агентов (`agents.yaml` + Firestore):**  
-   *Почему:* Системные промпты, доступные инструменты и схемы извлечения вынесены в конфиг. Это позволяет менять логику и добавлять новых агентов без модификации и пересборки ядра приложения.
-3. **Единый контейнер (FastAPI + SPA Static Serving):**  
-   *Почему:* FastAPI напрямую раздает легковесный SPA UI на корневом пути `/`. Это устранило CORS-оверхед, упростило деплой в Google Cloud Run до одного контейнера и исключило рассинхронизацию версий API и интерфейса.
-4. **Безопасность и отказоустойчивость:**  
-   *Фактический стек защиты:* Авторизация на базе JWT (OAuth2 Password Bearer) с хешированием паролей через `bcrypt`, защита эндпоинтов от спама через `SlowAPI` (120 req/min), изолированное хранение секретов в Google Secret Manager.
+1. **Two-Phase Extraction (`/commit`) vs. Pure JSON Chat:**  
+   *Why:* Natural language dialogue allows fluid exploration, but is risky for database integrity. Calling `instructor` at step completion guarantees strict Pydantic validation (types, enums, nested lists) before writing to the database.
+2. **Declarative Agent Pipeline (`agents.yaml` + Firestore):**  
+   *Why:* System prompts, tool assignments, and JSON schemas are decoupled from application code. New specialized agent roles can be introduced or modified at runtime without backend rebuilds.
+3. **Unified Single-Container Serving (FastAPI + SPA Static):**  
+   *Why:* FastAPI directly serves the zero-build SPA frontend on the root path `/`. This eliminates CORS complexity, simplifies deployment to Google Cloud Run into a single container, and guarantees frontend-backend version parity.
+4. **Security & Reliability:**  
+   *Actual security stack:* JWT authentication (OAuth2 Password Bearer) with `bcrypt` password hashing, endpoint rate limiting via `SlowAPI` (120 req/min), and secret management with Google Secret Manager.
 
 ---
 
-## 🚦 Статус компонентов: Production-Ready vs Demo/Portfolio
+## 🚦 Component Status: Production-Ready vs. Demo/Portfolio
 
-| Модуль / Подсистема | Статус | Описание реализации |
+| Module / Subsystem | Status | Implementation Details |
 | :--- | :---: | :--- |
-| **Auth, JWT, Rate Limiter** | ✅ **Active Core** | Рабочая авторизация пользователей, хеширование bcrypt, лимиты SlowAPI. |
-| **State Machine & Multi-Agent Loop** | ✅ **Active Core** | Пошаговый запуск агентов, валидация предусловий `/validate`, изоляция сессий. |
-| **Structured Commit (Instructor)** | ✅ **Active Core** | Надежный парсинг диалогов в JSON с валидацией Pydantic-моделями. |
-| **Интеграции Dadata & 2GIS** | ✅ **Active Core** | Геокодинг, проверка плотности юрлиц и реестров алкогольных/медицинских лицензий. |
-| **OCR & Multimodal парсер ЕГРН** | ✅ **Active Core** | Извлечение кадастровых данных и обременений из сканов/PDF через Gemini Vision. |
-| **Tenant Matching & FinCalc** | 🟡 **Demo / MVP** | Матчинг по предзаполненной базе ритейлеров в Firestore и расчет базовой финмодели. |
-| **Cian / Market Offers Scraper** | 🟡 **Demo / Lab** | Прототипный парсинг открытых листингов (требует прокси-пула в high-load). |
+| **Auth, JWT, Rate Limiter** | ✅ **Active Core** | User registration, bcrypt password hashing, SlowAPI rate limiting. |
+| **State Machine & Multi-Agent Loop** | ✅ **Active Core** | Step-by-step agent lifecycle, prerequisite validation (`/validate`), session isolation. |
+| **Structured Commit (Instructor)** | ✅ **Active Core** | Schema-enforced chat extraction into typed Pydantic models. |
+| **DaData & 2GIS Integrations** | ✅ **Active Core** | Geocoding, cadastral validation, legal entity density, and license checks. |
+| **EGRN Document OCR Parser** | ✅ **Active Core** | Cadastral extract parsing and encumbrance extraction via Gemini Multimodal. |
+| **Tenant Matching & FinCalc** | 🟡 **Demo / MVP** | Rule-based retailer constraint matching and unit economics modeling. |
+| **Market Offers Scraper** | 🟡 **Demo / Lab** | Open-source listing scrapers (requires proxy rotation for high-load production). |
 
 ---
 
