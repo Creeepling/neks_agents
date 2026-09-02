@@ -64,7 +64,7 @@ flowchart LR
     end
 
     subgraph Storage ["Persistence Layer"]
-        DB[("Google Cloud Firestore / PostgreSQL\n(Properties, Users, Concepts)")]
+        DB[("Google Cloud Firestore (Native NoSQL)\n(Properties, Users, Concepts, Requirements)")]
     end
 
     UI <-->|REST API / Bearer JWT| Auth
