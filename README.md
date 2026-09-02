@@ -13,7 +13,7 @@
 ---
 
 ## 📺 60–90s Demo Video
-> 🎥 **[Watch Platform Demo (Loom / YouTube) ↗](https://github.com/Creeepling/neks_agents)**  
+> 🎥 **[Watch Platform Demo on YouTube ↗](https://youtu.be/ed7S6_05rxM)**  
 > *(Walkthrough: conversational agent launch, 2GIS/DaData geospatial tool calling, structured data extraction, and property state management)*
 
 ---
