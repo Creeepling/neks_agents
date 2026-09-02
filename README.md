@@ -28,7 +28,7 @@ Commercial real estate pre-acquisition analysis and Highest & Best Use (HBU) con
 ## 👨‍💻 My Role & Key Contributions
 Designed and implemented the platform from scratch:
 - **Backend Architecture:** Built a modular asynchronous FastAPI (Python 3.12) server with session isolation and rate limiting.
-- **LLM Orchestration & Structured Extraction:** Designed a two-phase conversation and extraction pipeline (`/commit`) using `instructor` and Pydantic v2 (guaranteeing 100% type-safe JSON persistence without LLM hallucinations).
+- **LLM Orchestration & Structured Extraction:** Designed a two-phase conversation and extraction pipeline (`/commit`) using `instructor` and Pydantic v2 (enforcing schema-validated structured persistence to prevent malformed or type-invalid LLM outputs from reaching the database).
 - **Tool-Calling Ecosystem:** Implemented a unified Tool Registry integrating 2GIS Places API (infrastructure/POIs), DaData API (cadastral data, legal entity density, alcohol/medical licenses), and market scrapers.
 - **Retailer Matching & Financial Calculator:** Developed constraint-matching logic against a NoSQL Firestore database of retailer requirements (sqm, kW) and financial feasibility modeling (NOI, yield, payback).
 - **DevOps & Cloud Deployment:** Containerized with multi-stage Docker and deployed to Google Cloud Run with Firestore Native and Google Secret Manager.

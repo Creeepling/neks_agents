@@ -1,12 +1,37 @@
+# Byte-compiled / optimized files
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+
+# Environment & Credentials
 .env
+.env.local
+service-account.json
+
+# Virtual Environments
 .venv/
 venv/
 env/
+
+# IDE & Editor Settings
 .idea/
 .vscode/
+.DS_Store
+Thumbs.db
+
+# Databases & Local Storage
 *.db
-a g e n t s . y a m l  
- 
-service-account.json
+*.sqlite3
+
+# Scratch & Temporary Scraper Dumps
+scratch/
+nspd_*
+scrape_nspd*
+fetch_js.py
+test_api.py
+
+# Generated Reports & Local Datasets
+*.pdf
+*.xlsx
+result.json
+offers_preview.json
